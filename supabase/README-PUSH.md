@@ -37,3 +37,42 @@ curl -X POST "https://ctobdkstnrhepixyujms.supabase.co/functions/v1/send-push" \
   -H "x-push-secret: SEU_PUSH_SECRET" \
   -d '{"titulo":"Sistema Videira","corpo":"Teste de push","url":"./login.html","todos":true}'
 ```
+
+## 5. Disparo automatico (eventos)
+
+A Edge Function `notificar` recebe o webhook do banco e resolve os destinatarios.
+
+- `supabase/migrations/002_push_triggers.sql`: cria o dispatcher `public.push_triggers_dispatch()` e os triggers de INSERT em `palavras`, `eventos`, `inscricoes_eventos`, `sugestoes` e `relatorios`.
+- Regras: palavra/evento/inscricao → todos; oracao → pastores; relatorio → cadeia `superior_id` (discipulador + pastor).
+
+Teste manual (com `dry_run` para nao enviar):
+
+```bash
+curl -X POST "https://ctobdkstnrhepixyujms.supabase.co/functions/v1/notificar" \
+  -H "Content-Type: application/json" \
+  -H "x-push-secret: SEU_PUSH_SECRET" \
+  -d '{"table":"palavras","record":{"tema":"Teste"},"dry_run":true}'
+```
+
+## 6. Job diario (aniversariante + agenda)
+
+- Edge Function `notificar-diario`: aniversariantes do dia → lider da celula; eventos com `data_evento` = hoje → todos.
+- `supabase/migrations/003_push_cron.sql`: agenda via `pg_cron` as 09:00 America/Sao_Paulo (12:00 UTC).
+
+Teste manual:
+
+```bash
+curl -X POST "https://ctobdkstnrhepixyujms.supabase.co/functions/v1/notificar-diario" \
+  -H "Content-Type: application/json" \
+  -H "x-push-secret: SEU_PUSH_SECRET" \
+  -d '{"dry_run":true}'
+```
+
+## 7. Secret no Vault
+
+Os triggers e o cron leem o `PUSH_SECRET` do Vault (nao fica no git):
+
+```sql
+select vault.create_secret('SEU_PUSH_SECRET', 'push_secret', 'Secret dos triggers de push');
+```
+
