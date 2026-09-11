@@ -7,8 +7,10 @@ const PRECACHE = [
   './style.css',
   './logo.png',
   './icons/icon-192.png',
+  './icons/icon-192-maskable.png',
   './icons/icon-512.png',
   './icons/icon-180.png',
+  './icons/badge.png',
   './js/pwa.js',
   './js/push.js',
   './offline.html'
@@ -105,8 +107,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
+      icon: './icons/icon-192-maskable.png',
+      badge: './icons/badge.png',
       data: { url: data.url || './index.html' }
     })
   );
