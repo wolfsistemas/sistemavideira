@@ -43,7 +43,7 @@ curl -X POST "https://ctobdkstnrhepixyujms.supabase.co/functions/v1/send-push" \
 A Edge Function `notificar` recebe o webhook do banco e resolve os destinatarios.
 
 - `supabase/migrations/002_push_triggers.sql`: cria o dispatcher `public.push_triggers_dispatch()` e os triggers de INSERT em `palavras`, `eventos`, `inscricoes_eventos`, `sugestoes` e `relatorios`.
-- Regras: palavra/evento/inscricao → todos; oracao → pastores; relatorio → cadeia `superior_id` (discipulador + pastor).
+- Regras: palavra/evento → todos; inscricao → pastores e discipuladores; oracao → pastores; relatorio → cadeia `superior_id` (discipulador + pastor).
 
 Teste manual (com `dry_run` para nao enviar):
 

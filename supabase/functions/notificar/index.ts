@@ -51,14 +51,22 @@ function configurarVapid() {
   webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
 }
 
-async function idsPastores(sb: SupabaseClient): Promise<string[]> {
+async function idsPorCategoria(sb: SupabaseClient, padrao: string): Promise<string[]> {
   const { data, error } = await sb
     .from("pessoas")
     .select("id")
-    .ilike("categoria", "%pastor%")
+    .ilike("categoria", padrao)
     .eq("is_user", true);
   if (error) throw new Error(error.message);
   return (data || []).map((p) => p.id);
+}
+
+async function idsPastoresEDiscipuladores(sb: SupabaseClient): Promise<string[]> {
+  const [pastores, discipuladores] = await Promise.all([
+    idsPorCategoria(sb, "%pastor%"),
+    idsPorCategoria(sb, "%discipulador%"),
+  ]);
+  return [...new Set([...pastores, ...discipuladores])];
 }
 
 async function superioresDoLider(sb: SupabaseClient, liderId: string): Promise<string[]> {
@@ -135,16 +143,18 @@ async function montarNotificacao(
         alvo: { modo: "todos" },
       };
 
-    case "inscricoes_eventos":
+    case "inscricoes_eventos": {
+      const ids = await idsPastoresEDiscipuladores(sb);
       return {
-        titulo: "Nova inscrição",
+        titulo: "Nova inscrição em evento",
         corpo: "Há uma nova inscrição em evento.",
         url: "./pastor.html",
-        alvo: { modo: "todos" },
+        alvo: { modo: "ids", ids },
       };
+    }
 
     case "sugestoes": {
-      const ids = await idsPastores(sb);
+      const ids = await idsPorCategoria(sb, "%pastor%");
       return {
         titulo: "Novo pedido de oração",
         corpo: texto(record.mensagem).slice(0, 120) || "Um novo pedido de oração foi enviado.",
