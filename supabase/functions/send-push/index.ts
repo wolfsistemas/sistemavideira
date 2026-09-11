@@ -53,13 +53,23 @@ serve(async (req) => {
 
   const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") || "";
   const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") || "";
-  const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:contato@videirajatai.com.br";
+  let vapidSubject = (Deno.env.get("VAPID_SUBJECT") || "").trim();
 
   if (!vapidPublic || !vapidPrivate) {
     return json(500, { error: "vapid_not_configured" });
   }
 
-  webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
+  if (!vapidSubject) {
+    vapidSubject = "mailto:contato@videirajatai.com.br";
+  } else if (!vapidSubject.includes(":") && vapidSubject.includes("@")) {
+    vapidSubject = `mailto:${vapidSubject}`;
+  }
+
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
+  } catch (e) {
+    return json(500, { error: "vapid_invalido", detail: String(e) });
+  }
 
   let body: Payload;
   try {
