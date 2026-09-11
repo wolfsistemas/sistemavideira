@@ -730,7 +730,7 @@
           if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return;
           try {
               const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                  redirectTo: window.location.origin + '/sistema/nova-senha.html'
+                  redirectTo: new URL('nova-senha.html', window.location.href).href
               });
               if (error) throw error;
               registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);

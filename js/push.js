@@ -57,21 +57,17 @@
         })
       ]);
       let sub = await registro.pushManager.getSubscription();
-      if (sub) {
-        try {
-          await sub.unsubscribe();
-        } catch (e) {}
-        sub = null;
+      if (!sub) {
+        sub = await Promise.race([
+          registro.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: chaveParaBytes(VAPID_PUBLIC_KEY)
+          }),
+          new Promise(function (_, reject) {
+            setTimeout(function () { reject(new Error('subscribe timeout')); }, 8000);
+          })
+        ]);
       }
-      sub = await Promise.race([
-        registro.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: chaveParaBytes(VAPID_PUBLIC_KEY)
-        }),
-        new Promise(function (_, reject) {
-          setTimeout(function () { reject(new Error('subscribe timeout')); }, 8000);
-        })
-      ]);
 
       const json = sub.toJSON();
       if (!json.endpoint || !json.keys || !json.keys.p256dh || !json.keys.auth) {
