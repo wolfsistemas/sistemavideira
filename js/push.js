@@ -50,7 +50,12 @@
         if (perm !== 'granted') return;
       }
 
-      const registro = await navigator.serviceWorker.ready;
+      const registro = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('service worker timeout')); }, 8000);
+        })
+      ]);
       let sub = await registro.pushManager.getSubscription();
       if (sub) {
         try {
@@ -58,10 +63,15 @@
         } catch (e) {}
         sub = null;
       }
-      sub = await registro.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: chaveParaBytes(VAPID_PUBLIC_KEY)
-      });
+      sub = await Promise.race([
+        registro.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: chaveParaBytes(VAPID_PUBLIC_KEY)
+        }),
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('subscribe timeout')); }, 8000);
+        })
+      ]);
 
       const json = sub.toJSON();
       if (!json.endpoint || !json.keys || !json.keys.p256dh || !json.keys.auth) {

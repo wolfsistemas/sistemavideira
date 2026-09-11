@@ -28,9 +28,7 @@
   function registrarSW() {
     if (!('serviceWorker' in navigator)) return;
     const swUrl = new URL('sw.js', window.location.href);
-    navigator.serviceWorker.register(swUrl.href, { scope: './' }).then(function () {
-      if (window.VideiraPush) VideiraPush.ativar();
-    }).catch(function () {});
+    navigator.serviceWorker.register(swUrl.href, { scope: './' }).catch(function () {});
   }
 
   function mostrarBanner(deferred) {
