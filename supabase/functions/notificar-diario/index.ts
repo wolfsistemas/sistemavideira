@@ -55,6 +55,19 @@ function dataHoje(): { iso: string; mes: string; dia: string } {
 
 type Alvo = { modo: "todos" } | { modo: "ids"; ids: string[] };
 
+async function configPush(sb: SupabaseClient): Promise<Record<string, boolean>> {
+  const { data, error } = await sb.from("push_config").select("chave, ativo");
+  if (error) return {};
+  const mapa: Record<string, boolean> = {};
+  for (const row of data || []) mapa[row.chave] = row.ativo === true;
+  return mapa;
+}
+
+function chaveAtiva(config: Record<string, boolean>, chave: string) {
+  if (config.global === false) return false;
+  return config[chave] !== false;
+}
+
 async function enviar(
   sb: SupabaseClient,
   titulo: string,
@@ -205,8 +218,13 @@ serve(async (req) => {
   );
 
   try {
-    const aniversariantes = await notificarAniversariantes(sb, dryRun);
-    const agenda = await notificarAgenda(sb, dryRun);
+    const config = await configPush(sb);
+    const aniversariantes = chaveAtiva(config, "aniversario")
+      ? await notificarAniversariantes(sb, dryRun)
+      : { desativado: true };
+    const agenda = chaveAtiva(config, "agenda")
+      ? await notificarAgenda(sb, dryRun)
+      : { desativado: true };
     return json(200, { ok: true, dry_run: dryRun, aniversariantes, agenda });
   } catch (e) {
     return json(500, { error: String(e) });

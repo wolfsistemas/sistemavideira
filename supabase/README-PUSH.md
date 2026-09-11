@@ -76,3 +76,12 @@ Os triggers e o cron leem o `PUSH_SECRET` do Vault (nao fica no git):
 select vault.create_secret('SEU_PUSH_SECRET', 'push_secret', 'Secret dos triggers de push');
 ```
 
+## 8. Liga/desliga pelo Painel Admin
+
+`supabase/migrations/004_push_config.sql` cria `public.push_config`. A aba **Notificacoes** do `admin.html` liga/desliga cada tipo. A chave `global` desliga tudo.
+
+Chaves: `global`, `palavra`, `evento`, `inscricao`, `oracao`, `relatorio`, `aniversario`, `agenda`.
+
+As Edge Functions `notificar` e `notificar-diario` leem essa tabela e ignoram o envio quando a chave estiver desligada.
+
+

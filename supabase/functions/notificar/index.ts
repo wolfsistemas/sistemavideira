@@ -83,6 +83,27 @@ type Alvo =
   | { modo: "todos" }
   | { modo: "ids"; ids: string[] };
 
+const CHAVE_POR_TABELA: Record<string, string> = {
+  palavras: "palavra",
+  eventos: "evento",
+  inscricoes_eventos: "inscricao",
+  sugestoes: "oracao",
+  relatorios: "relatorio",
+};
+
+async function configPush(sb: SupabaseClient): Promise<Record<string, boolean>> {
+  const { data, error } = await sb.from("push_config").select("chave, ativo");
+  if (error) return {};
+  const mapa: Record<string, boolean> = {};
+  for (const row of data || []) mapa[row.chave] = row.ativo === true;
+  return mapa;
+}
+
+function chaveAtiva(config: Record<string, boolean>, chave: string) {
+  if (config.global === false) return false;
+  return config[chave] !== false;
+}
+
 type Notificacao = {
   titulo: string;
   corpo: string;
@@ -247,6 +268,14 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_URL") || "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
   );
+
+  const chave = CHAVE_POR_TABELA[table];
+  if (chave) {
+    const config = await configPush(sb);
+    if (!chaveAtiva(config, chave)) {
+      return json(200, { ok: true, table, desativado: chave });
+    }
+  }
 
   const notificacao = await montarNotificacao(sb, table, record);
   if ("erro" in notificacao) {
