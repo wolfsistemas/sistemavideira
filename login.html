@@ -299,7 +299,7 @@
 
             const paginas = paginasPorCategoria(categoriaNormalizada);
             gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
-            if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+            if (window.VideiraPush) await VideiraPush.ativar(supabaseClient);
             aplicarSaudacao(nomeReal);
 
             const podeBio = ehCelular() && await Biometria.plataformaDisponivel();
@@ -450,7 +450,7 @@
                     registrarLog(cadastro.email, nomeReal, "Fez login com biometria");
                 }
                 gravarSessaoLocal(nomeReal, cadastro.email, categoriaNormalizada, paginas);
-                if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+                if (window.VideiraPush) await VideiraPush.ativar(supabaseClient);
                 aplicarSaudacao(nomeReal);
                 seguirParaPaineis(nomeReal, paginas);
             } catch (e) {
