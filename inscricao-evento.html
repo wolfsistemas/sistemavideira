@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrição • Videira Jataí</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <meta name="theme-color" content="#800020">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        :root {
+            --primary: #800020;
+            --primary-light: #9a0026;
+            --accent: #D4AF37;
+            --ouro-escuro: #b5952f;
+            --success-text: #1e8e3e;
+            --success-bg: #e6f4ea;
+            --danger-text: #c5221f;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #f7f1f2 0%, #eef1f5 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 12px;
+        }
+        .card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 520px;
+            border-radius: 22px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.10);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .card-banner {
+            background: linear-gradient(135deg, var(--primary) 0%, #5c0016 100%);
+            padding: 28px 24px 22px;
+            text-align: center;
+            position: relative;
+        }
+        .card-banner img.logo {
+            width: 78px;
+            height: 78px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            margin-bottom: 12px;
+        }
+        .card-banner h1 {
+            color: #fff;
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0 0 4px;
+            letter-spacing: 0.3px;
+        }
+        .card-banner .subtitulo {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .card-body { padding: 24px; }
+        .evento-foto {
+            width: 100%;
+            max-height: 230px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow);
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .info-item {
+            background: #f8fafc;
+            border: 1px solid #e9edf2;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.78rem;
+            color: var(--text-light);
+        }
+        .info-item.full { grid-column: 1 / -1; }
+        .info-item strong { display: block; color: var(--text-main); font-size: 0.88rem; margin-top: 2px; }
+        .valor-badge {
+            background: linear-gradient(135deg, var(--accent), var(--ouro-escuro));
+            color: #3a2c00;
+            font-weight: 800;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-size: 1.15rem;
+            margin-bottom: 18px;
+        }
+        .descricao {
+            background: #fffbe6;
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            color: #5a4a1a;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            height: 44px;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+            background: #fff;
+            outline: none;
+        }
+        .btn-submit {
+            width: 100%;
+            height: 48px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-submit:hover { background: var(--primary-light); transform: translateY(-1px); }
+        .btn-submit:disabled { background: #c9b9bc; cursor: not-allowed; transform: none; }
+        .msg {
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            display: none;
+            margin-top: 14px;
+        }
+        .msg.sucesso { background: var(--success-bg); color: var(--success-text); display: block; }
+        .msg.erro { background: #fdecea; color: var(--danger-text); display: block; }
+        .aviso-encerrado {
+            text-align: center;
+            padding: 20px;
+            color: var(--danger-text);
+            background: #fdecea;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .aviso-nao-encontrado {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-light);
+        }
+        .aviso-nao-encontrado i { font-size: 3rem; color: #cbd5e1; display: block; margin-bottom: 12px; }
+        .rodape {
+            text-align: center;
+            font-size: 0.72rem;
+            color: #9aa3ad;
+            margin-top: 18px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 480px) {
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="card-banner">
+        <img class="logo" src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira">
+        <h1 id="tituloEvento">Evento</h1>
+        <div class="subtitulo" id="subtituloEvento">Igreja Videira Jataí</div>
+    </div>
+
+    <div class="card-body">
+        <!-- Carregando -->
+        <div id="areaCarregando" style="text-align:center; padding:30px;">
+            <i class="fas fa-spinner fa-spin" style="font-size:1.8rem; color:var(--primary);"></i>
+            <p style="margin-top:12px; color:var(--text-light);">Carregando evento...</p>
+        </div>
+
+        <!-- Evento não encontrado -->
+        <div id="areaNaoEncontrado" class="aviso-nao-encontrado" style="display:none;">
+            <i class="fas fa-calendar-times"></i>
+            <strong>Evento não encontrado.</strong>
+            <p style="margin-top:8px; font-size:0.8rem;">Verifique o link e tente novamente.</p>
+        </div>
+
+        <!-- Formulário -->
+        <form id="formInscricao" style="display:none;">
+            <div id="detalhesEvento"></div>
+
+            <div class="form-group">
+                <label>Nome Completo *</label>
+                <input type="text" id="campoNome" placeholder="Seu nome completo" required>
+            </div>
+            <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" id="campoEmail" placeholder="voce@email.com">
+            </div>
+            <div class="form-group">
+                <label>WhatsApp</label>
+                <input type="tel" id="campoTelefone" placeholder="(00) 00000-0000">
+            </div>
+            <div class="form-group">
+                <label>Célula (se participar de uma)</label>
+                <input type="text" id="campoCelula" placeholder="Nome da sua célula">
+            </div>
+            <div class="form-group">
+                <label>Observações / Necessidades Especiais</label>
+                <input type="text" id="campoObservacoes" placeholder="Opcional">
+            </div>
+
+            <button type="submit" class="btn-submit" id="btnEnviar">
+                <i class="fas fa-paper-plane"></i> Confirmar Inscrição
+            </button>
+            <div id="msgSucesso" class="msg sucesso"></div>
+            <div id="msgErro" class="msg erro"></div>
+            <div id="avisoEncerrado" class="aviso-encerrado" style="display:none;">Inscrições encerradas para este evento.</div>
+        </form>
+
+        <div class="rodape">Sistema Videira • Igreja Videira Jataí</div>
+    </div>
+</div>
+
+<script>
+    // ========== CONFIG ==========
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+    let eventoAtual = null;
+
+    // ========== UTILITÁRIOS ==========
+    function fmtData(d) {
+        if (!d) return '';
+        const p = String(d).split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+    }
+    function fmtValor(v) {
+        const n = parseFloat(v || 0);
+        return n > 0 ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Gratuito';
+    }
+
+    // ========== CARREGAR EVENTO ==========
+    async function carregarEvento() {
+        const params = new URLSearchParams(window.location.search);
+        const eventoId = params.get('evento');
+
+        if (!eventoId) {
+            document.getElementById('areaCarregando').style.display = 'none';
+            document.getElementById('areaNaoEncontrado').style.display = 'block';
+            return;
+        }
+
+        try {
+            const { data: ev, error } = await supabaseClient
+                .from('eventos')
+                .select('*')
+                .eq('id', eventoId)
+                .maybeSingle();
+
+            if (error || !ev) {
+                document.getElementById('areaCarregando').style.display = 'none';
+                document.getElementById('areaNaoEncontrado').style.display = 'block';
+                return;
+            }
+
+            eventoAtual = ev;
+            document.getElementById('areaCarregando').style.display = 'none';
+            document.getElementById('formInscricao').style.display = 'block';
+            document.getElementById('tituloEvento').innerText = ev.nome || 'Evento';
+
+            const encerrado = ev.data_fim_inscricoes
+                && ev.data_fim_inscricoes < new Date().toISOString().split('T')[0];
+
+            let detalhes = '';
+            if (ev.foto_url) {
+                detalhes += `<img class="evento-foto" src="${ev.foto_url}" alt="${ev.nome}" onerror="this.style.display='none'">`;
+            }
+            detalhes += `<div class="valor-badge"><i class="fas fa-tag"></i> ${fmtValor(ev.valor)}</div>`;
+            detalhes += `<div class="info-grid">
+                <div class="info-item"><i class="fas fa-calendar-day"></i> Data<strong>${fmtData(ev.data_evento)}</strong></div>
+                <div class="info-item"><i class="fas fa-clock"></i> Horário<strong>${ev.hora_evento || 'A definir'}</strong></div>
+                ${ev.local ? `<div class="info-item full"><i class="fas fa-map-marker-alt"></i> Local<strong>${ev.local}</strong></div>` : ''}
+                ${ev.data_fim_inscricoes ? `<div class="info-item"><i class="fas fa-hourglass-end"></i> Inscrições até<strong>${fmtData(ev.data_fim_inscricoes)}</strong></div>` : ''}
+                <div class="info-item"><i class="fas fa-tag"></i> Investimento<strong>${fmtValor(ev.valor)}</strong></div>
+            </div>`;
+            if (ev.descricao) detalhes += `<div class="descricao">${ev.descricao}</div>`;
+
+            document.getElementById('detalhesEvento').innerHTML = detalhes;
+
+            if (encerrado) {
+                document.getElementById('avisoEncerrado').style.display = 'block';
+                document.getElementById('btnEnviar').style.display = 'none';
+                document.querySelectorAll('#formInscricao .form-group').forEach(g => g.style.display = 'none');
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById('areaCarregando').style.display = 'none';
+            document.getElementById('areaNaoEncontrado').style.display = 'block';
+        }
+    }
+
+    // ========== ENVIO ==========
+    document.getElementById('formInscricao').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = document.getElementById('btnEnviar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        document.getElementById('msgErro').style.display = 'none';
+
+        const nome = document.getElementById('campoNome').value.trim();
+        if (!nome) {
+            document.getElementById('msgErro').innerText = 'Informe seu nome completo.';
+            document.getElementById('msgErro').style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirmar Inscrição';
+            return;
+        }
+
+        const dados = {
+            evento_id: eventoAtual.id,
+            nome,
+            email: document.getElementById('campoEmail').value.trim() || null,
+            telefone: document.getElementById('campoTelefone').value.trim() || null,
+            celula: document.getElementById('campoCelula').value.trim() || null,
+            observacoes: document.getElementById('campoObservacoes').value.trim() || null,
+            status: 'pendente'
+        };
+
+        try {
+            const { error } = await supabaseClient.from('inscricoes_eventos').insert([dados]);
+            if (error) throw error;
+
+            document.getElementById('msgSucesso').innerHTML = '<strong>Inscrição confirmada!</strong><br>Aguarde o contato da igreja para confirmar o pagamento.';
+            document.getElementById('formInscricao').style.display = 'none';
+
+            // ====== GANCHO DE E-MAIL (GAS) - ativar quando quiser ======
+            // const API_URL = sessionStorage.getItem('urlApi') || (typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '');
+            // if (API_URL) {
+            //     fetch(API_URL, {
+            //         method: 'POST',
+            //         body: JSON.stringify({
+            //             action: 'enviarEmailInscricao',
+            //             payload: {
+            //                 evento: eventoAtual.nome,
+            //                 nome,
+            //                 email: dados.email,
+            //                 telefone: dados.telefone
+            //             }
+            //         })
+            //     }).catch(() => {});
+            // }
+        } catch (err) {
+            console.error(err);
+            document.getElementById('msgErro').innerText = 'Erro ao enviar inscrição. Tente novamente.';
+            document.getElementById('msgErro').style.display = 'block';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // ========== INÍCIO ==========
+    carregarEvento();
+</script>
+<script src="js/pwa.js"></script>
+
+</body>
+</html>

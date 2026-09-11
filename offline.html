@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sem conexao • Sistema Videira</title>
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Inter, system-ui, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      text-align: center;
+      padding: 24px;
+    }
+    img { width: 88px; height: 88px; border-radius: 20px; margin-bottom: 16px; }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { margin: 0 0 20px; color: #64748b; }
+    button {
+      border: 0;
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <img src="icons/icon-192.png" alt="Videira">
+    <h1>Sem conexao</h1>
+    <p>Nao foi possivel carregar o sistema. Verifique a internet e tente de novo.</p>
+    <button type="button" onclick="location.reload()">Tentar novamente</button>
+  </div>
+  <script src="js/pwa.js"></script>
+</body>
+</html>

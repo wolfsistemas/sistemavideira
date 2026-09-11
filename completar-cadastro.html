@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Completar Cadastro - Videira Jataí</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        body, html { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%); }
+        .container { display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+        h2 { color: #600018; margin-top: 0; margin-bottom: 5px; font-weight: 700; }
+        p.subtitulo { color: #718096; font-size: 14px; margin-bottom: 25px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 12px; color: #718096; margin-bottom: 6px; font-weight: 600; }
+        input, select { width: 100%; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 15px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #600018; background: white; }
+        button { width: 100%; padding: 14px; background-color: #600018; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        button:disabled { background-color: #a0aec0; }
+        .mensagem-erro { color: #e53e3e; font-size: 13px; margin-top: 15px; display: none; background: #fff5f5; padding: 10px; border-radius: 8px; }
+        .sucesso-msg { color: #0f5132; font-size: 13px; margin-top: 15px; display: none; background: #d1e7dd; padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2 id="titulo-cadastro">Complete seu Cadastro</h2>
+            <p class="subtitulo" id="subtitulo-cadastro">Carregando...</p>
+
+            <div id="area-form" style="display: none;">
+                <div class="input-group">
+                    <label>Usuário (definido pelo administrador)</label>
+                    <input type="text" id="usuario" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Categoria</label>
+                    <input type="text" id="categoria" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Seu Nome Completo *</label>
+                    <input type="text" id="nomeCompleto" placeholder="Digite seu nome completo" required>
+                </div>
+                <div class="input-group">
+                    <label>Seu E-mail (será usado para login) *</label>
+                    <input type="email" id="email" placeholder="exemplo@igreja.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Senha (6 dígitos numéricos) *</label>
+                    <input type="password" id="senha" inputmode="numeric" pattern="[0-9]*" placeholder="Digite 6 números" required maxlength="6">
+                </div>
+                <div class="input-group" id="grupo-superior">
+                    <label>Seu Superior Hierárquico</label>
+                    <select id="superior_id">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <button id="btn-salvar" onclick="finalizarCadastro()">Salvar e Acessar o Sistema</button>
+                <div id="mensagem-erro" class="mensagem-erro"></div>
+            </div>
+
+            <div id="div-sucesso" class="sucesso-msg" style="display: none;">
+                Cadastro concluído! Redirecionando para o login...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        let pessoaId = null;
+        let categoriaPessoa = '';
+        let superiorOriginalId = null;
+
+       async function carregarDados() {
+    if (!token) {
+        document.getElementById('subtitulo-cadastro').innerText = 'Token inválido ou link expirado.';
+        return;
+    }
+
+    const { data: pessoa, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, usuario, categoria, superior_id')
+        .eq('token_convite', token)
+        .maybeSingle();
+
+    if (error || !pessoa) {
+        document.getElementById('subtitulo-cadastro').innerText = 'Link inválido ou já utilizado.';
+        return;
+    }
+
+    // Guarda o ID da pessoa e o superior original definido pelo admin
+    pessoaId = pessoa.id;
+    superiorOriginalId = pessoa.superior_id;   // ← preserva o superior do admin
+
+    // Normaliza a categoria para uso interno
+    categoriaPessoa = (pessoa.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Preenche os campos visuais
+    document.getElementById('usuario').value = pessoa.usuario || 'Não definido';
+    document.getElementById('categoria').value = pessoa.categoria;
+    document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
+    document.getElementById('area-form').style.display = 'block';
+
+    // Carrega o select de superiores baseado na categoria da pessoa
+    await carregarSuperiores(pessoa.categoria, pessoa.superior_id);
+}
+        async function carregarSuperiores(categoria, superiorIdAtual) {
+            const select = document.getElementById('superior_id');
+            const grupo = document.getElementById('grupo-superior');
+            
+            let categoriasSuperiores = [];
+            if (categoria === 'Pastor de Rede') categoriasSuperiores = ['pastor de governo'];
+            else if (categoria === 'Discipulador') categoriasSuperiores = ['pastor de rede', 'pastor de governo'];
+            else if (categoria === 'Líder') categoriasSuperiores = ['discipulador'];
+            else if (categoria === 'Tesoureiro') categoriasSuperiores = ['administrador'];
+            else categoriasSuperiores = ['administrador', 'pastor de governo', 'pastor de rede', 'discipulador'];
+
+            const { data: superiores, error } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome, categoria')
+                .in('categoria', categoriasSuperiores)
+                .order('nome');
+
+            if (error || !superiores || superiores.length === 0) {
+                grupo.style.display = 'none';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Selecione...</option>';
+            superiores.forEach(s => {
+                const selected = (s.id === superiorIdAtual) ? 'selected' : '';
+                select.innerHTML += `<option value="${s.id}" ${selected}>${s.nome || s.usuario} (${s.categoria})</option>`;
+            });
+        }
+
+        async function registrarLogCompletarCadastro(nome, email) {
+            try {
+                await supabaseClient.from('logs').insert([{
+                    datahora: new Date().toISOString(),    // formato ISO padronizado
+                    usuario: email,
+                    nomelider: nome,
+                    acao: 'Completou o cadastro no sistema'
+                }]);
+            } catch (e) {
+                console.error("Erro ao registrar log de cadastro:", e);
+            }
+        }
+
+       
+
+        
+
+        async function finalizarCadastro() {
+            const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const senha = document.getElementById('senha').value.trim();
+            const erro = document.getElementById('mensagem-erro');
+            const btn = document.getElementById('btn-salvar');
+            const grupoSuperior = document.getElementById('grupo-superior');
+            const selectSuperior = document.getElementById('superior_id');
+        
+            let superiorId = (selectSuperior && !grupoSuperior.classList.contains('hidden')) 
+                                ? (selectSuperior.value || null) 
+                                : null;
+            if (!superiorId) {
+                superiorId = superiorOriginalId;
+            }
+        
+            if (!nomeCompleto || !email || !senha) {
+                erro.innerText = 'Todos os campos com * são obrigatórios.';
+                erro.style.display = 'block';
+                return;
+            }
+            if (senha.length < 6 || !/^\d+$/.test(senha)) {
+                erro.innerText = 'A senha deve ter 6 dígitos numéricos.';
+                erro.style.display = 'block';
+                return;
+            }
+        
+            btn.disabled = true;
+            btn.innerText = 'Salvando...';
+            erro.style.display = 'none';
+        
+            try {
+                // 1. Criar usuário no Supabase Auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: senha
+                });
+                if (authError) {
+                    erro.innerText = 'Erro ao criar conta: ' + authError.message;
+                    erro.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerText = "Salvar e Acessar o Sistema";
+                    return;
+                }
+        
+                // 2. Atualizar a tabela pessoas com o e‑mail, superior (preservado) e limpar token
+                const { error: updateError } = await supabaseClient
+                    .from('pessoas')
+                    .update({
+                        nome: nomeCompleto,
+                        email: email,
+                        superior_id: superiorId,
+                        token_convite: null
+                    })
+                    .eq('id', pessoaId);
+                if (updateError) throw updateError;
+        
+                // 3. Registrar log de conclusão de cadastro (usuário já está autenticado)
+                await registrarLogCompletarCadastro(nomeCompleto, email);
+        
+                // Sucesso
+                document.getElementById('area-form').style.display = 'none';
+                document.getElementById('div-sucesso').style.display = 'block';
+                setTimeout(() => {
+                    //window.location.href = 'index.html';
+                    window.location.href = "index.html";
+                }, 2000);
+        
+            } catch (e) {
+                erro.innerText = 'Erro: ' + e.message;
+                erro.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Salvar e Acessar o Sistema';
+            }
+        }
+
+        carregarDados();
+
+  
+    </script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>

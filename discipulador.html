@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel Discipulador - Videira Jataí</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="js/push.js"></script>
+    <script src="js/biblia.js"></script>
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a"> 
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        /* ========== ESTILOS ========== */
+        * { box-sizing: border-box; margin: 0; }
+        :root {
+            --primary: #600018;
+            --primary-light: #7a0020;
+            --accent: #b58900;
+            --ouro-videira: #D4AF37;
+            --ouro-escuro: #b5952f;
+            --success-text: #0f5132;
+            --success-bg: #d1e7dd;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --radius: 16px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            color: var(--text-main);
+            padding-bottom: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 15px; }
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius);
+            box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid var(--primary);
+        }
+        .header h3 { margin: 0; color: var(--primary); font-weight: 800; text-transform: uppercase; font-size: 1.1rem; }
+        .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; }
+        .btn-refresh:hover { color: var(--primary); transform: rotate(90deg); }
+        .nav-menu {
+            display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;
+        }
+        .nav-btn {
+            flex: 1 1 28%; min-width: 85px; padding: 12px; border: none; border-radius: 10px;
+            background: white; color: var(--text-light); font-weight: 600; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.8rem;
+        }
+        .nav-btn i { font-size: 1.1rem; }
+        .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(128,0,32,0.3); }
+        .cell-card {
+            background: #fef9e8; border-radius: var(--radius); padding: 15px; margin-bottom: 12px;
+            box-shadow: var(--shadow); border-left: 4px solid var(--primary); cursor: pointer;
+            transition: 0.2s; display: flex; justify-content: space-between; align-items: center;
+        }
+        .cell-card:hover { transform: translateY(-2px); background: #fff5e0; }
+        .cell-info { flex: 1; }
+        .cell-nome { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .cell-lider { font-size: 0.8rem; color: #92400e; margin-top: 4px; }
+        .badge-membros { background: var(--primary); color: white; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+        .filtro-lider { background: white; padding: 10px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .filtro-lider label { font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
+        .filtro-lider select { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+        .member-grid { display: grid; gap: 15px; }
+        .member-card {
+            background: var(--card-bg); border-radius: var(--radius); padding: 12px;
+            box-shadow: var(--shadow); border: 1px solid white; display: flex; flex-direction: column; gap: 8px;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .card-name { font-size: 1rem; font-weight: 700; margin: 0; }
+        .cat-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 6px; background: #eee; color: #555; font-weight: bold; }
+        .card-info { font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 6px; }
+        .status-row {
+            display: flex; gap: 4px; margin-top: 4px; flex-wrap: nowrap;
+            overflow-x: auto; white-space: nowrap; padding-bottom: 4px;
+        }
+        .status-pill {
+            display: inline-block; text-align: center; font-size: 0.65rem; padding: 3px 6px;
+            border-radius: 6px; background: #f0f0f0; color: #999; font-weight: 600;
+        }
+        .status-pill.active { background: var(--success-bg); color: var(--success-text); border: 1px solid #c3e6cb; }
+        .btn-zap-icon {
+            background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;
+            border-radius: 6px; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none; font-size: 1rem;
+        }
+        .card-actions { display: flex; gap: 6px; align-items: center; }
+        .btn-action {
+            padding: 6px 8px; border: none; border-radius: 6px; font-weight: 600;
+            font-size: 0.7rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+        }
+        .btn-edit { background: #e0f2fe; color: #0284c7; }
+        .btn-archive { background: #fee2e2; color: #b91c1c; }
+        .btn-restore { background: #dcfce7; color: #166534; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 3100; display: flex;
+            justify-content: center; align-items: flex-end; /*backdrop-filter: blur(2px);*/
+        }
+        .modal-content {
+            background: white; width: 100%; max-width: 800px; max-height: 85vh;
+            border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto;
+            position: relative; animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .btn-close-modal {
+            position: absolute; top: 15px; right: 15px; background: #eee; border: none;
+            width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #555;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.85rem; color: var(--text-light); }
+        input, select, textarea {
+            width: 100%; padding: 12px; background: var(--input-bg);
+            border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box;
+        }
+        .btn-save { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .check-option { display: block; position: relative; cursor: pointer; }
+        .check-option input { position: absolute; opacity: 0; }
+        .checkmark {
+            display: block; padding: 10px; text-align: center; background: #f9f9f9;
+            border: 1px solid #eee; border-radius: 8px; color: #777; font-weight: 600;
+        }
+        .check-option input:checked ~ .checkmark { background: var(--success-bg); color: var(--success-text); border-color: #badbcc; }
+        .report-list-item {
+            background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px;
+            border: 1px solid #eee; display: flex; justify-content: space-between;
+            align-items: center; cursor: pointer; border-left: 4px solid var(--primary);
+        }
+        .paper-report { background: #fff; border-top: 4px solid var(--accent); padding: 20px; border-radius: 8px; }
+        .paper-header { text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #ddd; margin-bottom: 15px; }
+        .attend-box { background: var(--success-bg); color: var(--success-text); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
+        .attend-num { font-size: 1.5rem; font-weight: 800; display: block; }
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .obs-box { background: #fffbf0; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .biblia-offcanvas {
+            position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh;
+            background: white; z-index: 2000; transition: right 0.4s ease; display: flex; flex-direction: column;
+        }
+        .biblia-offcanvas.aberto { right: 0; }
+        #biblia-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 1999; display: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .biblia-header {
+            background: var(--ouro-videira); color: white; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .biblia-header h2 { margin: 0; font-size: 1.2rem; }
+        .btn-fechar-biblia {
+            background: rgba(0,0,0,0.2); border: none; width: 36px; height: 36px;
+            border-radius: 50%; color: white; font-size: 1.2rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-fechar-biblia:hover { background: rgba(0,0,0,0.4); }
+        .biblia-controles {
+            padding: 15px; background: #f8fafc; display: flex; gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .versao-selector-btn {
+            background: white; border: 1px solid #cbd5e1; border-radius: 8px;
+            padding: 10px 12px; width: 80px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .biblia-controles select { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+        .biblia-texto-area {
+            padding: 25px 20px; overflow-y: auto; flex: 1;
+            line-height: 1.8; font-size: 1rem; color: #334155;
+        }
+        .biblia-placeholder { text-align: center; color: #94a3b8; margin-top: 50px; }
+        .biblia-nav-footer {
+            padding: 15px 20px; background: white; border-top: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between; gap: 15px;
+        }
+        .nav-capitulo-btn {
+            flex: 1; background: var(--primary); color: white; border: none;
+            border-radius: 40px; padding: 10px; font-size: 1rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .nav-capitulo-btn:hover { background: var(--primary-light); }
+        .hidden { display: none !important; }
+        .table-clean {
+            width: 100%; border-collapse: collapse; background: white;
+            border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid #ddd;
+        }
+        .table-clean th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
+        .table-clean td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.9rem; font-weight: 500; }
+        .btn-icon { background: #f1f5f9; border: none; padding: 8px; border-radius: 6px; color: #475569; cursor: pointer; }
+        .btn-icon:hover { background: #e2e8f0; color: var(--primary); }
+        .modal-celula-full {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 3000; overflow-y: auto; padding: 20px; box-sizing: border-box;
+        }
+        .modal-versao-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2100; display: flex;
+            justify-content: center; align-items: flex-end; backdrop-filter: blur(2px);
+        }
+        .modal-versao-overlay.hidden { display: none; }
+        .modal-versao-content {
+            background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0;
+            padding: 25px; animation: slideUp 0.3s ease-out; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
+        .modal-versao-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-versao-header h3 { margin: 0; color: var(--primary); font-weight: 700; }
+        .modal-versao-close { background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 50%; color: #64748b; cursor: pointer; font-size: 1.1rem; }
+        .versao-lista { display: flex; flex-direction: column; gap: 8px; }
+        .versao-item {
+            padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;
+            cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; transition: all 0.2s;
+        }
+        .versao-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .versao-item.selecionada { background: var(--primary); color: white; }
+        .btn-youtube { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background-color: #FF0000; color: white; font-weight: bold; text-decoration: none; border-radius: 8px; margin-bottom: 15px; }
+        .btn-youtube:hover { background-color: #cc0000; }
+
+
+        /* Estilos da lista de palavras (igual ao líder) */
+            .word-list-item {
+                background: white;
+                border-radius: var(--radius);
+                padding: 15px;
+                margin-bottom: 10px;
+                box-shadow: var(--shadow);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                cursor: pointer;
+                border-left: 4px solid var(--accent);
+                transition: 0.2s;
+            }
+            .word-list-item:active { transform: scale(0.98); }
+            .word-date {
+                font-weight: 800;
+                color: var(--text-main);
+                font-size: 1rem;
+            }
+            .word-theme {
+                font-size: 0.85rem;
+                color: var(--text-light);
+                margin-top: 2px;
+            }
+    </style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // ========== CONFIGURAÇÃO SUPABASE ==========
+    let supabaseClient;
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        if (!window.supabaseClientGlobal) {
+            supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+            window.supabaseClientGlobal = supabaseClient;
+        } else {
+            supabaseClient = window.supabaseClientGlobal;
+        }
+    } else {
+        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        window.supabaseClientGlobal = supabaseClient;
+    }
+
+    // ========== VARIÁVEIS GLOBAIS ==========
+    let dadosMembros = [];
+    let dadosCelulas = [];
+    let celulasSupervisionadas = [];
+    let celulaAtiva = null;
+    let membrosDaCelulaAtiva = [];
+    let dadosRelatorios = [];
+    let listaPalavras = [];
+    let palavraAtual = null;
+    let listaAgenda = [];    
+    let mapaNomes = {};
+
+    // Variáveis da Bíblia
+    let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
+    const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
+    const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
+
+
+    function normalizarCategoria(cat) {
+        return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    // ========== FUNÇÕES AUXILIARES ==========
+    async function registrarLogAcao(acao) {
+        try {
+            await supabaseClient.from('logs').insert([{
+                datahora: new Date().toLocaleString('pt-BR'),
+                usuario: sessionStorage.getItem('loginDigitado') || 'sistema',
+                nomelider: sessionStorage.getItem('usuarioLogado') || 'Discipulador',
+                acao: acao
+            }]);
+        } catch(e) { console.error("Erro no log:", e); }
+    }
+
+    async function fetchGoogle(action, payload) {
+        const API_URL = sessionStorage.getItem('urlApi');
+        payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
+        try {
+            let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, payload }) });
+            let json = await res.json();
+            if (json.status === "sucesso") {
+                if (action === 'salvarAgenda') registrarLogAcao(`Cadastrou evento na agenda: ${payload.descricao}`);
+                return json.dados || json.mensagem;
+            } else throw new Error(json.mensagem);
+        } catch(e) { console.error(e); throw e; }
+    }
+
+    // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
+   (async () => {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "index.html"; return; }
+    const { data: pessoa } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, categoria, superior_id')
+        .eq('email', user.email)
+        .single();
+    if (!pessoa) { window.location.href = "index.html"; return; }
+    const cat = normalizarCategoria(pessoa.categoria);
+    const permitidos = ["discipulador", "pastor de rede", "pastor de governo", "pastor", "administrador"];
+    if (!permitidos.includes(cat)) {
+        alert("Acesso restrito.");
+        window.location.href = "index.html";
+        return;
+    }
+    sessionStorage.setItem('discipuladorId', pessoa.id);
+    sessionStorage.setItem('discipuladorSuperiorId', pessoa.superior_id);
+    sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
+    sessionStorage.setItem('loginDigitado', user.email);
+    if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+    await carregarTudo();
+    inicializarEventos();
+})();
+
+    // ========== CARREGAR DADOS ==========
+    async function carregarTudo() {
+    const icon = document.getElementById('iconRefresh');
+    if (icon) icon.classList.add('fa-spin');
+    const discipuladorId = sessionStorage.getItem('discipuladorId');
+    try {
+        // Células supervisionadas (onde supervisor_user_id = meu ID)
+        const { data: celulas, error: celError } = await supabaseClient
+            .from('celulas')
+            .select('*')
+            .eq('supervisor_user_id', discipuladorId);
+        if (celError) throw celError;
+        dadosCelulas = celulas || [];
+        celulasSupervisionadas = dadosCelulas;
+        window.celulaMap = {};
+        dadosCelulas.forEach(c => { window.celulaMap[c.id] = c.nome; });
+
+        // Montar mapa de nomes dos líderes (ANTES de renderizar)
+        const idsLideres = [...new Set(dadosCelulas.map(c => c.lider_user_id).filter(id => id))];
+        if (idsLideres.length > 0) {
+            const { data: pessoas, error } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .in('id', idsLideres);
+            if (!error) {
+                pessoas.forEach(p => { mapaNomes[p.id] = p.nome; });
+            }
+        }
+
+        // Agora SIM, renderizar (o mapa já está pronto)
+        renderizarCelulasRede(celulasSupervisionadas);
+        renderizarTabelaCelulas(dadosCelulas);
+
+        // Membros (todos para possível visualização, mas filtramos por célula quando necessário)
+        const { data: membros, error: memError } = await supabaseClient.from('pessoas').select('*');
+        if (memError) throw memError;
+        dadosMembros = membros || [];
+        renderizarMembrosArquivados(dadosMembros);
+
+        // Relatórios
+        const { data: rels, error: relError } = await supabaseClient.from('relatorios').select('*');
+        if (relError) throw relError;
+        dadosRelatorios = rels || [];
+
+        // Agenda
+        try {
+            const agendaRes = await fetchGoogle('buscarAgenda', {});
+            listaAgenda = agendaRes || [];
+            renderizarAgenda(listaAgenda);
+        } catch(e) { renderizarAgenda([]); }
+
+        // Palavras
+        const { data: palavras, error: palError } = await supabaseClient
+            .from('palavras')
+            .select('*')
+            .order('data', { ascending: false });
+        if (palError) throw palError;
+        listaPalavras = palavras || [];
+        renderizarPalavras(listaPalavras);
+    } catch(err) { console.error(err); }
+    if (icon) icon.classList.remove('fa-spin');
+}
+    
+    // ========== PREENCHER SELECT DE LÍDERES (PARA FORMULÁRIO DE CÉLULA) ==========
+    function preencherSelectLideres(selectLider) {
+        // Líderes cujo superior_id é o discipulador logado
+        const discipuladorId = sessionStorage.getItem('discipuladorId');
+        const lideres = dadosMembros.filter(m => 
+            ['Líder', 'Pastor', 'Discipulador'].includes(m.tipo || m.categoria) &&
+            m.superior_id === discipuladorId
+        );
+        selectLider.innerHTML = '<option value="">Selecione um líder</option>';
+        lideres.forEach(m => {
+            selectLider.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+        });
+    }
+
+    // ========== MINHA REDE (CÉLULAS SUPERVISIONADAS) ==========
+   function renderizarCelulasRede(celulas) {
+    const container = document.getElementById('listaCelulasRede');
+    if (!container) return;
+    container.innerHTML = '';
+    const filtroSelect = document.getElementById('filtroLiderRede');
+    if (filtroSelect) {
+        filtroSelect.innerHTML = '<option value="">Todos os Líderes</option>';
+        const lideresUnicos = [...new Set(celulas.map(c => c.lider_user_id).filter(id => id))];
+        lideresUnicos.forEach(id => {
+            const nome = mapaNomes[id] || 'Não identificado';
+            filtroSelect.innerHTML += `<option value="${id}">${nome}</option>`;
+        });
+    }
+    if (!celulas.length) {
+        document.getElementById('nenhumaCelulaMsg')?.classList.remove('hidden');
+        return;
+    }
+    document.getElementById('nenhumaCelulaMsg')?.classList.add('hidden');
+    window.celulasRedeCompleta = celulas;
+    filtrarCelulasRede();
+}
+
+function filtrarCelulasRede() {
+    const liderId = document.getElementById('filtroLiderRede')?.value || '';
+    let celulasFiltradas = window.celulasRedeCompleta || [];
+    if (liderId) celulasFiltradas = celulasFiltradas.filter(c => c.lider_user_id === liderId);
+    const container = document.getElementById('listaCelulasRede');
+    if (!container) return;
+    container.innerHTML = '';
+    celulasFiltradas.forEach(cel => {
+        const nomeLider = mapaNomes[cel.lider_user_id] || 'Não definido';
+        const card = document.createElement('div');
+        card.className = 'cell-card';
+        card.innerHTML = `
+            <div class="cell-info">
+                <div class="cell-nome">${cel.nome}</div>
+                <div class="cell-lider"><i class="fas fa-user"></i> Líder: ${nomeLider}</div>
+            </div>
+            <div class="badge-membros" onclick="event.stopPropagation(); editarCelula('${cel.id}')" title="Editar"><i class="fas fa-edit"></i></div>
+        `;
+        card.onclick = () => abrirModalCelula(cel);
+        container.appendChild(card);
+    });
+}
+    
+    // ========== MODAL DA CÉLULA ==========
+    async function abrirModalCelula(cel) {
+        celulaAtiva = cel;
+        document.getElementById('modalCelulaTitulo').innerText = cel.nome;
+        document.getElementById('modalCelula').style.display = 'block';
+        document.getElementById('cadastroModalCelulaHidden').value = cel.id;
+        await carregarMembrosDaCelula(cel.id);
+        renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+    }
+
+    function fecharModalCelula() {
+        document.getElementById('modalCelula').style.display = 'none';
+    }
+
+    async function carregarMembrosDaCelula(celulaId) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('pessoas')
+                .select('*')
+                .eq('celula_id', celulaId)
+                .eq('arquivado', false);
+            if (error) throw error;
+            membrosDaCelulaAtiva = data || [];
+        } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
+    }
+
+    function renderizarMembrosCelulaModal(lista) {
+        const grid = document.getElementById('gridMembrosCelulaModal');
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (!lista.length) {
+            grid.innerHTML = '<p style="text-align:center; color:#999;">Nenhum membro nesta célula.</p>';
+            return;
+        }
+        const check = (val) => (String(val).toLowerCase() === 'sim' || val === true) ? 'active' : '';
+        lista.forEach(m => {
+            const telefoneStr = String(m.telefone ?? '');
+            const telClean = telefoneStr.replace(/\D/g, '');
+            const btnZap = (telClean.length > 8) ? `<a href="https://wa.me/55${telClean}" target="_blank" class="btn-zap-icon" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>` : '';
+            const nomeCelula = celulaAtiva ? celulaAtiva.nome : '';
+            grid.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <div><h4 class="card-name">${m.nome || 'Sem nome'}</h4><span class="cat-badge">${m.tipo || m.categoria || 'Membro'}</span></div>
+                        <div class="card-actions">
+                            <button onclick="abrirEditarMembro('${m.id}')" class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button onclick="arquivarMembro('${m.id}')" class="btn-action btn-archive" title="Arquivar"><i class="fas fa-archive"></i></button>
+                            ${btnZap}
+                        </div>
+                    </div>
+                    <div class="card-info"><i class="fas fa-users"></i> ${nomeCelula}</div>
+                    <div class="status-row">
+                        <span class="status-pill ${check(m.batizado)}">Batismo</span>
+                        <span class="status-pill ${check(m.cursao)}">Cursão</span>
+                        <span class="status-pill ${check(m.ctl)}">CTL</span>
+                        <span class="status-pill ${check(m.encontro)}">Encontro</span>
+                        <span class="status-pill ${check(m.seminario)}">Seminário</span>
+                        <span class="status-pill ${check(m.dizimista)}">Dizimista</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // ========== CÉLULAS (TABELA GERAL) ==========
+    function renderizarTabelaCelulas(celulas) {
+        const tbody = document.getElementById('corpoCelulas');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        celulas.forEach(c => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${c.nome}</strong><br><small>${c.endereco || ''}</small></td>
+                    <td>${c.lider || ''}</td>
+                    <td>${c.dia_horario || ''}</td>
+                    <!--<td><button onclick="editarCelula('${c.id}')" class="btn-icon"><i class="fas fa-edit"></i></button></td>-->
+                </tr>
+            `;
+        });
+    }
+
+    // ========== GESTÃO DE CÉLULAS (NOVA/EDITAR) ==========
+    function abrirNovaCelula() {
+        document.getElementById('editCelulaId').value = '';
+        document.getElementById('editCelulaNomeOriginal').value = '';
+        document.getElementById('editCelulaNome').value = '';
+        document.getElementById('editCelulaDia').value = '';
+        document.getElementById('editCelulaEnd').value = '';
+        document.getElementById('tituloModalCelula').innerText = 'Nova Célula';
+        preencherSelectLideres(document.getElementById('editCelulaLider'));
+        document.getElementById('modalEditarCelula').classList.remove('hidden');
+    }
+
+    function editarCelula(id) {
+        const cel = dadosCelulas.find(c => c.id == id);
+        if (!cel) return;
+        document.getElementById('editCelulaId').value = cel.id;
+        document.getElementById('editCelulaNomeOriginal').value = cel.nome;
+        document.getElementById('editCelulaNome').value = cel.nome || '';
+        //document.getElementById('editCelulaLider').value = cel.lider || '';
+        document.getElementById('editCelulaDia').value = cel.dia_horario || '';
+        document.getElementById('editCelulaEnd').value = cel.endereco || '';
+        document.getElementById('tituloModalCelula').innerText = 'Editar Célula';
+        preencherSelectLideres(document.getElementById('editCelulaLider'));
+        document.getElementById('editCelulaLider').value = cel.lider_user_id || '';
+        document.getElementById('modalEditarCelula').classList.remove('hidden');
+    }
+
+    // ========== RELATÓRIOS ==========
+   async function abrirListaRelatoriosCelula() {
+    if (!celulaAtiva) return;
+    document.getElementById('relatorioCelulaNome').innerText = celulaAtiva.nome;
+    const container = document.getElementById('listaRelatoriosCelula');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando...</p>';
+    document.getElementById('modalListaRelatorios').classList.remove('hidden');
+    try {
+        const { data: relatorios, error } = await supabaseClient
+            .from('relatorios')
+            .select('*')
+            .eq('celula_id', celulaAtiva.id)          // ← filtro correto por UUID
+            .order('data', { ascending: false });
+        if (error) throw error;
+        if (!relatorios.length) {
+            container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        for (const r of relatorios) {
+            let dataF = r.data || '';
+            try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+            const div = document.createElement('div');
+            div.className = 'report-list-item';
+            div.innerHTML = `<div><strong>${dataF}</strong><br><span style="font-size:0.85rem;">${r.quebra_gelo ? 'Quebra-gelo: ' + r.quebra_gelo : ''}</span></div><i class="fas fa-chevron-right"></i>`;
+            div.onclick = () => abrirDetalheRelatorio(r.id);
+            container.appendChild(div);
+        }
+    } catch (err) { console.error(err); container.innerHTML = '<p style="color:red;">Erro ao carregar.</p>'; }
+}
+
+    async function abrirDetalheRelatorio(id) {
+    const { data: relatorio } = await supabaseClient
+        .from('relatorios')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (!relatorio) return alert("Relatório não encontrado.");
+
+    const { data: presencas } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .eq('relatorio_id', id);
+
+    const nomesPresentes = [];
+    const nomesAusentes = [];
+    presencas?.forEach(p => {
+        const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
+        if (membro) {
+            if (p.presente) nomesPresentes.push(membro.nome);
+            else nomesAusentes.push(membro.nome);
+        }
+    });
+
+    let dataF = relatorio.data || '';
+    try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+
+    // Usa o mapa de células para obter o nome
+    document.getElementById('detalheRelCelula').innerText = window.celulaMap[relatorio.celula_id] || '-';
+    document.getElementById('detalheRelData').innerText = dataF;
+    document.getElementById('detalheRelTotal').innerText = nomesPresentes.length;
+    document.getElementById('detalheRelQuebra').innerText = relatorio.quebra_gelo || '-';
+    document.getElementById('detalheRelPalavra').innerText = relatorio.palavra || '-';
+    document.getElementById('detalheRelLouvor').innerText = relatorio.louvor || '-';
+    document.getElementById('detalheRelLanche').innerText = relatorio.lanche || '-';
+    document.getElementById('detalheRelObs').innerText = relatorio.observacoes || 'Nenhuma observação.';
+
+    const containerPresentes = document.getElementById('listaPresentes');
+    const containerAusentes = document.getElementById('listaAusentes');
+    if (containerPresentes) {
+        containerPresentes.innerHTML = nomesPresentes.length
+            ? nomesPresentes.map(nome => `<div>👤 ${nome}</div>`).join('')
+            : '<div style="color:#999;">Nenhum presente registrado.</div>';
+    }
+    if (containerAusentes) {
+        containerAusentes.innerHTML = nomesAusentes.length
+            ? nomesAusentes.map(nome => `<div>👤 ${nome}</div>`).join('')
+            : '<div style="color:#999;">Nenhum ausente registrado.</div>';
+    }
+
+    document.getElementById('modalRelatorio').classList.remove('hidden');
+}
+    // ========== APASCENTAR ==========
+   // ========== APASCENTAR ==========
+async function abrirApascentar() {
+    if (!celulaAtiva) return;
+    const faltosos = await calcularFaltosos();
+    alert(
+        faltosos.length
+            ? "Faltosos nos últimos 30 dias:\n" +
+              faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
+            : "Nenhum faltoso nos últimos 30 dias."
+    );
+}
+
+    async function calcularFaltosos() {
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    
+        // Busca os relatórios da célula ativa (celula_id) nos últimos 30 dias
+        const { data: rels } = await supabaseClient
+            .from('relatorios')
+            .select('id')
+            .eq('celula_id', celulaAtiva.id)          // ← usa o UUID da célula
+            .gte('data', trintaDiasAtras.toISOString().split('T')[0]);
+    
+        if (!rels || !rels.length) return [];
+    
+        const ids = rels.map(r => r.id);
+    
+        // Busca as presenças desses relatórios
+        const { data: presencas } = await supabaseClient
+            .from('presencas')
+            .select('membro_id, presente')
+            .in('relatorio_id', ids);
+    
+        const faltasMap = {};
+        presencas?.forEach(p => {
+            if (!p.presente) {
+                faltasMap[p.membro_id] = (faltasMap[p.membro_id] || 0) + 1;
+            }
+        });
+    
+        // Retorna os membros da célula ativa que tiveram faltas
+        return membrosDaCelulaAtiva
+            .filter(p => faltasMap[p.id] > 0)
+            .map(p => ({ ...p, faltas: faltasMap[p.id] }));
+    }
+
+    // ========== MEMBROS (ARQUIVADOS E EDIÇÃO) ==========
+    function renderizarMembrosArquivados(lista) {
+        const grid = document.getElementById('gridArquivos');
+        if (!grid) return;
+        grid.innerHTML = '';
+        const arquivados = lista.filter(m => m.arquivado === true || m.arquivado === 'Sim');
+        if (!arquivados.length) {
+            grid.innerHTML = '<p style="text-align:center;">Nenhum membro arquivado.</p>';
+            return;
+        }
+        arquivados.forEach(m => {
+            const nome = m.nome || 'Sem Nome';
+            const celula = window.celulaMap[m.celula_id] || '-';
+            grid.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <div><h4 class="card-name">${nome}</h4></div>
+                        <button onclick="restaurarMembro('${m.id}')" class="btn-action btn-restore"><i class="fas fa-undo"></i> Restaurar</button>
+                    </div>
+                    <div class="card-info"><i class="fas fa-users"></i> ${celula}</div>
+                </div>
+            `;
+        });
+    }
+
+    async function abrirEditarMembro(id) {
+    const m = dadosMembros.find(x => String(x.id) === String(id));
+    if (!m) return alert('Membro não encontrado.');
+
+    document.getElementById('editMembroId').value = m.id;
+    document.getElementById('editMembroNome').value = m.nome || '';
+    document.getElementById('editMembroNasc').value = m.nascimento || '';
+    document.getElementById('editMembroTel').value = m.telefone || '';
+
+    // Popular o select de células (apenas as supervisionadas pelo discipulador)
+    const selectCelula = document.getElementById('editMembroCelula');
+    selectCelula.innerHTML = '<option value="">Selecione uma célula</option>';
+    dadosCelulas.forEach(c => {
+        const selected = (c.id === m.celula_id) ? 'selected' : '';
+        selectCelula.innerHTML += `<option value="${c.id}" ${selected}>${c.nome}</option>`;
+    });
+
+    document.getElementById('editMembroCat').value = m.tipo || m.categoria || 'Membro';
+    document.getElementById('editMembroBatizado').checked = m.batizado === 'Sim';
+    document.getElementById('editMembroCursao').checked = m.cursao === 'Sim';
+    document.getElementById('editMembroCtl').checked = m.ctl === 'Sim';
+    document.getElementById('editMembroEncontro').checked = m.encontro === 'Sim';
+    document.getElementById('editMembroSeminario').checked = m.seminario === 'Sim';
+    document.getElementById('editMembroDizimista').checked = m.dizimista === 'Sim';
+
+    document.getElementById('modalEditarMembro').classList.remove('hidden');
+}
+
+    async function arquivarMembro(id) {
+        if (!confirm("Deseja arquivar este membro?")) return;
+        await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id);
+        carregarTudo();
+    }
+
+    async function restaurarMembro(id) {
+        if (!confirm("Restaurar este membro?")) return;
+        await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id);
+        carregarTudo();
+    }
+
+   function abrirModalCadastroMembro() {
+    if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+    
+    // Popula o select de células com as células supervisionadas
+    const selectCelula = document.getElementById('addMembroCelula');
+    selectCelula.innerHTML = '<option value="">Selecione uma célula</option>';
+    dadosCelulas.forEach(c => {
+        const selected = (c.id === celulaAtiva.id) ? 'selected' : '';
+        selectCelula.innerHTML += `<option value="${c.id}" ${selected}>${c.nome}</option>`;
+    });
+    
+    // Exibe o modal
+    document.getElementById('modalAdicionarMembro').classList.remove('hidden');
+}
+
+    // ========== AGENDA ==========
+    function renderizarAgenda(lista) {
+        const div = document.getElementById('listaAgenda');
+        if (!div) return;
+        div.innerHTML = '';
+        if (!lista || lista.length === 0) {
+            div.innerHTML = '<p style="text-align:center;">Nenhum evento na agenda.</p>';
+            return;
+        }
+        const parseDate = (str) => {
+            if (!str) return 0;
+            if (str.includes('-')) { const [y, m, d] = str.split('-').map(Number); return new Date(y, m - 1, d).getTime(); }
+            if (str.includes('/')) { const [d, m, y] = str.split('/').map(Number); return new Date(y, m - 1, d).getTime(); }
+            return Date.parse(str) || 0;
+        };
+        lista.sort((a,b) => parseDate(a[0]) - parseDate(b[0]));
+        lista.forEach(a => {
+            let dataF = a[0] || '';
+            try { if (a[0] && a[0].includes('-')) { const [y,m,d] = a[0].split('-'); dataF = `${d}/${m}/${y}`; } } catch(e) {}
+            let bgColor = '#555', textColor = 'white';
+            if (a[4] === 'RADICAIS LIVRES') bgColor = '#0056b3';
+            else if (a[4] === 'GOOGLE AGENDA') { bgColor = '#600018'; textColor = 'white'; }
+            else if (a[4] === 'RADICAIS KIDS') bgColor = '#b58900';
+            let corTipo = (a[3] === 'Pago') ? '#dc3545' : 'var(--success-text)';
+            div.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <h4 class="card-name"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
+                        <span class="cat-badge" style="background:${bgColor}; color:${textColor};">${a[4] || ''}</span>
+                    </div>
+                    <div style="font-weight:700;">${a[1] || ''}</div>
+                    <div style="color:#666;">${a[2] || ''}</div>
+                    <div style="margin-top:10px;"><span style="color:${corTipo};">${a[3] || ''}</span></div>
+                </div>
+            `;
+        });
+    }
+
+    // ========== PALAVRAS ==========
+    // ========== PALAVRAS ==========
+function renderizarPalavras(lista) {
+    const div = document.getElementById('listaPalavras');
+    if (!div) return;
+    div.innerHTML = '';
+    if (!lista || lista.length === 0) {
+        div.innerHTML = '<p style="text-align:center;">Nenhuma palavra cadastrada.</p>';
+        return;
+    }
+    lista.forEach((p, index) => {
+        let dataF = p.data || '';
+        try {
+            if (dataF.includes('-')) {
+                const dp = dataF.split('-');
+                dataF = `${dp[2]}/${dp[1]}/${dp[0]}`;
+            }
+        } catch (e) {}
+        div.innerHTML += `
+            <div class="word-list-item" onclick="abrirPalavra(${index})">
+                <div>
+                    <div class="word-date"><i class="far fa-calendar-alt"></i> ${dataF}</div>
+                    <div class="word-theme">${p.tema || 'Sem Título'}</div>
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--text-light);"></i>
+            </div>`;
+    });
+}
+
+function abrirPalavra(index) {
+    if (!listaPalavras || index >= listaPalavras.length) return;
+    const p = listaPalavras[index];
+    palavraAtual = p;
+
+    document.getElementById('modalTitulo').innerText = p.tema || '';
+    let dataF = p.data || '';
+    try {
+        if (dataF.includes('-')) {
+            const dp = dataF.split('-');
+            dataF = `${dp[2]}/${dp[1]}/${dp[0]}`;
+        }
+    } catch (e) {}
+    document.getElementById('modalData').innerText = dataF;
+    document.getElementById('modalTexto').innerText = p.texto || '';
+
+    const btn = document.getElementById('btnLinkYoutube');
+    if (p.link_youtube && p.link_youtube.trim()) {
+        let url = p.link_youtube.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = 'https://' + url;
+        }
+        btn.href = url;
+        btn.classList.remove('hidden');
+    } else {
+        btn.classList.add('hidden');
+        btn.href = '#';
+    }
+    document.getElementById('modalPalavra').classList.remove('hidden');
+    
+    // TRAVAR SCROLL DO FUNDO
+    document.body.style.overflow = 'hidden';
+}
+function baixarPalavraTXT() {
+    if (!palavraAtual) return;
+    const btn = document.querySelector('#modalPalavra .modal-download');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+    try {
+        const titulo = palavraAtual.tema || 'Palavra';
+        const data = palavraAtual.data || '';
+        const texto = palavraAtual.texto || '';
+        let dataFormatada = data;
+        if (data.includes('-')) {
+            const partes = data.split('-');
+            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        const conteudo = `${titulo}\n${dataFormatada}\n\n${texto}`;
+        const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${titulo.replace(/\s+/g, '_')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('Erro ao gerar arquivo TXT.');
+    } finally {
+        if (icon) icon.className = 'fas fa-download';
+    }
+}
+
+    // ========== BÍBLIA ==========
+
+async function abrirBiblia() {
+    document.getElementById('painel-biblia').classList.add('aberto');
+    document.getElementById('biblia-overlay').style.display = 'block';
+    setTimeout(() => document.getElementById('biblia-overlay').style.opacity = '1', 10);
+    if (typeof Biblia !== 'undefined') {
+        if (!Biblia.bibliaCarregada) await Biblia.inicializar();
+        versaoSelecionada = Biblia.getVersaoAtiva();
+        document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[versaoSelecionada] || versaoSelecionada;
+    }
+}
+
+function fecharBiblia() {
+    document.getElementById('painel-biblia').classList.remove('aberto');
+    const ov = document.getElementById('biblia-overlay');
+    ov.style.opacity = '0';
+    setTimeout(() => ov.style.display = 'none', 300);
+}
+
+function abrirModalVersao() {
+    const modal = document.getElementById('modalVersao');
+    const listaDiv = document.getElementById('listaVersoes');
+    listaDiv.innerHTML = '';
+    Object.entries(nomesCompletos).forEach(([id, nome]) => {
+        const item = document.createElement('div');
+        item.className = 'versao-item' + (id === versaoSelecionada ? ' selecionada' : '');
+        item.innerHTML = `${nome} <span style="opacity:0.7; font-size:0.9rem;">${siglasVersoes[id]}</span>`;
+        item.onclick = () => selecionarVersao(id);
+        listaDiv.appendChild(item);
+    });
+    modal.classList.remove('hidden');
+}
+
+function fecharModalVersao(e) {
+    if (!e || e.target.classList.contains('modal-versao-overlay') || e.target.classList.contains('modal-versao-close')) {
+        document.getElementById('modalVersao').classList.add('hidden');
+    }
+}
+
+async function selecionarVersao(id) {
+    versaoSelecionada = id;
+    localStorage.setItem('biblia_versao', id);
+    document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[id];
+    fecharModalVersao();
+    if (typeof Biblia !== 'undefined') await Biblia.mudarVersao(id);
+}
+
+function capituloAnterior() {
+    const selCap = document.getElementById('biblia-capitulo');
+    let val = parseInt(selCap.value);
+    if (val > 1) { selCap.value = val - 1; if (typeof Biblia !== 'undefined') Biblia.onCapituloChange(); }
+    else {
+        const selLiv = document.getElementById('biblia-livro');
+        if (selLiv.selectedIndex > 0) {
+            selLiv.selectedIndex--;
+            if (typeof Biblia !== 'undefined') {
+                Biblia.onLivroChange();
+                setTimeout(() => {
+                    const selCap = document.getElementById('biblia-capitulo');
+                    selCap.value = selCap.options.length;
+                    Biblia.onCapituloChange();
+                }, 100);
+            }
+        }
+    }
+}
+
+function capituloProximo() {
+    const selCap = document.getElementById('biblia-capitulo');
+    let val = parseInt(selCap.value);
+    if (val < selCap.options.length) { selCap.value = val + 1; if (typeof Biblia !== 'undefined') Biblia.onCapituloChange(); }
+    else {
+        const selLiv = document.getElementById('biblia-livro');
+        if (selLiv.selectedIndex < selLiv.options.length - 1) {
+            selLiv.selectedIndex++;
+            if (typeof Biblia !== 'undefined') {
+                Biblia.onLivroChange();
+                setTimeout(() => {
+                    document.getElementById('biblia-capitulo').value = 1;
+                    Biblia.onCapituloChange();
+                }, 100);
+            }
+        }
+    }
+}
+
+    // ========== MUDAR SEÇÃO ==========
+    function mudarSecao(s) {
+    fecharBiblia();
+    ['minha-rede', 'celulas', 'biblia', 'arquivos', 'agenda', 'palavras', 'relatorios'].forEach(id => document.getElementById(`secao-${id}`)?.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`secao-${s}`)?.classList.remove('hidden');
+    document.getElementById(`btn-${s}`)?.classList.add('active');
+    if (s === 'biblia') abrirBiblia();
+    if (s === 'relatorios') carregarRelatorios();   // importante para carregar os dados
+}
+    
+    function fecharModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+        
+        // Se o modal fechado for o de palavras, restaura o scroll
+        if (id === 'modalPalavra') {
+            document.body.style.overflow = '';
+        }
+    }
+    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
+    function fazerLogout() { 
+        if(confirm("Sair?")) { 
+            sessionStorage.clear(); 
+           window.location.href = "index.html?t=" + Date.now(); 
+        } 
+    }
+
+    // ========== INICIALIZAR EVENTOS ==========
+    function inicializarEventos() {
+        // Cadastro membro
+        document.getElementById('formAdicionarMembro').onsubmit = async function(e) {
+            e.preventDefault();
+            const dados = {
+                nome: this.nome.value,
+                nascimento: this.nascimento.value || null,
+                telefone: this.telefone.value,
+                celula_id: this.celula.value,
+                categoria: this.categoria.value,
+                batizado: this.batizado.checked ? 'Sim' : 'Não',
+                cursao: this.cursao.checked ? 'Sim' : 'Não',
+                ctl: this.ctl.checked ? 'Sim' : 'Não',
+                encontro: this.encontro.checked ? 'Sim' : 'Não',
+                seminario: this.seminario.checked ? 'Sim' : 'Não',
+                dizimista: this.dizimista.checked ? 'Sim' : 'Não',
+                arquivado: false
+            };
+            await supabaseClient.from('pessoas').insert([dados]);
+            alert("Membro cadastrado!");
+            fecharModal('modalAdicionarMembro');
+            carregarTudo();
+            if (celulaAtiva) {
+                await carregarMembrosDaCelula(celulaAtiva.id);
+                renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+            }
+        };
+
+        // Editar membro
+        document.getElementById('formEditarMembro').onsubmit = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('editMembroId').value;
+            const dados = {
+                nome: document.getElementById('editMembroNome').value,
+                nascimento: document.getElementById('editMembroNasc').value,
+                telefone: document.getElementById('editMembroTel').value,
+                celula_id: document.getElementById('editMembroCelula').value,
+                categoria: document.getElementById('editMembroCat').value,
+                batizado: document.getElementById('editMembroBatizado').checked ? 'Sim' : 'Não',
+                cursao: document.getElementById('editMembroCursao').checked ? 'Sim' : 'Não',
+                ctl: document.getElementById('editMembroCtl').checked ? 'Sim' : 'Não',
+                encontro: document.getElementById('editMembroEncontro').checked ? 'Sim' : 'Não',
+                seminario: document.getElementById('editMembroSeminario').checked ? 'Sim' : 'Não',
+                dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
+            };
+            await supabaseClient.from('pessoas').update(dados).eq('id', id);
+            alert("Membro atualizado!");
+            fecharModal('modalEditarMembro');
+            carregarTudo();
+            if (celulaAtiva) {
+                await carregarMembrosDaCelula(celulaAtiva.id);
+                renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+            }
+        };
+
+        // Célula
+        document.getElementById('formCelula').onsubmit = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('editCelulaId').value;
+            const nomeOriginal = document.getElementById('editCelulaNomeOriginal').value;
+            const dados = {
+                nome: document.getElementById('editCelulaNome').value,
+                lider_user_id: document.getElementById('editCelulaLider').value,
+                dia_horario: document.getElementById('editCelulaDia').value,
+                endereco: document.getElementById('editCelulaEnd').value,
+                supervisor_user_id: sessionStorage.getItem('discipuladorId')
+            };
+            try {
+                if (id) {
+                    await supabaseClient.from('celulas').update(dados).eq('id', id);
+                    if (dados.nome !== nomeOriginal) {
+                        await supabaseClient.from('pessoas').update({ celula_id: id }).eq('celula_id', id);
+                    }
+                } else {
+                    await supabaseClient.from('celulas').insert([dados]);
+                }
+                alert("Célula salva!");
+                fecharModal('modalEditarCelula');
+                carregarTudo();
+            } catch(err) { alert("Erro: " + err.message); }
+        };
+
+        document.getElementById('filtroLiderRede')?.addEventListener('change', filtrarCelulasRede);
+    }
+</script>
+
+<div class="container">
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
+            <h3>Painel Discipulador</h3>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <button onclick="carregarTudo()" class="btn-refresh"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+            <button onclick="fazerLogout()" class="btn-refresh" style="color:#991b1b;"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <div class="nav-menu">
+        <button id="btn-minha-rede" class="nav-btn active" onclick="mudarSecao('minha-rede')"><i class="fas fa-network-wired"></i> Minha Rede</button>
+        <button id="btn-celulas" class="nav-btn" onclick="mudarSecao('celulas')"><i class="fas fa-church"></i> Células</button>
+        <button id="btn-biblia" class="nav-btn" onclick="mudarSecao('biblia')"><i class="fas fa-bible"></i> Bíblia</button>
+        <button id="btn-arquivos" class="nav-btn" onclick="mudarSecao('arquivos')"><i class="fas fa-archive"></i> Inativos</button>
+        <button id="btn-agenda" class="nav-btn" onclick="mudarSecao('agenda')"><i class="far fa-calendar-alt"></i> Agenda</button>
+        <button id="btn-palavras" class="nav-btn" onclick="mudarSecao('palavras')"><i class="fas fa-book-open"></i> Palavras</button>
+    </div>
+
+    <div id="secao-minha-rede">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <button onclick="abrirNovaCelula()" class="btn-action" style="background: var(--success-text); color: white;"><i class="fas fa-plus"></i> Nova Célula</button>
+        </div>
+        <div class="filtro-lider">
+            <label><i class="fas fa-filter"></i> Líder:</label>
+            <select id="filtroLiderRede"><option value="">Todos</option></select>
+        </div>
+        <div id="listaCelulasRede"></div>
+        <p id="nenhumaCelulaMsg" class="hidden">Nenhuma célula sob sua supervisão.</p>
+    </div>
+
+    <div id="secao-celulas" class="hidden">
+        <h4 style="color:var(--primary);">Todas as Células</h4>
+        <table class="table-clean" id="tabelaCelulas">
+            <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th><!--<th>✏️</th>--></tr></thead>
+            <tbody id="corpoCelulas"></tbody>
+        </table>
+    </div>
+
+    <div id="secao-biblia" class="hidden"></div>
+    <div id="secao-arquivos" class="hidden">
+        <h4>Membros Arquivados</h4>
+        <div id="gridArquivos" class="member-grid"></div>
+    </div>
+    <div id="secao-agenda" class="hidden">
+        <h4>Próximos Eventos</h4>
+        <div id="listaAgenda" class="member-grid"></div>
+    </div>
+    <div id="secao-palavras" class="hidden">
+        <h4>Palavras e Estudos</h4>
+        <div id="listaPalavras" class="member-grid"></div>
+    </div>
+</div>
+
+<!-- Modal Célula (tela cheia) -->
+<div id="modalCelula" class="modal-celula-full">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid var(--primary); padding-bottom:15px;">
+        <h2 id="modalCelulaTitulo" style="margin:0; color:var(--primary);"></h2>
+        <button class="btn-close-modal" onclick="fecharModalCelula()" style="position:static;">&times;</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+        <button class="btn-action" style="background:var(--success-text); color:white;" onclick="abrirModalCadastroMembro()"><i class="fas fa-plus"></i> Novo Membro</button>
+        <button class="btn-action" style="background:#fef3c7; color:#92400e;" onclick="abrirApascentar()"><i class="fas fa-hands-praying"></i> Apascentar</button>
+        <button class="btn-action" style="background:#e0e7ff; color:#1e40af;" onclick="abrirListaRelatoriosCelula()"><i class="fas fa-clipboard-list"></i> Ver Relatórios</button>
+    </div>
+    <div id="gridMembrosCelulaModal" class="member-grid"></div>
+    <input type="hidden" id="cadastroModalCelulaHidden">
+</div>
+
+<!-- Modal Lista Relatórios -->
+<div id="modalListaRelatorios" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="btn-close-modal" onclick="fecharModal('modalListaRelatorios')">&times;</button>
+        <h3>Relatórios da Célula <span id="relatorioCelulaNome"></span></h3>
+        <div id="listaRelatoriosCelula"></div>
+    </div>
+</div>
+
+<!-- Modal Detalhe Relatório -->
+<div id="modalRelatorio" class="modal-overlay hidden" onclick="fecharModal('modalRelatorio')">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px; padding: 20px;">
+        <button class="btn-close-modal" onclick="fecharModal('modalRelatorio')">&times;</button>
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="color: var(--primary); margin: 0;" id="detalheRelCelula">Célula</h2>
+            <p style="color: #666; margin-top: 5px;" id="detalheRelData">00/00/0000</p>
+        </div>
+        <div style="background: linear-gradient(135deg, var(--success-bg), #e2f0e6); border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 25px;">
+            <span style="font-size: 2.5rem; font-weight: 800; color: var(--success-text);" id="detalheRelTotal">0</span>
+            <span style="font-size: 1rem; font-weight: 600; color: var(--success-text); display: block;">PESSOAS PRESENTES</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <div style="font-size: 0.7rem; text-transform: uppercase; color: #888;">Palavra</div>
+                <div style="font-weight: 700; font-size: 1rem;" id="detalheRelPalavra">-</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <div style="font-size: 0.7rem; text-transform: uppercase; color: #888;">Louvor</div>
+                <div style="font-weight: 700; font-size: 1rem;" id="detalheRelLouvor">-</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <div style="font-size: 0.7rem; text-transform: uppercase; color: #888;">Lanche</div>
+                <div style="font-weight: 700; font-size: 1rem;" id="detalheRelLanche">-</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <div style="font-size: 0.7rem; text-transform: uppercase; color: #888;">Quebra-Gelo</div>
+                <div style="font-weight: 700; font-size: 1rem;" id="detalheRelQuebra">-</div>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <div style="font-weight: 800; color: #2b6e3c; margin-bottom: 8px;"><i class="fas fa-check-circle"></i> Presentes</div>
+                    <div id="listaPresentes" style="background: #f9fff9; border-radius: 12px; padding: 12px; border: 1px solid #d0e6d0; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <div style="font-weight: 800; color: #a12a2a; margin-bottom: 8px;"><i class="fas fa-times-circle"></i> Ausentes</div>
+                    <div id="listaAusentes" style="background: #fff9f9; border-radius: 12px; padding: 12px; border: 1px solid #f0d0d0; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+        <div style="background: #fffbe6; border-radius: 12px; padding: 15px; border-left: 4px solid #f4b942;">
+            <div style="font-weight: 700; margin-bottom: 5px;">📝 Observações</div>
+            <div id="detalheRelObs" style="color: #555; line-height: 1.4;">...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Célula -->
+<div id="modalEditarCelula" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="btn-close-modal" onclick="fecharModal('modalEditarCelula')">&times;</button>
+        <h3 id="tituloModalCelula">Nova Célula</h3>
+        <form id="formCelula">
+            <input type="hidden" id="editCelulaId">
+            <input type="hidden" id="editCelulaNomeOriginal">
+            <div class="form-group"><label>Nome da Célula</label><input type="text" id="editCelulaNome" required></div>
+            <div class="form-group"><label>Líder</label><select id="editCelulaLider" required></select></div>
+            <div class="form-group"><label>Dia e Horário</label>
+                <select id="editCelulaDia">
+                    <option value="">Selecione</option>
+                    <option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Endereço</label><input type="text" id="editCelulaEnd"></div>
+            <button type="submit" id="btnSalvarEdicaoCelula" class="btn-save">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Adicionar Membro -->
+<div id="modalAdicionarMembro" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="btn-close-modal" onclick="fecharModal('modalAdicionarMembro')">&times;</button>
+        <h3>Cadastrar Novo Membro</h3>
+        <form id="formAdicionarMembro">
+            <div class="form-group"><label>Nome</label><input type="text" name="nome" required></div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" name="nascimento"></div>
+                <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" name="telefone"></div>
+            </div>
+            <div class="form-group"><label>Célula</label><select name="celula" id="addMembroCelula" required></select></div>
+            <div class="form-group"><label>Categoria</label><select name="categoria"><option>Frequentador</option><option>Membro</option><option>Líder</option></select></div>
+            <label>Passos de Fé</label>
+            <div class="check-grid">
+                <label class="check-option"><input type="checkbox" name="batizado"><span class="checkmark">Batismo</span></label>
+                <label class="check-option"><input type="checkbox" name="cursao"><span class="checkmark">Cursão</span></label>
+                <label class="check-option"><input type="checkbox" name="ctl"><span class="checkmark">CTL</span></label>
+                <label class="check-option"><input type="checkbox" name="encontro"><span class="checkmark">Encontro</span></label>
+                <label class="check-option"><input type="checkbox" name="seminario"><span class="checkmark">Seminário</span></label>
+                <label class="check-option"><input type="checkbox" name="dizimista"><span class="checkmark">Dizimista</span></label>
+            </div>
+            <button type="submit" class="btn-save">Cadastrar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Membro -->
+<div id="modalEditarMembro" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="btn-close-modal" onclick="fecharModal('modalEditarMembro')">&times;</button>
+        <h3>Editar Membro</h3>
+        <form id="formEditarMembro">
+            <input type="hidden" id="editMembroId">
+            <div class="form-group"><label>Nome</label><input type="text" id="editMembroNome" required></div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="editMembroNasc"></div>
+                <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="editMembroTel"></div>
+            </div>
+            <div class="form-group"><label>Célula</label><select id="editMembroCelula" required></select></div>
+            <div class="form-group"><label>Categoria</label><select id="editMembroCat"><option>Frequentador</option><option>Membro</option><option>Líder</option></select></div>
+            <label>Passos de Fé</label>
+            <div class="check-grid">
+                <label class="check-option"><input type="checkbox" id="editMembroBatizado"><span class="checkmark">Batismo</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroCursao"><span class="checkmark">Cursão</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroCtl"><span class="checkmark">CTL</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroEncontro"><span class="checkmark">Encontro</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroSeminario"><span class="checkmark">Seminário</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroDizimista"><span class="checkmark">Dizimista</span></label>
+            </div>
+            <button type="submit" class="btn-save">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Palavra -->
+<div id="modalPalavra" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <button class="modal-download" onclick="baixarPalavraTXT()"><i class="fas fa-download"></i></button>
+            <button class="btn-close-modal" onclick="fecharModal('modalPalavra')">&times;</button>
+        </div>
+        <h3 id="modalTitulo" style="color:var(--primary);"></h3>
+        <small id="modalData" style="color:#777;"></small>
+        <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden"><i class="fab fa-youtube"></i> Assistir no YouTube</a>
+        <div id="modalTexto" style="line-height:1.6; margin-top:15px;"></div>
+    </div>
+</div>
+
+<!-- BÍBLIA OFF-CANVAS -->
+<div id="biblia-overlay" onclick="fecharBiblia()"></div>
+<div id="painel-biblia" class="biblia-offcanvas">
+    <div class="biblia-header">
+        <div><i class="fas fa-bible"></i><h2>Bíblia</h2></div>
+        <button class="btn-fechar-biblia" onclick="fecharBiblia()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="biblia-controles">
+        <button class="versao-selector-btn" id="btnSeletorVersao" onclick="abrirModalVersao()"><span id="versaoSiglaAtual">MSG</span><i class="fas fa-chevron-down"></i></button>
+        <select id="biblia-livro" onchange="Biblia.onLivroChange()"></select>
+        <select id="biblia-capitulo" onchange="Biblia.onCapituloChange()"></select>
+    </div>
+    <div id="biblia-conteudo" class="biblia-texto-area"><p class="biblia-placeholder">Selecione livro e capítulo</p></div>
+    <div class="biblia-nav-footer">
+        <button class="nav-capitulo-btn" onclick="capituloAnterior()"><i class="fas fa-chevron-left"></i> Anterior</button>
+        <button class="nav-capitulo-btn" onclick="capituloProximo()">Próximo <i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+
+<!-- MODAL VERSÃO BÍBLIA -->
+<div id="modalVersao" class="modal-versao-overlay hidden" onclick="fecharModalVersao(event)">
+    <div class="modal-versao-content" onclick="event.stopPropagation()">
+        <div class="modal-versao-header">
+            <h3>Selecione a Versão</h3>
+            <button class="modal-versao-close" onclick="fecharModalVersao()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="versao-lista" id="listaVersoes"></div>
+    </div>
+</div>
+<script src="js/pwa.js"></script>
+
+</body>
+</html>

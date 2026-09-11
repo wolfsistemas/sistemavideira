@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha • Rede Kids</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        :root {
+            --primary: #8b5a6a;
+            --primary-hover: #7a4d5a;
+            --bg-color: #fcf7f5;
+            --text-main: #4a3b3e;
+            --text-light: #7a6a6e;
+            --input-bg: #fdfaf9;
+            --border-color: #e6dcd8;
+            --danger-text: #b34a4a;
+            --success-text: #2d6a4f;
+        }
+
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-color); font-family: 'Inter', sans-serif; margin: 0; }
+        .card { background: white; padding: 40px 35px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; text-align: center; }
+        .card h2 { color: var(--primary); font-weight: 700; margin-top: 0; }
+        .card p { color: var(--text-light); font-size: 14px; margin-bottom: 25px; }
+        input { width: 100%; padding: 14px 16px; margin: 10px 0; border: 2px solid var(--border-color); border-radius: 12px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); transition: 0.3s; }
+        input:focus { border-color: var(--primary); background: white; outline: none; box-shadow: 0 0 0 3px rgba(139, 90, 106, 0.1); }
+        button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button:disabled { background: #c9a7b3; cursor: not-allowed; transform: none; }
+        .erro { color: var(--danger-text); font-size: 14px; margin-top: 15px; display: none; background: #fdf0ee; padding: 10px; border-radius: 8px; border: 1px solid #f5d6d2; }
+        .sucesso { color: var(--success-text); font-size: 14px; margin-top: 15px; display: none; background: #d1e7dd; padding: 10px; border-radius: 8px; border: 1px solid #b8d9c0; }
+        .logo { width: 70px; margin-bottom: 10px; border-radius: 50%; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-loading .loading { width: 18px; height: 18px; }
+        .instrucao-invalido { color: #b34a4a; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <img src="logo.png" alt="Logo Kids" class="logo">
+        <h2>Criar Nova Senha</h2>
+        <p id="mensagem-instrucao">Digite sua nova senha de <strong>6 dígitos numéricos</strong> abaixo.</p>
+        
+        <input type="password" id="nova-senha" placeholder="6 dígitos numéricos (ex: 123456)" inputmode="numeric" maxlength="6" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="new-password" disabled>
+        <input type="password" id="confirma-senha" placeholder="Repita a nova senha" inputmode="numeric" maxlength="6" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="new-password" disabled>
+        
+        <button id="btn-salvar" onclick="salvarNovaSenha()" disabled>Salvar Nova Senha</button>
+        <p id="msg-erro" class="erro"></p>
+        <p id="msg-sucesso" class="sucesso"></p>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+
+        // ============================================================
+        //  REGISTRAR LOG
+        // ============================================================
+        async function registrarLogAcao(acao, email) {
+            try {
+                await supabaseClient.from('rk_logs').insert([{
+                    datahora: new Date().toISOString(),
+                    usuario: email || 'sistema',
+                    nomelider: 'Sistema',
+                    acao: acao
+                }]);
+            } catch (e) {
+                console.error("Erro ao registrar log:", e);
+            }
+        }
+
+        // ============================================================
+        //  INICIALIZAÇÃO – CONSOOME O TOKEN COM verifyOtp
+        // ============================================================
+        (async function init() {
+            const btn = document.getElementById('btn-salvar');
+            const novaSenha = document.getElementById('nova-senha');
+            const confirmaSenha = document.getElementById('confirma-senha');
+            const msgInstrucao = document.getElementById('mensagem-instrucao');
+            const erro = document.getElementById('msg-erro');
+
+            // 1. Verifica se o token já foi usado nesta sessão (flag)
+            if (sessionStorage.getItem('recovery_used') === 'true') {
+                erro.innerText = 'Este link de recuperação já foi utilizado. Solicite um novo link.';
+                erro.style.display = 'block';
+                msgInstrucao.innerHTML = '<span class="instrucao-invalido">Link inválido</span>';
+                btn.disabled = true;
+                novaSenha.disabled = true;
+                confirmaSenha.disabled = true;
+                // Remove parâmetros da URL
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                return;
+            }
+
+            // 2. Busca token_hash na query string
+            const queryParams = new URLSearchParams(window.location.search);
+            const tokenHash = queryParams.get('token_hash');
+            const type = queryParams.get('type') || 'recovery';
+
+            if (!tokenHash) {
+                // Tenta obter do hash (fallback para links antigos)
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const accessToken = hashParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token');
+                if (accessToken && refreshToken) {
+                    try {
+                        const { data, error } = await supabaseClient.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
+                        });
+                        if (error) throw error;
+                        // Remove hash da URL
+                        if (window.history && window.history.replaceState) {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                        // Habilita campos (já autenticado)
+                        habilitarCampos();
+                        return;
+                    } catch (err) {
+                        erro.innerText = 'Erro ao restaurar sessão. Tente novamente.';
+                        erro.style.display = 'block';
+                        return;
+                    }
+                } else {
+                    // Sem token_hash e sem access_token
+                    erro.innerText = 'Link de recuperação inválido. Token não encontrado.';
+                    erro.style.display = 'block';
+                    msgInstrucao.innerHTML = '<span class="instrucao-invalido">Link inválido</span>';
+                    return;
+                }
+            }
+
+            // 3. Consome o token_hash com verifyOtp (invalida o token)
+            try {
+                const { data, error } = await supabaseClient.auth.verifyOtp({
+                    token_hash: tokenHash,
+                    type: type
+                });
+                if (error) throw error;
+
+                // Token consumido com sucesso: marca como usado
+                sessionStorage.setItem('recovery_used', 'true');
+
+                // Remove token_hash da URL (para não reutilizar)
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+
+                // Habilita os campos
+                habilitarCampos();
+
+            } catch (err) {
+                erro.innerText = 'Token inválido ou expirado. Solicite um novo link.';
+                erro.style.display = 'block';
+                msgInstrucao.innerHTML = '<span class="instrucao-invalido">Link inválido</span>';
+                // Remove token_hash da URL mesmo em erro
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                console.error(err);
+            }
+
+            function habilitarCampos() {
+                novaSenha.disabled = false;
+                confirmaSenha.disabled = false;
+                btn.disabled = false;
+                msgInstrucao.innerText = 'Digite sua nova senha de 6 dígitos.';
+                erro.style.display = 'none';
+            }
+        })();
+
+        // ============================================================
+        //  SALVAR NOVA SENHA
+        // ============================================================
+        async function salvarNovaSenha() {
+            const senha1 = document.getElementById('nova-senha').value.trim();
+            const senha2 = document.getElementById('confirma-senha').value.trim();
+            const erro = document.getElementById('msg-erro');
+            const sucesso = document.getElementById('msg-sucesso');
+            const btn = document.getElementById('btn-salvar');
+
+            erro.style.display = 'none';
+            sucesso.style.display = 'none';
+
+            if (!senha1 || !senha2) {
+                erro.innerText = "Preencha os dois campos!";
+                erro.style.display = 'block';
+                return;
+            }
+            if (!/^\d{6}$/.test(senha1)) {
+                erro.innerText = "A senha deve ter exatamente 6 dígitos numéricos.";
+                erro.style.display = 'block';
+                return;
+            }
+            if (senha1 !== senha2) {
+                erro.innerText = "As senhas não são iguais!";
+                erro.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-loading"><span class="loading"></span> Salvando...</span>';
+
+            try {
+                const { data, error } = await supabaseClient.auth.updateUser({
+                    password: senha1
+                });
+                if (error) throw error;
+
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                await registrarLogAcao(`Redefiniu a senha (usuário: ${user?.email})`, user?.email);
+
+                sucesso.innerText = "Senha redefinida com sucesso! Redirecionando...";
+                sucesso.style.display = 'block';
+
+                // Limpa e bloqueia
+                document.getElementById('nova-senha').value = '';
+                document.getElementById('confirma-senha').value = '';
+                document.getElementById('nova-senha').disabled = true;
+                document.getElementById('confirma-senha').disabled = true;
+                btn.disabled = true;
+                btn.innerHTML = 'Salvar Nova Senha';
+
+                setTimeout(() => {
+                    window.location.href = "index.html?t=" + Date.now();
+                }, 2500);
+
+            } catch (error) {
+                erro.innerText = "Erro ao redefinir: " + error.message;
+                erro.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = 'Salvar Nova Senha';
+            }
+        }
+    </script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+
+    <script>
+      function getTimestamp() {
+        return new Date().getTime();
+      }
+    
+      if (!window.location.search.includes('t=')) {
+        const url = window.location.pathname + '?t=' + getTimestamp();
+        window.location.replace(url);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('t');
+        document.addEventListener('DOMContentLoaded', function() {
+          const cssLink = document.querySelector('link[rel="stylesheet"]');
+          if (cssLink) {
+            cssLink.href = cssLink.href.split('?')[0] + '?t=' + t;
+          }
+          const configScript = document.querySelector('script[src*="config.js"]');
+          if (configScript) {
+            configScript.src = configScript.src.split('?')[0] + '?t=' + t;
+          }
+          const bioScript = document.querySelector('script[src*="biometria.js"]');
+          if (bioScript) {
+            bioScript.src = bioScript.src.split('?')[0] + '?t=' + t;
+          }
+        });
+      }
+    </script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema - Videira Jataí</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a"> 
+    <link rel="manifest" href="manifest.json">
+
+    <script src="config.js"></script>
+  
+    <style>
+        body, html { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%); }
+        
+        #tela-login {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 10; transition: opacity 0.5s ease;
+        }
+
+        .card-login {
+            background: #ffffff; padding: 40px 35px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); width: 90%; max-width: 380px; text-align: center;
+            max-height: 95vh; overflow-y: auto;
+        }
+
+        .logo { width: 100px; height: auto; margin-bottom: 15px; }
+        h2 { color: var(--primary, #600018); font-size: 22px; margin-bottom: 6px; font-weight: 700; }
+        p.subtitulo { color: var(--text-light, #718096); font-size: 14px; margin-bottom: 35px; }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-light, #718096); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+        
+        input[type="text"], input[type="password"], input[type="email"], input[type="tel"] {
+            width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
+            font-size: 15px; color: var(--text-main, #2d3748); outline: none; transition: 0.3s; background-color: var(--input-bg, #f7fafc);
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="tel"]:focus { 
+            border-color: var(--primary, #600018); background-color: #ffffff; 
+        }
+
+        button {
+            width: 100%; padding: 16px; margin-top: 10px; background-color: var(--primary, #600018); color: #ffffff;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s;
+            box-sizing: border-box;
+        }
+        button:hover { background-color: #4a0012; transform: translateY(-1px); }
+        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
+        
+        .btn-secondary { background-color: #ffffff; color: var(--primary, #600018); border: 2px solid var(--primary, #600018); }
+        .btn-secondary:hover { background-color: #fdf5f6; transform: translateY(0); }
+
+        .btn-link { background: none; border: none; color: var(--primary, #600018); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 5px; margin-top: 10px; width: 100%; }
+        .btn-link:hover { color: #4a0012; }
+
+        .mensagem-erro { color: var(--danger-text, #e53e3e); font-size: 14px; margin-top: 20px; display: none; font-weight: 500; background: #fff5f5; padding: 10px; border-radius: 8px; border: 1px solid #fed7d7; }
+
+        #splash-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
+            z-index: 5; opacity: 0; transition: opacity 0.4s ease;
+        }
+        .splash-logo { width: 120px; animation: pulse 1.5s infinite ease-in-out; }
+        #splash-screen p { margin-top: 25px; color: var(--text-main, #2d3748); font-size: 15px; font-weight: 600; }
+
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        
+        .bloco { display: none; }
+        .bloco.ativo { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="tela-login">
+        <div class="card-login">
+            
+            <div id="bloco-login" class="bloco ativo">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo">
+                <h2 id="titulo-login">Bem-vindo(a)</h2>
+                <p class="subtitulo" id="subtitulo-login">Sistema de Células - Jovens e Adultos</p>
+                
+                <div id="area-form">
+                    <div class="input-group">
+                        <label>Usuário ou e-mail</label>
+                        <input type="text" id="usuario-input" placeholder="Usuário" onkeypress="verificarEnter(event, 'login')" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label>Senha de 6 Dígitos</label>
+                        <input type="password" 
+                               id="senha-input" 
+                               inputmode="numeric" 
+                               pattern="[0-9]*" 
+                               placeholder="••••••" 
+                               onkeypress="verificarEnter(event, 'login')"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    </div>
+                    
+                    <button id="btn-entrar" onclick="verificarLogin()">Entrar no Sistema</button>
+                    <button id="btn-biometria" class="btn-secondary" onclick="loginComBiometria()" style="display: none; margin-top: 12px;">Entrar com Biometria</button>
+                    <p id="mensagem-erro" class="mensagem-erro">⚠️ Usuário ou senha incorretos.</p>
+                    
+                    <button class="btn-link" onclick="mudarTela('bloco-recuperar')">Esqueci minha senha</button>
+                    <button id="btn-remover-bio" class="btn-link" onclick="desativarBiometria()" style="display: none;">Remover Biometria</button>
+                </div>
+
+                <div id="area-escolha" style="display: none;">
+                    <div id="botoes-painel"></div>
+                    <button class="btn-secondary" onclick="sair()" style="margin-top: 15px; padding: 10px; font-size: 14px;">Sair / Trocar Usuário</button>
+                </div>
+            </div>
+
+            <div id="bloco-recuperar" class="bloco">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo" style="width: 70px;">
+                <h2>Recuperar Senha</h2>
+                <p class="subtitulo" style="margin-bottom: 20px;">Informe seu e-mail para receber o link.</p>
+                
+                <div class="input-group">
+                    <label>Seu E-mail Cadastrado *</label>
+                    <input type="email" id="rec-email" placeholder="Digite seu e-mail" onkeypress="verificarEnter(event, 'recuperar')">
+                </div>
+                
+                <button id="btn-recuperar" onclick="enviarRecuperacao()">Enviar Link</button>
+                <p id="mensagem-erro-rec" class="mensagem-erro"></p>
+                
+                <button class="btn-secondary" onclick="mudarTela('bloco-login')" style="margin-top: 15px; padding: 10px; font-size: 14px;">Voltar para o Login</button>
+            </div>
+
+            <div id="bloco-biometria" class="bloco">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo" style="width: 70px;">
+                <h2>Usar digital ou Face ID?</h2>
+                <p class="subtitulo" style="margin-bottom: 20px;">No próximo acesso neste aparelho, entre sem digitar a senha.</p>
+                <button id="btn-ativar-bio" onclick="ativarBiometria()">Ativar agora</button>
+                <p id="mensagem-erro-bio" class="mensagem-erro"></p>
+                <button class="btn-secondary" onclick="pularBiometria()" style="margin-top: 15px; padding: 10px; font-size: 14px;">Agora não</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="splash-screen">
+        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Carregando" class="splash-logo">
+         <p id="saudacao-lider" style="font-weight:500;"></p>         
+        <p id="splash-texto">Autenticando e carregando painel...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/biometria.js"></script>
+    <script src="js/push.js"></script>
+    <script>
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+            auth: {
+                persistSession: true,
+                storage: localStorage,
+                autoRefreshToken: true
+            }
+        });
+
+        let loginPendente = null;
+
+        function ehCelular() {
+            const ua = navigator.userAgent || '';
+            if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+            if (navigator.maxTouchPoints > 1 && /Macintosh/i.test(ua)) return true;
+            return false;
+        }
+
+        function mudarTela(idBloco) {
+            document.querySelectorAll('.bloco').forEach(b => b.classList.remove('ativo'));
+            document.getElementById(idBloco).classList.add('ativo');
+            document.querySelectorAll('.mensagem-erro').forEach(msg => msg.style.display = 'none');
+        }
+
+        function normalizarCategoria(cat) {
+            return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function aplicarSaudacao(nomeReal) {
+            const saudacaoEl = document.getElementById('saudacao-lider');
+            if (saudacaoEl && nomeReal) {
+                const primeiroNome = nomeReal.split(' ')[0];
+                saudacaoEl.innerText = `Graça e Paz, ${primeiroNome}`;
+            }
+        }
+
+        async function verificarLogin() {
+            const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
+            const senhaDigitada = document.getElementById('senha-input').value.trim();
+            const erro = document.getElementById('mensagem-erro');
+            const btn = document.getElementById('btn-entrar');
+        
+            if (!entrada || !senhaDigitada) {
+                erro.innerText = "⚠️ Preencha usuário/e-mail e senha.";
+                erro.style.display = 'block';
+                return;
+            }
+        
+            btn.innerText = "Autenticando...";
+            btn.disabled = true;
+            erro.style.display = 'none';
+        
+            let emailParaLogin = entrada;
+        
+            if (!entrada.includes('@')) {
+                const { data: emailEncontrado, error: rpcError } = await supabaseClient
+                    .rpc('buscar_email_por_usuario', { usuario_busca: entrada });
+        
+                if (rpcError || !emailEncontrado) {
+                    erro.innerText = "⚠️ Usuário não encontrado.";
+                    erro.style.display = 'block';
+                    btn.innerText = "Entrar no Sistema";
+                    btn.disabled = false;
+                    return;
+                }
+                emailParaLogin = emailEncontrado;
+            }
+        
+            const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
+                email: emailParaLogin,
+                password: senhaDigitada
+            });
+        
+            if (loginError) {
+                erro.innerText = "⚠️ E-mail ou senha incorretos.";
+                erro.style.display = 'block';
+                document.getElementById('senha-input').value = "";
+                btn.innerText = "Entrar no Sistema";
+                btn.disabled = false;
+                return;
+            }
+        
+            const { data: pessoa } = await supabaseClient
+                .from('pessoas')
+                .select('nome, categoria')
+                .eq('email', emailParaLogin)
+                .maybeSingle();
+        
+            if (!pessoa) {
+                erro.innerText = "⚠️ Registro não encontrado na base de dados.";
+                erro.style.display = 'block';
+                btn.innerText = "Entrar no Sistema";
+                btn.disabled = false;
+                return;
+            }
+        
+            const nomeReal = pessoa.nome;
+            const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+        
+            if (categoriaNormalizada !== 'administrador') {
+                registrarLog(entrada, nomeReal, "Fez login no sistema");
+            }
+
+            const paginas = paginasPorCategoria(categoriaNormalizada);
+            gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
+            if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+            aplicarSaudacao(nomeReal);
+
+            const podeBio = ehCelular() && await Biometria.plataformaDisponivel();
+            if (podeBio && !Biometria.cadastradaPara(emailParaLogin)) {
+                loginPendente = {
+                    nome: nomeReal,
+                    email: emailParaLogin,
+                    userId: loginData.user && loginData.user.id,
+                    paginas: paginas,
+                    categoria: categoriaNormalizada
+                };
+                mudarTela('bloco-biometria');
+                btn.innerText = "Entrar no Sistema";
+                btn.disabled = false;
+                return;
+            }
+
+            seguirParaPaineis(nomeReal, paginas);
+        }
+
+        function paginasPorCategoria(categoriaNormalizada) {
+            if (categoriaNormalizada === 'administrador') {
+                return [
+                    { nome: "Painel Admin", url: "admin" },
+                    { nome: "Painel Pastoral", url: "pastor" },
+                    { nome: "Painel Discipulador", url: "discipulador" },
+                    { nome: "Painel do Líder", url: "lider" }
+                ];
+            }
+            if (['pastor de governo', 'pastor de rede', 'pastor'].includes(categoriaNormalizada)) {
+                return [{ nome: "Painel Pastoral", url: "pastor" }];
+            }
+            if (categoriaNormalizada === 'discipulador') {
+                return [{ nome: "Painel Discipulador", url: "discipulador" }];
+            }
+            if (categoriaNormalizada === 'líder' || categoriaNormalizada === 'lider') {
+                return [{ nome: "Painel do Líder", url: "lider" }];
+            }
+            if (categoriaNormalizada === 'tesoureiro') {
+                return [
+                    { nome: "Financeiro PC", url: "financeiro" },
+                    { nome: "Financeiro Mobile", url: "financeiromobile" }
+                ];
+            }
+            return [{ nome: "Área do Membro", url: "membro" }];
+        }
+
+        function gravarSessaoLocal(nomeReal, email, categoria, paginas) {
+            sessionStorage.setItem('usuarioLogado', nomeReal);
+            sessionStorage.setItem('loginDigitado', email);
+            sessionStorage.setItem('urlApi', urlBackend);
+            sessionStorage.setItem('categoria', categoria);
+            sessionStorage.setItem('paginasPermitidas', JSON.stringify(paginas.map(p => p.url)));
+        }
+
+        function seguirParaPaineis(nomeReal, paginas) {
+            if (paginas.length === 1) {
+                entrarNoPainel(nomeReal, paginas[0].url);
+                return;
+            }
+
+            mudarTela('bloco-login');
+            document.getElementById('area-form').style.display = 'none';
+            document.getElementById('area-escolha').style.display = 'block';
+            document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
+            document.getElementById('subtitulo-login').innerText = "Escolha o painel:";
+
+            const divBotoes = document.getElementById('botoes-painel');
+            divBotoes.innerHTML = '';
+            paginas.forEach(pag => {
+                let b = document.createElement('button');
+                b.innerText = pag.nome;
+                b.onclick = () => entrarNoPainel(nomeReal, pag.url);
+                divBotoes.appendChild(b);
+            });
+        }
+
+        async function ativarBiometria() {
+            const erro = document.getElementById('mensagem-erro-bio');
+            const btn = document.getElementById('btn-ativar-bio');
+            if (!loginPendente) {
+                mudarTela('bloco-login');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Validando Segurança...";
+            erro.style.display = 'none';
+
+            try {
+                await Biometria.registrar({
+                    userId: loginPendente.userId,
+                    email: loginPendente.email,
+                    nome: loginPendente.nome
+                });
+                const pendente = loginPendente;
+                loginPendente = null;
+                seguirParaPaineis(pendente.nome, pendente.paginas);
+            } catch (e) {
+                erro.innerText = e.name === 'NotAllowedError'
+                    ? "Registro cancelado. Você pode tentar de novo ou pular."
+                    : ("Não foi possível ativar: " + (e.message || e));
+                erro.style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = "Ativar agora";
+            }
+        }
+
+        function pularBiometria() {
+            if (!loginPendente) {
+                mudarTela('bloco-login');
+                return;
+            }
+            const pendente = loginPendente;
+            loginPendente = null;
+            seguirParaPaineis(pendente.nome, pendente.paginas);
+        }
+
+        async function loginComBiometria() {
+            const erro = document.getElementById('mensagem-erro');
+            const btn = document.getElementById('btn-biometria');
+            erro.style.display = 'none';
+            btn.disabled = true;
+            btn.innerText = "Validando Segurança...";
+
+            try {
+                const cadastro = await Biometria.autenticar();
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                if (!user || (user.email || '').toLowerCase() !== (cadastro.email || '').toLowerCase()) {
+                    Biometria.removerCadastro();
+                    throw new Error("Sessão expirada. Entre com usuário e senha e ative a digital de novo.");
+                }
+
+                const { data: pessoa } = await supabaseClient
+                    .from('pessoas')
+                    .select('nome, categoria')
+                    .eq('email', cadastro.email)
+                    .maybeSingle();
+
+                if (!pessoa) throw new Error("Registro não encontrado na base de dados.");
+
+                const nomeReal = pessoa.nome;
+                const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+                const paginas = paginasPorCategoria(categoriaNormalizada);
+
+                if (categoriaNormalizada !== 'administrador') {
+                    registrarLog(cadastro.email, nomeReal, "Fez login com biometria");
+                }
+                gravarSessaoLocal(nomeReal, cadastro.email, categoriaNormalizada, paginas);
+                if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+                aplicarSaudacao(nomeReal);
+                seguirParaPaineis(nomeReal, paginas);
+            } catch (e) {
+                erro.innerText = e.name === 'NotAllowedError'
+                    ? "Leitura cancelada. Tente de novo ou entre com a senha."
+                    : ("⚠️ " + (e.message || "Falha na biometria."));
+                erro.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Entrar com digital / Face ID";
+            }
+        }
+
+        function desativarBiometria() {
+            Biometria.removerCadastro();
+            atualizarBotoesBiometria();
+        }
+
+        async function atualizarBotoesBiometria() {
+            const btnBio = document.getElementById('btn-biometria');
+            const btnRemover = document.getElementById('btn-remover-bio');
+            const ok = ehCelular() && await Biometria.plataformaDisponivel();
+            const tem = Biometria.temCadastro();
+            if (btnBio) btnBio.style.display = (ok && tem) ? 'block' : 'none';
+            if (btnRemover) btnRemover.style.display = (ok && tem) ? 'block' : 'none';
+        }
+
+        atualizarBotoesBiometria().then(function () {
+            if (ehCelular() && Biometria.temCadastro()) loginComBiometria();
+        });
+        
+        function entrarNoPainel(nome, urlDestino) {
+            const telaLogin = document.getElementById('tela-login');
+            const splashScreen = document.getElementById('splash-screen');
+            document.getElementById('splash-texto').innerText = `Carregando...`;
+
+            telaLogin.style.opacity = '0'; 
+            setTimeout(() => {
+                telaLogin.style.display = 'none';
+                splashScreen.style.display = 'flex';
+                setTimeout(() => splashScreen.style.opacity = '1', 10);
+                setTimeout(() => {
+                    window.location.href = urlDestino + ".html?t=" + Date.now();
+                }, 1000);
+            }, 400);
+        }
+
+        async function registrarLog(usuarioDigitado, nomeReal, acaoRealizada) {
+            const dataHoraAtual = new Date().toISOString();
+            try {
+                await supabaseClient.from('logs').insert([{
+                    datahora: dataHoraAtual,
+                    usuario: usuarioDigitado,
+                    nomelider: nomeReal,
+                    acao: acaoRealizada
+                }]);
+            } catch (e) {
+                console.error("Erro ao registrar log:", e);
+            }
+        }
+
+        function sair() {
+            sessionStorage.clear();
+            document.getElementById('area-escolha').style.display = 'none';
+            document.getElementById('area-form').style.display = 'block';
+            document.getElementById('titulo-login').innerText = "Bem-vindo(a)";
+            document.getElementById('subtitulo-login').innerText = "Acesse o seu painel";
+            document.getElementById('usuario-input').value = "";
+            document.getElementById('senha-input').value = "";
+            document.getElementById('btn-entrar').innerText = "Entrar no Sistema";
+            document.getElementById('btn-entrar').disabled = false;
+            atualizarBotoesBiometria();
+        }
+
+        async function enviarRecuperacao() {
+            const email = document.getElementById('rec-email').value.trim();
+            const btn = document.getElementById('btn-recuperar');
+            const erro = document.getElementById('mensagem-erro-rec');
+
+            if (!email) {
+                erro.innerText = "⚠️ Informe seu e-mail cadastrado.";
+                erro.style.display = 'block';
+                return;
+            }
+
+            btn.innerText = "Processando...";
+            btn.disabled = true;
+            erro.style.display = 'none';
+
+            try {
+                const urlDestino = window.location.origin + "/sistema/nova-senha.html";
+                const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: urlDestino,
+                });
+                if (error) throw error;
+
+                alert("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+                registrarLog(email, "Solicitou Recuperação de Senha");
+                document.getElementById('rec-email').value = "";
+                mudarTela('bloco-login');
+            } catch (e) {
+                erro.innerText = "⚠️ Erro: " + e.message;
+                erro.style.display = 'block';
+            } finally {
+                btn.innerText = "Enviar Link";
+                btn.disabled = false;
+            }
+        }
+
+        function verificarEnter(event, contexto) { 
+            if (event.key === "Enter") {
+                if(contexto === 'login') verificarLogin();
+                else if(contexto === 'recuperar') enviarRecuperacao();
+            } 
+        }
+    </script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>

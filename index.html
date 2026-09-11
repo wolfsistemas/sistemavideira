@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+
+     <script>
+      // Função que gera um timestamp único
+      function getTimestamp() {
+        return new Date().getTime();
+      }
+    
+      // Verifica se a URL já tem um parâmetro 't'
+      if (!window.location.search.includes('t=')) {
+        // Redireciona para a mesma página, mas com '?t=timestamp'
+        const url = window.location.pathname + '?t=' + getTimestamp();
+        window.location.replace(url);
+        // O replace impede que o usuário volte com o botão "voltar" para a versão sem cache
+      } else {
+        // Se já tem 't=', guardamos o valor para usar nos recursos
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('t');
+        // Vamos sobrescrever os links de CSS e JS com esse timestamp
+        // Para isso, vamos criar os elementos dinamicamente
+        document.addEventListener('DOMContentLoaded', function() {
+          // Remove os links estáticos (se existirem) e adiciona com '?t=...'
+          // Ou você pode simplesmente adicionar os links via JS
+          // Como os links estão no HTML, vamos substituir seus atributos 'href' e 'src'
+          const cssLink = document.querySelector('link[rel="stylesheet"]');
+          if (cssLink) {
+            cssLink.href = cssLink.href.split('?')[0] + '?t=' + t;
+          }
+          // Para o script config.js
+          const configScript = document.querySelector('script[src*="config.js"]');
+          if (configScript) {
+            configScript.src = configScript.src.split('?')[0] + '?t=' + t;
+          }
+          // Se houver outros scripts ou imagens, faça o mesmo
+        });
+      }
+    </script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Videira Jataí</title>
+
+    <!-- Impede cache do navegador -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Fonte e ícones (mesmo do login) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        /* Reset e fundo igual ao login */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Splash Screen – ocupa a tela inteira */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.6s ease;
+        }
+
+        .splash-logo {
+            width: 130px;
+            height: auto;
+            animation: pulse 1.8s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        .splash-texto {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+        }
+
+        .splash-loader {
+            margin-top: 25px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(96, 0, 24, 0.15);
+            border-top: 4px solid #600018;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mensagem de fallback caso o redirecionamento demore */
+        .fallback {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #718096;
+        }
+        .fallback a {
+            color: #600018;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px dashed #600018;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Videira Jataí" class="splash-logo">
+        <p class="splash-texto">Bem‑vindo(a) ao Sistema</p>
+        <div class="splash-loader"></div>
+        <p class="fallback">
+            <i class="fas fa-pulse"></i> 
+            <!--Se não for redirecionado, <a href="login.html">clique aqui</a>. -->
+        </p>
+    </div>
+
+    <script>
+        // --- Redirecionamento com splash ---
+        // Aguarda 2 segundos para o splash ser visto, depois redireciona
+        setTimeout(function() {
+            // Gera timestamp para evitar cache
+            var timestamp = new Date().getTime();
+            window.location.replace('login.html?t=' + timestamp);
+        }, 1500);
+    </script>
+    <script src="js/pwa.js"></script>
+
+</body>
+</html>

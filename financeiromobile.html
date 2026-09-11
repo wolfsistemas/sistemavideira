@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Financeiro Mobile • Videira Jataí</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="js/push.js"></script>
+
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root {
+      --success: #1e8e3e;
+      --danger: #c5221f;
+      --success-light: #e8f5e9;
+      --danger-light: #fbe9e7;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      padding-bottom: 80px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 15px;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      padding: 15px 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      border-left: 5px solid var(--primary);
+    }
+    .header h3 {
+      margin: 0;
+      color: var(--primary);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 1rem;
+    }
+    .btn-refresh {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn-refresh:hover { color: var(--primary); transform: rotate(90deg); }
+
+    /* MENU INFERIOR */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 12px;
+      border-top: 1px solid #e0e0e0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.65rem;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: 0.2s;
+      border: none;
+      background: transparent;
+      padding: 4px 12px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+    }
+    .nav-item i {
+      font-size: 1.4rem;
+      margin-bottom: 2px;
+    }
+    .nav-item.active {
+      color: var(--primary);
+    }
+    .nav-item.active i {
+      color: var(--primary);
+    }
+
+    /* DASHBOARD */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: white;
+      padding: 16px 12px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      text-align: center;
+      border-left: 4px solid #ccc;
+    }
+    .kpi-card.balance { border-left-color: var(--primary); }
+    .kpi-card.income { border-left-color: var(--success); }
+    .kpi-card.expense { border-left-color: var(--danger); }
+    .kpi-card.gold { border-left-color: var(--accent); }
+    .kpi-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: #888;
+      font-weight: 700;
+      display: block;
+    }
+    .kpi-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #333;
+      margin-top: 4px;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      height: 250px;
+    }
+
+    /* FORMULÁRIOS */
+    .card-panel {
+      background: white;
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      background: #fdfdfd;
+      box-sizing: border-box;
+      font-family: 'Inter';
+      font-size: 0.95rem;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-submit:hover { background: var(--primary-light); }
+
+    /* SMART SEARCH */
+    .search-wrapper { position: relative; }
+    .search-input-group { position: relative; }
+    .search-input-group input { padding-right: 35px; }
+    .search-icon-valid {
+      position: absolute;
+      right: 10px;
+      top: 12px;
+      color: var(--success);
+      font-size: 1.2rem;
+      display: none;
+    }
+    .custom-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: none;
+      margin-top: -10px;
+    }
+    .dropdown-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #333;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .dropdown-item:hover {
+      background: #f8f9fa;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .valid-member {
+      border-color: var(--success) !important;
+      background-color: #f0fdf4 !important;
+    }
+
+    /* TABELAS */
+    .table-container {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: #f8f9fa;
+      text-align: left;
+      padding: 12px 15px;
+      font-size: 0.75rem;
+      color: #444;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-bottom: 2px solid #ddd;
+    }
+    td {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.85rem;
+    }
+    tr.row-in { background-color: var(--success-light); }
+    tr.row-out { background-color: var(--danger-light); }
+    tfoot tr {
+      background: #333;
+      color: white;
+      font-weight: bold;
+    }
+    tfoot td { border: none; padding: 12px 15px; }
+
+    /* MODAIS */
+    .hidden { display: none !important; }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .year-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .month-box {
+      background: #eee;
+      border-radius: 6px;
+      padding: 10px 5px;
+      text-align: center;
+      font-size: 0.7rem;
+      border: 1px solid #ddd;
+      color: #999;
+      font-weight: 600;
+    }
+    .month-box.paid {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .filtro-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .filtro-row select {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .btn-icon {
+      background: #eee;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: #555;
+      transition: 0.3s;
+      font-size: 0.9rem;
+    }
+    .btn-icon:hover { background: #ddd; }
+
+    .badge-tipo {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .badge-tipo.entrada { background: var(--success-light); color: var(--success); }
+    .badge-tipo.saida { background: var(--danger-light); color: var(--danger); }
+
+    .btn-excluir {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 60px;">
+      <h3>Financeiro</h3>
+    </div>
+    <div>
+      <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+      <button onclick="fazerLogout()" class="btn-refresh" style="color:#991b1b;" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard">
+    <div class="kpi-grid">
+      <div class="kpi-card balance"><span class="kpi-label">Saldo</span><div class="kpi-value" id="kpiSaldo">R$ 0,00</div></div>
+      <div class="kpi-card income"><span class="kpi-label">Entradas</span><div class="kpi-value" id="kpiEntradas">R$ 0,00</div></div>
+      <div class="kpi-card expense"><span class="kpi-label">Saídas</span><div class="kpi-value" id="kpiSaidas">R$ 0,00</div></div>
+      <div class="kpi-card gold"><span class="kpi-label">Dízimos</span><div class="kpi-value" id="kpiDizimos">R$ 0,00</div></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="financeChart"></canvas>
+    </div>
+  </div>
+
+  <!-- LANÇAMENTOS -->
+  <div id="view-lancamento" class="hidden">
+    <div class="card-panel">
+      <form id="formFinanceiro">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div><label>Tipo</label><select id="finTipo" onchange="atualizarCategorias()" required><option value="Entrada">Entrada</option><option value="Saída">Saída</option></select></div>
+          <div><label>Categoria</label><select id="finCategoria" onchange="atualizarCampos()" required><option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option></select></div>
+        </div>
+
+        <div id="boxMembro">
+          <label>Membro (obrigatório para Dízimo)</label>
+          <div class="search-wrapper">
+            <div class="search-input-group">
+              <input type="text" id="inputBuscaMembro" placeholder="Digite para buscar..." autocomplete="off" oninput="filtrarDropdownMembros()" onfocus="filtrarDropdownMembros()">
+              <i id="iconValidMember" class="fas fa-check-circle search-icon-valid"></i>
+            </div>
+            <div id="dropdownMembros" class="custom-dropdown"></div>
+          </div>
+        </div>
+
+        <div id="boxDescricao" class="hidden">
+          <label>Descrição</label>
+          <input type="text" id="finDescricaoInput" placeholder="Descreva a movimentação...">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div><label>Valor (R$)</label><input type="number" step="0.01" id="finValor" required placeholder="0,00" style="font-weight:bold;"></div>
+          <div><label>Data</label><input type="date" id="finData" required></div>
+        </div>
+
+        <label>Método</label>
+        <select id="finMetodo"><option value="Pix">Pix</option><option value="Dinheiro">Dinheiro</option><option value="Cartão">Cartão</option></select>
+
+        <button type="submit" id="btnSalvarFin" class="btn-submit">Lançar</button>
+      </form>
+    </div>
+    <button onclick="document.getElementById('modalMembro').classList.remove('hidden')" style="width:100%; padding:12px; background:var(--accent); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">
+      <i class="fas fa-user-plus"></i> Cadastrar Membro
+    </button>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="view-historico" class="hidden">
+    <div class="filtro-row">
+      <select id="filtroMesHist" onchange="carregarTudo()">
+        <option value="-1">Todos os meses</option>
+        <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+        <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+        <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+        <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+      </select>
+      <select id="filtroAnoHist" onchange="carregarTudo()">
+        <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+      </select>
+      <input type="text" id="buscaHist" placeholder="🔍 Filtrar..." oninput="filtrarHistorico()" style="margin-bottom:0; flex:1;">
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th style="width:40px;"></th></tr></thead>
+        <tbody id="tbHistorico"></tbody>
+        <tfoot><tr><td colspan="2" style="text-align:right;">SALDO FINAL:</td><td id="footerTotal">R$ 0,00</td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- DIZIMISTAS -->
+  <div id="view-dizimistas" class="hidden">
+    <div style="background:white; padding:12px; border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:15px;">
+      <input type="text" id="buscaDizimista" placeholder="🔍 Buscar dizimista..." oninput="filtrarDizimistas()" style="margin:0; border:none; background:transparent; font-size:1rem; width:100%;">
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Membro</th><th>Último</th><th style="text-align:center;">Ação</th></tr></thead>
+        <tbody id="tbDizimistas"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MENU INFERIOR -->
+<div class="bottom-nav">
+  <button class="nav-item active" data-view="dashboard" onclick="mudarView('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</button>
+  <button class="nav-item" data-view="lancamento" onclick="mudarView('lancamento', this)"><i class="fas fa-plus-circle"></i> Lançar</button>
+  <button class="nav-item" data-view="historico" onclick="mudarView('historico', this)"><i class="fas fa-list-ul"></i> Extrato</button>
+  <button class="nav-item" data-view="dizimistas" onclick="mudarView('dizimistas', this)"><i class="fas fa-hand-holding-heart"></i> Dizimistas</button>
+</div>
+
+<!-- MODAL: DETALHES DIZIMISTA -->
+<div id="modalDizimista" class="modal-overlay hidden" onclick="fecharModal(event, 'modalDizimista')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 id="modalNomeDizimista" style="margin-top:0; color:var(--primary);">Nome</h3>
+    <p>Histórico <strong id="modalAnoDizimista"></strong></p>
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; text-align:center; border-radius:8px; margin-bottom:15px;">
+      <small style="color:#166534; font-weight:bold;">TOTAL NO ANO</small>
+      <div id="modalTotalValor" style="font-size:1.5rem; font-weight:800; color:#15803d;">R$ 0,00</div>
+    </div>
+    <div class="year-grid" id="gridMeses"></div>
+    <button onclick="fecharModal(null, 'modalDizimista')" style="width:100%; margin-top:15px; padding:10px; background:#eee; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL: CADASTRO DE MEMBRO -->
+<div id="modalMembro" class="modal-overlay hidden" onclick="fecharModal(event, 'modalMembro')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 style="color:var(--primary); margin-top:0;">Cadastrar Membro</h3>
+    <form id="formMembroModal">
+      <label>Nome Completo *</label>
+      <input type="text" name="nome" required>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div><label>Nascimento</label><input type="date" name="nascimento"></div>
+        <div><label>WhatsApp</label><input type="tel" name="telefone" placeholder="(00) 00000-0000"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div><label>Célula</label><select name="celula_id" id="modalSelectCelula"></select></div>
+        <div><label>Categoria</label>
+          <select name="categoria">
+            <option>Membro</option><option>Frequentador</option><option>Líder</option>
+            <option>Discipulador</option><option>Pastor</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="margin-top:10px; margin-bottom:8px;">Marcadores</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:15px;">
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;"><input type="checkbox" name="batizado" style="width:auto;"> Batismo</label>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;"><input type="checkbox" name="cursao" style="width:auto;"> Cursão</label>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;"><input type="checkbox" name="ctl" style="width:auto;"> CTL</label>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;"><input type="checkbox" name="encontro" style="width:auto;"> Encontro</label>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="fecharModal(null, 'modalMembro')" style="flex:1; padding:12px; background:#eee; color:#555; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Cancelar</button>
+        <button type="submit" id="btnSalvarMembroModal" style="flex:2; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+  const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+  let dadosFinanceiros = [];
+  let dadosMembros = [];
+  let dadosCelulas = [];
+  let membrosMap = {};
+  let meuGrafico = null;
+
+  // ============================================================
+  // AUTENTICAÇÃO (admin, pastor, tesoureiro)
+  // ============================================================
+  (async () => {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+
+    const { data: pessoa } = await supabaseClient
+      .from('pessoas')
+      .select('categoria')
+      .eq('email', user.email)
+      .single();
+
+    if (!pessoa) {
+      alert("Registro não encontrado.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const cat = (pessoa.categoria || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const permitidos = ['administrador', 'pastor', 'tesoureiro'];
+    if (!permitidos.includes(cat)) {
+      alert("Acesso restrito a Administradores, Pastores e Tesoureiros.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
+    sessionStorage.setItem('loginDigitado', user.email);
+    if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+
+    // Inicializa a página
+    const hoje = new Date();
+    document.getElementById('filtroMesHist').value = hoje.getMonth();
+    document.getElementById('filtroAnoHist').value = hoje.getFullYear();
+    document.getElementById('finData').valueAsDate = hoje;
+    carregarTudo();
+  })();
+
+  // ============================================================
+  // CARREGAR DADOS
+  // ============================================================
+  async function carregarTudo() {
+    const icon = document.getElementById('iconRefresh');
+    if (icon) icon.classList.add('fa-spin');
+
+    try {
+      // Financeiro
+      const { data: fin } = await supabaseClient
+        .from('financeiro')
+        .select('*')
+        .order('data', { ascending: false });
+      dadosFinanceiros = fin || [];
+
+      // Pessoas (membros ativos)
+      const { data: pessoas } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, categoria, celula_id, telefone, nascimento, batizado, cursao, ctl, encontro, dizimista')
+        .eq('arquivado', false)
+        .order('nome');
+      dadosMembros = pessoas || [];
+      membrosMap = {};
+      dadosMembros.forEach(p => membrosMap[p.id] = p.nome);
+
+      // Células
+      const { data: celulas } = await supabaseClient
+        .from('celulas')
+        .select('id, nome')
+        .order('nome');
+      dadosCelulas = celulas || [];
+
+      // Preencher selects
+      preencherSelectCelulas();
+      preencherSelectMembros();
+
+      // Renderizar
+      renderizarDashboard();
+      renderizarHistorico();
+      renderizarDizimistas();
+      atualizarGrafico();
+
+    } catch (e) {
+      console.error('Erro ao carregar:', e);
+    } finally {
+      if (icon) icon.classList.remove('fa-spin');
+    }
+  }
+
+  // ============================================================
+  // RENDERIZAR DASHBOARD
+  // ============================================================
+  function renderizarDashboard() {
+    const mesFiltro = parseInt(document.getElementById('filtroMesHist').value);
+    const anoFiltro = parseInt(document.getElementById('filtroAnoHist').value);
+    const prefixo = mesFiltro === -1 ? `${anoFiltro}` : `${anoFiltro}-${(mesFiltro+1).toString().padStart(2,'0')}`;
+
+    let ent = 0, sai = 0, dizimos = 0;
+    dadosFinanceiros.forEach(f => {
+      if (f.data.startsWith(prefixo)) {
+        const v = parseFloat(f.valor || 0);
+        if (f.tipo === 'Entrada') {
+          ent += v;
+          if (f.categoria === 'Dízimo') dizimos += v;
+        } else {
+          sai += v;
+        }
+      }
+    });
+
+    const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('kpiSaldo').innerText = fmt(ent - sai);
+    document.getElementById('kpiEntradas').innerText = fmt(ent);
+    document.getElementById('kpiSaidas').innerText = fmt(sai);
+    document.getElementById('kpiDizimos').innerText = fmt(dizimos);
+  }
+
+  // ============================================================
+  // RENDERIZAR HISTÓRICO
+  // ============================================================
+  function renderizarHistorico() {
+    const tbody = document.getElementById('tbHistorico');
+    tbody.innerHTML = '';
+
+    const mesFiltro = parseInt(document.getElementById('filtroMesHist').value);
+    const anoFiltro = parseInt(document.getElementById('filtroAnoHist').value);
+    const prefixo = mesFiltro === -1 ? `${anoFiltro}` : `${anoFiltro}-${(mesFiltro+1).toString().padStart(2,'0')}`;
+
+    let total = 0;
+    const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    dadosFinanceiros.forEach(f => {
+      if (f.data.startsWith(prefixo)) {
+        const v = parseFloat(f.valor || 0);
+        const isEntrada = f.tipo === 'Entrada';
+        total += isEntrada ? v : -v;
+        const dataBr = f.data.split('-').reverse().join('/');
+        const desc = f.categoria === 'Dízimo' ? (membrosMap[f.descricao] || f.descricao) : f.descricao;
+
+        tbody.innerHTML += `
+          <tr class="${isEntrada ? 'row-in' : 'row-out'}">
+            <td style="font-size:0.75rem;">${dataBr}</td>
+            <td>${desc}</td>
+            <td style="font-weight:700; color:${isEntrada ? 'var(--success)' : 'var(--danger)'};">${fmt(v)}</td>
+            <td><button class="btn-excluir" onclick="excluirLancamento('${f.id}', '${desc}')" title="Excluir"><i class="fas fa-trash-alt"></i></button></td>
+          </tr>
+        `;
+      }
+    });
+
+    document.getElementById('footerTotal').innerText = fmt(total);
+  }
+
+  // ============================================================
+  // RENDERIZAR DIZIMISTAS
+  // ============================================================
+  function renderizarDizimistas() {
+    const tbody = document.getElementById('tbDizimistas');
+    tbody.innerHTML = '';
+
+    // Membros que são dizimistas ou já deram dízimo
+    const nomesComDizimos = new Set();
+    dadosFinanceiros.forEach(f => {
+      if (f.categoria === 'Dízimo') {
+        const nome = membrosMap[f.descricao] || f.descricao;
+        nomesComDizimos.add(nome);
+      }
+    });
+
+    const lista = dadosMembros.filter(m =>
+      m.dizimista === 'Sim' || nomesComDizimos.has(m.nome)
+    );
+
+    const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    lista.forEach(m => {
+      const dizimos = dadosFinanceiros
+        .filter(f => f.categoria === 'Dízimo' && (membrosMap[f.descricao] === m.nome || f.descricao === m.id))
+        .sort((a,b) => b.data.localeCompare(a.data));
+
+      let ultimo = '';
+      if (dizimos.length) {
+        const ult = dizimos[0];
+        ultimo = `${ult.data.split('-').reverse().join('/')} - ${fmt(ult.valor)}`;
+      }
+
+      tbody.innerHTML += `
+        <tr data-nome="${m.nome.toLowerCase()}">
+          <td><strong>${m.nome}</strong></td>
+          <td style="font-size:0.8rem;">${ultimo}</td>
+          <td style="text-align:center;">
+            <button onclick="abrirDetalhesDizimista('${m.id}')" style="background:var(--accent); color:white; border:none; padding:4px 12px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.7rem;">
+              <i class="fas fa-eye"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function filtrarDizimistas() {
+    const termo = document.getElementById('buscaDizimista').value.toLowerCase();
+    document.querySelectorAll('#tbDizimistas tr').forEach(tr => {
+      const nome = tr.getAttribute('data-nome');
+      tr.style.display = nome && nome.includes(termo) ? '' : 'none';
+    });
+  }
+
+  function filtrarHistorico() {
+    const termo = document.getElementById('buscaHist').value.toLowerCase();
+    document.querySelectorAll('#tbHistorico tr').forEach(tr => {
+      tr.style.display = tr.innerText.toLowerCase().includes(termo) ? '' : 'none';
+    });
+  }
+
+  // ============================================================
+  // DETALHES DO DIZIMISTA (MODAL)
+  // ============================================================
+  function abrirDetalhesDizimista(membroId) {
+    const membro = dadosMembros.find(m => m.id === membroId);
+    if (!membro) return;
+
+    const ano = document.getElementById('filtroAnoHist').value || new Date().getFullYear();
+    document.getElementById('modalNomeDizimista').innerText = membro.nome;
+    document.getElementById('modalAnoDizimista').innerText = ano;
+
+    const dizimos = dadosFinanceiros.filter(f =>
+      f.categoria === 'Dízimo' &&
+      (membrosMap[f.descricao] === membro.nome || f.descricao === membro.id) &&
+      f.data.startsWith(ano.toString())
+    );
+
+    let total = 0;
+    const mesesValor = new Array(12).fill(0);
+    dizimos.forEach(f => {
+      const v = parseFloat(f.valor || 0);
+      total += v;
+      const mes = parseInt(f.data.split('-')[1]) - 1;
+      mesesValor[mes] += v;
+    });
+
+    const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('modalTotalValor').innerText = fmt(total);
+
+    const nomesMeses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    const grid = document.getElementById('gridMeses');
+    grid.innerHTML = '';
+    for (let i = 0; i < 12; i++) {
+      const paid = mesesValor[i] > 0 ? 'paid' : '';
+      grid.innerHTML += `<div class="month-box ${paid}">${nomesMeses[i]}<br>${mesesValor[i] > 0 ? fmt(mesesValor[i]) : '-'}</div>`;
+    }
+
+    document.getElementById('modalDizimista').classList.remove('hidden');
+  }
+
+  // ============================================================
+  // GRÁFICO
+  // ============================================================
+  function atualizarGrafico() {
+    const ctx = document.getElementById('financeChart');
+    if (!ctx) return;
+
+    const hoje = new Date();
+    const labels = [];
+    const entradas = [];
+    const saidas = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      labels.push(d.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }));
+      const prefixo = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
+      let e=0, s=0;
+      dadosFinanceiros.forEach(f => {
+        if (f.data.startsWith(prefixo)) {
+          const v = parseFloat(f.valor || 0);
+          if (f.tipo === 'Entrada') e += v;
+          else s += v;
+        }
+      });
+      entradas.push(e);
+      saidas.push(s);
+    }
+
+    if (meuGrafico) meuGrafico.destroy();
+    meuGrafico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Entradas', data: entradas, backgroundColor: '#1e8e3e', borderRadius: 4 },
+          { label: 'Saídas', data: saidas, backgroundColor: '#c5221f', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ '+v.toFixed(0) } } }
+      }
+    });
+  }
+
+  // ============================================================
+  // FORMULÁRIO DE LANÇAMENTO (SMART SEARCH)
+  // ============================================================
+  function atualizarCategorias() {
+    const t = document.getElementById('finTipo').value;
+    const c = document.getElementById('finCategoria');
+    c.innerHTML = t === 'Saída'
+      ? '<option value="Despesa Fixa">Despesa Fixa</option><option value="Eventual">Eventual</option><option value="Manutenção">Manutenção</option>'
+      : '<option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option>';
+    atualizarCampos();
+  }
+
+  function atualizarCampos() {
+    const t = document.getElementById('finTipo').value;
+    const c = document.getElementById('finCategoria').value;
+    const boxMembro = document.getElementById('boxMembro');
+    const boxDesc = document.getElementById('boxDescricao');
+
+    if (t === 'Entrada' && c === 'Dízimo') {
+      boxMembro.classList.remove('hidden');
+      boxDesc.classList.add('hidden');
+    } else {
+      boxMembro.classList.add('hidden');
+      boxDesc.classList.remove('hidden');
+    }
+  }
+
+  function preencherSelectMembros() {
+    const input = document.getElementById('inputBuscaMembro');
+    // não faz nada, a busca é dinâmica
+  }
+
+  function filtrarDropdownMembros() {
+    const input = document.getElementById('inputBuscaMembro');
+    const filter = input.value.toLowerCase();
+    const dropdown = document.getElementById('dropdownMembros');
+    const icon = document.getElementById('iconValidMember');
+
+    dropdown.innerHTML = '';
+    icon.style.display = 'none';
+    input.classList.remove('valid-member');
+
+    if (!filter) { dropdown.style.display = 'none'; return; }
+
+    const matches = dadosMembros.filter(m => m.nome.toLowerCase().includes(filter));
+    if (matches.length) {
+      dropdown.style.display = 'block';
+      matches.slice(0, 8).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-item';
+        div.innerText = m.nome;
+        div.onclick = function() {
+          input.value = m.nome;
+          dropdown.style.display = 'none';
+          input.classList.add('valid-member');
+          icon.style.display = 'block';
+          input.dataset.membroId = m.id;
+        };
+        dropdown.appendChild(div);
+      });
+    } else {
+      dropdown.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.search-wrapper')) {
+      document.getElementById('dropdownMembros').style.display = 'none';
+    }
+  });
+
+  // ============================================================
+  // SALVAR LANÇAMENTO
+  // ============================================================
+  document.getElementById('formFinanceiro').onsubmit = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarFin');
+    btn.disabled = true;
+    btn.innerText = 'Salvando...';
+
+    const tipo = document.getElementById('finTipo').value;
+    const cat = document.getElementById('finCategoria').value;
+    let desc = '';
+
+    if (tipo === 'Entrada' && cat === 'Dízimo') {
+      const input = document.getElementById('inputBuscaMembro');
+      const membroId = input.dataset.membroId;
+      if (!membroId) {
+        alert('Selecione um membro válido para o dízimo.');
+        btn.disabled = false;
+        btn.innerText = 'Lançar';
+        return;
+      }
+      desc = membroId;
+    } else {
+      desc = document.getElementById('finDescricaoInput').value.trim();
+      if (!desc) {
+        alert('Preencha a descrição.');
+        btn.disabled = false;
+        btn.innerText = 'Lançar';
+        return;
+      }
+    }
+
+    const dados = {
+      tipo,
+      categoria: cat,
+      descricao: desc,
+      valor: parseFloat(document.getElementById('finValor').value.replace(',', '.')),
+      data: document.getElementById('finData').value,
+      metodo: document.getElementById('finMetodo').value
+    };
+
+    try {
+      await supabaseClient.from('financeiro').insert([dados]);
+      await registrarLogAcao(`Lançou ${tipo} (${cat}): ${desc} - R$ ${dados.valor}`);
+      alert('Lançamento salvo!');
+      this.reset();
+      document.getElementById('finData').valueAsDate = new Date();
+      document.getElementById('inputBuscaMembro').value = '';
+      document.getElementById('inputBuscaMembro').dataset.membroId = '';
+      document.getElementById('inputBuscaMembro').classList.remove('valid-member');
+      document.getElementById('iconValidMember').style.display = 'none';
+      await carregarTudo();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Lançar';
+    }
+  };
+
+  // ============================================================
+  // EXCLUIR LANÇAMENTO
+  // ============================================================
+  async function excluirLancamento(id, desc) {
+    if (!confirm(`Excluir "${desc}"?`)) return;
+    try {
+      await supabaseClient.from('financeiro').delete().eq('id', id);
+      await registrarLogAcao(`Excluiu lançamento: ${desc}`);
+      await carregarTudo();
+    } catch (e) { console.error(e); }
+  }
+
+  // ============================================================
+  // CADASTRAR MEMBRO VIA MODAL
+  // ============================================================
+  document.getElementById('formMembroModal').onsubmit = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarMembroModal');
+    btn.disabled = true;
+    btn.innerText = 'Salvando...';
+
+    const dados = {
+      nome: this.nome.value,
+      nascimento: this.nascimento.value || null,
+      telefone: this.telefone.value || null,
+      celula_id: this.celula_id.value || null,
+      categoria: this.categoria.value,
+      batizado: this.batizado.checked ? 'Sim' : 'Não',
+      cursao: this.cursao.checked ? 'Sim' : 'Não',
+      ctl: this.ctl.checked ? 'Sim' : 'Não',
+      encontro: this.encontro.checked ? 'Sim' : 'Não',
+      dizimista: 'Não',
+      arquivado: false,
+      is_user: false
+    };
+
+    try {
+      await supabaseClient.from('pessoas').insert([dados]);
+      await registrarLogAcao(`Cadastrou membro via Tesouraria: ${dados.nome}`);
+      alert('Membro salvo!');
+      this.reset();
+      document.getElementById('modalMembro').classList.add('hidden');
+      await carregarTudo();
+    } catch (err) {
+      console.error(err);
+      alert('Erro: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Salvar';
+    }
+  };
+
+  // ============================================================
+  // UTILITÁRIOS
+  // ============================================================
+  function preencherSelectCelulas() {
+    const select = document.getElementById('modalSelectCelula');
+    if (!select) return;
+    select.innerHTML = '<option value="">Selecione...</option>';
+    dadosCelulas.forEach(c => {
+      select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+    });
+  }
+
+  function fecharModal(e, modalId) {
+    if (e === null || (e.target && e.target.id === modalId)) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+  }
+
+  function mudarView(view, btn) {
+    ['dashboard','lancamento','historico','dizimistas'].forEach(v => {
+      document.getElementById('view-'+v).classList.add('hidden');
+    });
+    document.getElementById('view-'+view).classList.remove('hidden');
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (view === 'dashboard') atualizarGrafico();
+  }
+
+  async function registrarLogAcao(acao) {
+    try {
+      await supabaseClient.from('logs').insert([{
+        datahora: new Date().toISOString(),
+        usuario: sessionStorage.getItem('loginDigitado') || 'sistema',
+        nomelider: sessionStorage.getItem('usuarioLogado') || 'Tesouraria',
+        acao
+      }]);
+    } catch (e) { console.error('Erro no log:', e); }
+  }
+
+  function fazerLogout() {
+    if (confirm('Sair?')) {
+      sessionStorage.clear();
+      window.location.href = 'index.html?t=' + Date.now();
+    }
+  }
+
+  // Inicializa o mês atual nos filtros
+  document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date();
+    if (!document.getElementById('filtroMesHist').value) {
+      document.getElementById('filtroMesHist').value = hoje.getMonth();
+    }
+    if (!document.getElementById('filtroAnoHist').value) {
+      document.getElementById('filtroAnoHist').value = hoje.getFullYear();
+    }
+  });
+</script>
+<script src="js/pwa.js"></script>
+
+</body>
+</html>

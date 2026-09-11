@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Área do Membro - Videira Jataí</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bibliotecas para geração direta de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <!-- Bibliotecas para geração direta de DOCX -->
+    <script src="https://unpkg.com/html-to-docx@1.9.1/dist/html-to-docx.umd.js"></script>
+    <!-- Módulo centralizado da Bíblia -->
+    <script src="js/biblia.js"></script>
+    <script src="config.js"></script>
+    <script src="js/push.js"></script>
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Videira Jataí">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        :root {
+            --primary: #600018; 
+            --accent: #D4AF37;
+            --bg-color: #f4f7f6;
+            --text-main: #333333;
+            --text-light: #718096;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --ouro-videira: #b8860b;
+            --ouro-escuro: #8a6508;
+        }
+
+        body, html { 
+            height: 100%; 
+            margin: 0; 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color); 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* CABEÇALHO FIXO */
+        header {
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo { width: 40px; height: auto; }
+        header h1 { color: var(--primary); font-size: 1.1rem; margin: 0; font-weight: 700; }
+        .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; margin-right: 15px; }
+        .btn-refresh:hover { color: var(--primary); transform: rotate(90deg); }
+        .btn-sair { background: none; border: none; font-size: 1.2rem; color: #dc3545; cursor: pointer; transition: 0.3s; }
+        .btn-sair:hover { color: #a71d2a; }
+
+        /* ÁREA DE CONTEÚDO (ABAS) */
+        #content-area {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 15px;
+            padding-bottom: 80px; 
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* NAVEGAÇÃO INFERIOR */
+        nav.bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--card-bg);
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            padding-bottom: env(safe-area-inset-bottom, 10px);
+            z-index: 20;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 0.70rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            flex: 1;
+            padding: 8px 0;
+            gap: 4px;
+        }
+        .nav-item i { font-size: 1.3rem; margin-bottom: 2px; }
+        .nav-item.active { color: var(--primary); }
+
+        .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); gap: 15px; }
+        .member-card { background: var(--card-bg); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 5px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        
+        .word-list-item { background: white; border-radius: var(--radius); padding: 15px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 4px solid var(--accent); }
+        .word-date { font-weight: 800; color: var(--text-main); font-size: 1rem; }
+        .word-theme { font-size: 0.85rem; color: var(--text-light); margin-top: 4px; }
+
+        /* BÍBLIA */
+        .biblia-controles {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .versao-selector-btn {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            min-width: 80px;
+            justify-content: center;
+        }
+        .versao-selector-btn i { font-size: 0.9rem; color: var(--text-light); }
+        .biblia-controles select {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            cursor: pointer;
+        }
+        .biblia-texto-area {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            line-height: 1.8;
+            font-size: 1rem;
+            color: #334155;
+        }
+        .biblia-placeholder { text-align: center; color: #94a3b8; font-style: italic; margin-top: 20px; }
+
+        /* BOTÕES FLUTUANTES DE NAVEGAÇÃO (CAPÍTULOS) */
+        .nav-capitulo-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 15;
+        }
+        .nav-capitulo-btn {
+            background: rgba(96, 0, 24, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+        }
+        .nav-capitulo-btn:hover, .nav-capitulo-btn:active {
+            opacity: 1;
+            background: var(--primary);
+            transform: scale(1.05);
+        }
+        .nav-capitulo-btn i { pointer-events: none; }
+
+        /* MODAL DE SELEÇÃO DE VERSÃO */
+        .modal-versao-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            backdrop-filter: blur(2px);
+        }
+        .modal-versao-overlay.hidden { display: none; }
+        .modal-versao-content {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 20px 20px 0 0;
+            padding: 25px;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
+        .modal-versao-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-versao-header h3 { margin: 0; color: var(--primary); font-weight: 700; }
+        .modal-versao-close {
+            background: #f1f5f9;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .versao-lista { display: flex; flex-direction: column; gap: 8px; }
+        .versao-item {
+            padding: 15px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .versao-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .versao-item.selecionada { background: var(--primary); color: white; }
+
+        /* MODAL DE PALAVRAS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            height: 85vh;
+            border-radius: 20px 20px 0 0;
+            padding: 25px;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .modal-download, .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: 0.2s;
+        }
+        .modal-download { color: var(--primary); }
+        .modal-download:hover, .modal-close:hover { background: var(--primary); color: white; }
+
+        .modal-download.loading {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .modal-title { font-size: 1.5rem; color: var(--primary); font-weight: 800; margin-bottom: 5px; margin-top: 10px; padding-right: 30px;}
+        .modal-date { color: var(--text-light); font-size: 0.9rem; margin-bottom: 20px; }
+        .modal-body { color: var(--text-main); font-size: 1.05rem; line-height: 1.7; text-align: justify; white-space: pre-wrap;}
+        
+        .btn-youtube { display: inline-flex; align-items: center; gap: 8px; background: #ff0000; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-bottom: 20px; margin-top: 15px;}
+        .btn-youtube.hidden { display: none !important; }
+
+        /* ESTILOS PARA IMPRESSÃO/PDF */
+        @media print {
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                padding: 20px;
+                box-shadow: none;
+                border-radius: 0;
+            }
+            .modal-actions, .btn-youtube, .fa-youtube { display: none !important; }
+            .modal-title { font-size: 24pt; color: black; }
+            .modal-body { font-size: 14pt; color: black; }
+        }
+
+        /* HEADER SAUDACAO */
+        .saudacao-header { margin-bottom: 20px; text-align: center; }
+        .saudacao-header h2 { margin: 0; color: var(--primary); font-size: 1.3rem; }
+        .saudacao-header p { margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem; }
+
+        /* ESTILOS DA ABA OFERTAS */
+        .pix-copy-box {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .pix-copy-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            color: #334155;
+            font-weight: bold;
+            outline: none;
+            text-align: center;
+        }
+        .pix-copy-box button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+        .pix-copy-box button:active { background: #059669; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.png" alt="Logo" class="logo">
+            <h1>Videira Jataí</h1>
+        </div>
+        <div>
+            <button class="btn-refresh" onclick="carregarDados(this.querySelector('i'))" title="Atualizar Dados">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn-sair" onclick="fazerLogoff()" title="Sair do Sistema">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </header>
+
+    <div id="content-area">
+        
+        <div class="saudacao-header">
+            <h2 id="texto-boas-vindas">Olá, Membro</h2>
+            <p>Bem-vindo(a) à sua área exclusiva.</p>
+        </div>
+
+        <!-- ABA BÍBLIA -->
+        <div id="aba-biblia" class="tab-content active">
+            <div class="biblia-controles">
+                <button class="versao-selector-btn" id="btnSeletorVersao" onclick="abrirModalVersao()">
+                    <span id="versaoSiglaAtual">MSG</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <select id="biblia-livro" onchange="Biblia.onLivroChange()"></select>
+                <select id="biblia-capitulo" onchange="Biblia.onCapituloChange()"></select>
+            </div>
+            <div class="biblia-texto-area" id="biblia-conteudo">
+                <p class="biblia-placeholder"><i class="fas fa-spinner fa-spin"></i> Carregando texto...</p>
+            </div>
+        </div>
+
+        <!-- Botões flutuantes de navegação de capítulo -->
+        <div class="nav-capitulo-container" id="navCapituloContainer">
+            <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior">
+                <i class="fas fa-chevron-left"></i>
+            </button>           
+        </div>
+
+        <div id="aba-agenda" class="tab-content">
+            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="far fa-calendar-alt"></i> Próximos Eventos</h4>
+            <div id="listaAgenda" class="member-grid">
+                <p style="text-align:center; color:#999; grid-column: 1 / -1;"><i class='fas fa-spinner fa-spin'></i> Buscando agenda...</p>
+            </div>
+        </div>
+
+        <div id="aba-palavras" class="tab-content">
+            <h4 style="color: var(--accent); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-book-open"></i> Palavras & Estudos</h4>
+            <div id="listaPalavras">
+                <p style="text-align:center; color:#999;"><i class='fas fa-spinner fa-spin'></i> Carregando palavras...</p>
+            </div>
+        </div>
+        
+        <div id="aba-ofertas" class="tab-content">
+            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos e Ofertas</h4>
+            
+            <div class="member-card" style="text-align: center; border-top: 4px solid #10b981;">
+                <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h3>
+                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
+                
+                <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
+                   <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
+                </div>
+                
+                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
+                <div class="pix-copy-box">
+                    <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
+                    <button onclick="copiarPix()" id="btnCopiarPix">
+                        <i class="far fa-copy"></i> Copiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="member-card" style="text-align: center; margin-top: 15px; border-top: 4px solid #009ee3; opacity: 0.8;">
+                <h3 style="margin-top:0; color:#009ee3;"><i class="fas fa-credit-card"></i> Cartão / Mercado Pago</h3>
+                <p style="font-size: 0.9rem; color:var(--text-light);">Em breve você poderá ofertar usando seu cartão de crédito diretamente por aqui de forma segura.</p>
+                <button disabled style="background:#cbd5e1; color:#64748b; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; cursor:not-allowed; margin-top:10px; width: 100%;">
+                    <i class="fas fa-lock"></i> Disponível em Breve
+                </button>
+            </div>
+            
+            <p style="text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">
+                "Cada um dê conforme determinou em seu coração..." <br> 2 Coríntios 9:7
+            </p>
+        </div>
+
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="mudarAba('aba-biblia', this)">
+            <i class="fas fa-bible"></i>
+            Bíblia
+        </button>
+        <button class="nav-item" onclick="mudarAba('aba-agenda', this)">
+            <i class="far fa-calendar-alt"></i>
+            Agenda
+        </button>
+        <button class="nav-item" onclick="mudarAba('aba-palavras', this)">
+            <i class="fas fa-comment-dots"></i>
+            Palavras
+        </button>
+        <button class="nav-item" onclick="mudarAba('aba-ofertas', this)">
+            <i class="fas fa-hand-holding-heart"></i>
+            Ofertar
+        </button>
+    </nav>
+
+    <!-- MODAL SELEÇÃO DE VERSÃO -->
+    <div id="modalVersao" class="modal-versao-overlay hidden" onclick="fecharModalVersao(event)">
+        <div class="modal-versao-content" onclick="event.stopPropagation()">
+            <div class="modal-versao-header">
+                <h3>Selecione a Versão</h3>
+                <button class="modal-versao-close" onclick="fecharModalVersao()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="versao-lista" id="listaVersoes"></div>
+        </div>
+    </div>
+
+    <!-- MODAL PALAVRAS COM BOTÃO PDF -->
+    <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-actions">
+                <button class="modal-download" onclick="baixarPalavraWord()" title="Baixar DOC">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="modal-close" onclick="fecharModal(null)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <h2 id="modalTitulo" class="modal-title"></h2>
+            <p id="modalData" class="modal-date"></p>
+            
+            <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden">
+                <i class="fab fa-youtube"></i> Assistir Palavra Completa
+            </a>
+            
+            <div id="modalTexto" class="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // ================= VERIFICAÇÃO DE SESSÃO =================
+        const usuarioLogado = sessionStorage.getItem('usuarioLogado');
+        
+        if (!usuarioLogado) {
+            window.location.href = 'index.html'; 
+        } else {
+            const primeiroNome = usuarioLogado.split(' ')[0];
+            document.getElementById('texto-boas-vindas').innerText = `Olá, ${primeiroNome}`;
+        }
+
+        function fazerLogoff() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // ================= CONFIGURAÇÕES =================
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
+        const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
+        let listaPalavras = [];
+        let palavraAtual = null;  // guarda a palavra aberta para o PDF
+
+        // ================= MUDANÇA DE ABAS =================
+        function mudarAba(idAba, elementoBtn) {
+            document.querySelectorAll('.tab-content').forEach(aba => aba.classList.remove('active'));
+            document.getElementById(idAba).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            elementoBtn.classList.add('active');
+
+            const navContainer = document.getElementById('navCapituloContainer');
+            navContainer.style.display = (idAba === 'aba-biblia') ? 'flex' : 'none';
+        }
+
+        // ================= COPIAR PIX =================
+        function copiarPix() {
+            const input = document.getElementById('chavePix');
+            input.select();
+            input.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(input.value).then(() => {
+                const btn = document.getElementById('btnCopiarPix');
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                btn.style.background = '#059669';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="far fa-copy"></i> Copiar';
+                    btn.style.background = '#10b981';
+                }, 2000);
+            }).catch(err => alert("Erro ao copiar. Copie manualmente!"));
+        }
+
+        // ================= CARREGAMENTO DE DADOS =================
+        async function carregarDados(icon) {
+            if(icon) icon.classList.add('fa-spin');
+            
+            try {
+                const { data, error } = await supabaseClient.from('palavras').select('*');
+                if (error) throw error;
+                if (data) {
+                    listaPalavras = data;
+                    listaPalavras.sort((a, b) => {
+                        const pegarTempo = (d) => {
+                            if (!d) return 0;
+                            if (d.includes('-')) { const p = d.split('-'); return new Date(p[0], p[1]-1, p[2]).getTime(); }
+                            if (d.includes('/')) { const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); }
+                            return new Date(d).getTime();
+                        };
+                        return pegarTempo(b.data) - pegarTempo(a.data);
+                    });
+                    renderizarPalavras(listaPalavras);
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Erro ao carregar palavras.</p>';
+            }
+
+            try {
+                const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "buscarAgenda" }) });
+                const responseData = await respostaAgenda.json();
+                if (responseData.status === "sucesso") renderizarAgenda(responseData.dados);
+                else renderizarAgenda([]);
+            } catch(e) { console.error(e); renderizarAgenda([]); }
+
+            if(icon) icon.classList.remove('fa-spin');
+        }
+
+        function renderizarPalavras(lista) {
+            const div = document.getElementById('listaPalavras');
+            div.innerHTML = '';
+            if(!lista || lista.length === 0) {
+                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma palavra cadastrada.</p>';
+                return;
+            }
+            lista.forEach((p, index) => {
+                let dF = p.data || '';
+                try { if(dF.includes('-')) { const dp = dF.split('-'); dF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+                const iconeYoutube = (p.link_youtube && p.link_youtube.trim() !== "") ? `<i class="fab fa-youtube" style="color: #ff0000; font-size: 1.2rem;"></i>` : "";
+                div.innerHTML += `
+                    <div class="word-list-item" onclick="abrirPalavra(${index})">
+                        <div>
+                            <div class="word-date"><i class="far fa-calendar-alt" style="color: var(--ouro-videira); margin-right: 5px;"></i> ${dF}</div>
+                            <div class="word-theme">${p.tema}</div>
+                        </div>
+                        <div>${iconeYoutube}<i class="fas fa-chevron-right" style="color: #cbd5e1; margin-left: 10px;"></i></div>
+                    </div>`;
+            });
+        }
+
+        function renderizarAgenda(dados) {
+            const div = document.getElementById('listaAgenda');
+            div.innerHTML = '';
+            if(!dados || dados.length === 0) {
+                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column: 1 / -1;">Nenhum evento futuro agendado.</p>';
+                return;
+            }
+            dados.forEach(a => {
+                const dataEv = a[0] || '';
+                const tituloEv = a[1] || 'Evento';
+                const descEv = a[2] || '';
+                const tipoEv = a[3] || 'Agenda';
+                let corTipo = "#3b82f6";
+                if(tituloEv.toLowerCase().includes('culto')) corTipo = "#600018";
+                if(tituloEv.toLowerCase().includes('célula')) corTipo = "#10b981";
+                div.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <strong style="font-size: 1.1rem; color: #1e293b;">${dataEv}</strong>
+                        <span style="background-color: ${corTipo}; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">${tipoEv}</span>
+                    </div>
+                    <div style="font-size: 1rem; color: #334155; margin-top: 8px; font-weight: 600;">
+                        <i class="far fa-calendar-check" style="color: ${corTipo}; margin-right: 5px;"></i> ${tituloEv}
+                    </div>
+                    ${descEv ? `<div style="margin-top: 10px; font-size: 0.85rem; color: #64748b; padding: 8px; background: #f8fafc; border-radius: 6px; border-left: 3px solid ${corTipo};">${descEv}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        function abrirPalavra(index) {
+            const p = listaPalavras[index];
+            palavraAtual = p;
+            document.getElementById('modalTitulo').innerText = p.tema || '';
+            let dataF = p.data || '';
+            try { if(dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+            document.getElementById('modalData').innerText = dataF;
+            document.getElementById('modalTexto').innerText = p.texto || '';
+            const btn = document.getElementById('btnLinkYoutube');
+            if (p.link_youtube && p.link_youtube.trim() !== "") {
+                btn.href = p.link_youtube;
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+                btn.href = "#";
+            }
+            document.getElementById('modalPalavra').classList.remove('hidden');
+        }
+
+        function fecharModal(e) {
+            if(e === null || e.target === document.getElementById('modalPalavra')) {
+                document.getElementById('modalPalavra').classList.add('hidden');
+            }
+        }
+
+        // ================= FUNÇÃO DE DOWNLOAD DIRETO DE PDF =================
+async function baixarPalavraWord() {
+    if (!palavraAtual) {
+        alert("Nenhuma palavra carregada.");
+        return;
+    }
+
+    const btn = document.querySelector('.modal-download');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.classList.add('loading');
+
+    try {
+        const titulo = palavraAtual.tema || 'Palavra';
+        const data = palavraAtual.data || '';
+        const texto = palavraAtual.texto || '';
+
+        let dataFormatada = data;
+        if (data && data.includes('-')) {
+            const partes = data.split('-');
+            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
+        const conteudo = `Título: ${titulo}\nData: ${dataFormatada}\n\n${texto}`;
+        const nomeArquivo = `${titulo.replace(/\s+/g, '_')}_${dataFormatada.replace(/\//g, '-')}.txt`;
+
+        // Tenta usar a API de compartilhamento nativo (funciona em celulares)
+        if (navigator.share && navigator.canShare) {
+            const blob = new Blob([conteudo], { type: 'text/plain' });
+            const file = new File([blob], nomeArquivo, { type: 'text/plain' });
+            
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: titulo,
+                    text: texto.substring(0, 100) + '...',
+                    files: [file]
+                });
+                return; // Sai após compartilhar
+            }
+        }
+
+        // Fallback: download como arquivo .txt (abre em qualquer celular)
+        const blob = new Blob([conteudo], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nomeArquivo;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error('Erro ao gerar arquivo:', error);
+        alert('Não foi possível gerar o arquivo.');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('loading');
+    }
+}
+
+        // ================= SELEÇÃO DE VERSÃO (MODAL) =================
+        let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
+        const siglasVersoes = { msg: 'MSGPT', nvi: 'NVI', aa: 'ARA', acf: 'ACF', ntlh: 'NTLH' };
+        const nomesCompletos = {
+            msg: 'A Mensagem',
+            nvi: 'Nova Versão Internacional',
+            aa: 'Almeida Revista e Atualizada',
+            acf: 'Almeida Corrigida Fiel',
+            ntlh: 'Nova Trad. na Ling. de Hoje'
+        };
+
+        function atualizarBotaoVersao() {
+            document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[versaoSelecionada] || versaoSelecionada.toUpperCase();
+        }
+
+        function abrirModalVersao() {
+            const modal = document.getElementById('modalVersao');
+            const listaDiv = document.getElementById('listaVersoes');
+            listaDiv.innerHTML = '';
+            Object.entries(nomesCompletos).forEach(([id, nome]) => {
+                const item = document.createElement('div');
+                item.className = 'versao-item' + (id === versaoSelecionada ? ' selecionada' : '');
+                item.innerHTML = `${nome} <span style="float:right; opacity:0.7;">${siglasVersoes[id]}</span>`;
+                item.onclick = () => selecionarVersao(id);
+                listaDiv.appendChild(item);
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function fecharModalVersao(e) {
+            if (!e || e.target === document.getElementById('modalVersao')) {
+                document.getElementById('modalVersao').classList.add('hidden');
+            }
+        }
+
+        async function selecionarVersao(id) {
+            versaoSelecionada = id;
+            localStorage.setItem('biblia_versao', id);
+            atualizarBotaoVersao();
+            fecharModalVersao();
+            if (typeof Biblia !== 'undefined') {
+                await Biblia.mudarVersao(id);
+            }
+        }
+
+        // ================= NAVEGAÇÃO DE CAPÍTULOS =================
+        function capituloAnterior() {
+            const selectCapitulo = document.getElementById('biblia-capitulo');
+            const currentVal = parseInt(selectCapitulo.value);
+            if (currentVal > 1) {
+                selectCapitulo.value = currentVal - 1;
+                if (typeof Biblia !== 'undefined') Biblia.onCapituloChange();
+            } else {
+                const selectLivro = document.getElementById('biblia-livro');
+                const currentLivroIndex = selectLivro.selectedIndex;
+                if (currentLivroIndex > 0) {
+                    selectLivro.selectedIndex = currentLivroIndex - 1;
+                    if (typeof Biblia !== 'undefined') {
+                        Biblia.onLivroChange();
+                        setTimeout(() => {
+                            const selectCapitulo = document.getElementById('biblia-capitulo');
+                            selectCapitulo.value = selectCapitulo.options.length;
+                            Biblia.onCapituloChange();
+                        }, 100);
+                    }
+                }
+            }
+        }
+
+        function capituloProximo() {
+            const selectCapitulo = document.getElementById('biblia-capitulo');
+            const currentVal = parseInt(selectCapitulo.value);
+            const max = selectCapitulo.options.length;
+            if (currentVal < max) {
+                selectCapitulo.value = currentVal + 1;
+                if (typeof Biblia !== 'undefined') Biblia.onCapituloChange();
+            } else {
+                const selectLivro = document.getElementById('biblia-livro');
+                if (selectLivro.selectedIndex < selectLivro.options.length - 1) {
+                    selectLivro.selectedIndex = selectLivro.selectedIndex + 1;
+                    if (typeof Biblia !== 'undefined') {
+                        Biblia.onLivroChange();
+                        setTimeout(() => {
+                            document.getElementById('biblia-capitulo').value = 1;
+                            Biblia.onCapituloChange();
+                        }, 100);
+                    }
+                }
+            }
+        }
+
+        // ================= INICIALIZAÇÃO =================
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof Biblia !== 'undefined') {
+                await Biblia.inicializar();
+                const saved = localStorage.getItem('biblia_versao');
+                if (saved && saved !== Biblia.getVersaoAtiva()) {
+                    await Biblia.mudarVersao(saved);
+                }
+                versaoSelecionada = Biblia.getVersaoAtiva();
+                atualizarBotaoVersao();
+            } else {
+                console.error("Módulo Biblia não encontrado.");
+            }
+            carregarDados(null);
+            document.getElementById('navCapituloContainer').style.display = 'flex';
+        });
+    </script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>
