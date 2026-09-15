@@ -76,7 +76,7 @@ const Biometria = (function () {
 
     async function registrar({ userId, email, nome }) {
         if (!(await plataformaDisponivel())) {
-            throw new Error('Este aparelho não oferece digital ou Face ID no navegador.');
+            throw new Error('Este aparelho não oferece Biometria no navegador.');
         }
 
         const credencial = await navigator.credentials.create({
@@ -117,7 +117,7 @@ const Biometria = (function () {
 
     async function autenticar() {
         const cadastro = lerCadastro();
-        if (!cadastro) throw new Error('Nenhuma digital/Face ID cadastrada neste aparelho.');
+        if (!cadastro) throw new Error('Nenhuma biometria cadastrada neste aparelho.');
 
         const assertion = await navigator.credentials.get({
             publicKey: {
