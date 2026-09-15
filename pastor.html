@@ -711,25 +711,18 @@
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
 
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
         document.getElementById('selectCelulas').value = celulaAtiva[0];
         novoCadastro();
     }
 
-    /*async function abrirApascentar() {
-        if (!celulaAtiva) return;
-        alert("Funcionalidade de apascentar em breve.");
-    }*/
-
     async function abrirApascentar() {
-    if (!celulaAtiva) return;
-    const faltosos = await calcularFaltosos();
-    alert(
-        faltosos.length
+        if (!celulaAtiva) return;
+        const faltosos = await calcularFaltosos();
+    UI.mensagem(faltosos.length
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
-            : "Nenhum faltoso nos últimos 30 dias."       
-    );
+            : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
          registrarLogAcao(`Calculou lista de faltosos da célula: ${faltosos.length} registros`);
 }
 
@@ -1130,7 +1123,7 @@
         const id = document.getElementById('eventoId').value;
         const nome = document.getElementById('eventoNome').value.trim();
         const dataEvento = document.getElementById('eventoData').value;
-        if (!nome || !dataEvento) { alert("Preencha nome e data do evento."); return; }
+        if (!nome || !dataEvento) { UI.toast("Preencha nome e data do evento.", { tipo: 'aviso' }); return; }
         const btn = e.target.querySelector('button[type="submit"]');
         btn.disabled = true;
         try {
@@ -1280,7 +1273,7 @@
         const ev = listaEventos.find(e => e.id === eventoId);
         if (!ev) return;
         const inscricoes = inscricoesPorEvento[eventoId] || [];
-        if (!inscricoes.length) { alert('Nenhuma inscrição para imprimir.'); return; }
+        if (!inscricoes.length) { UI.toast('Nenhuma inscrição para imprimir.', { tipo: 'aviso' }); return; }
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
@@ -1972,7 +1965,7 @@
     // Abrir nova janela para impressão
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) {
-        alert('Por favor, permita pop-ups para esta funcionalidade.');
+        UI.toast('Por favor, permita pop-ups para esta funcionalidade.', { tipo: 'aviso' });
         return;
     }
     win.document.write(html);
@@ -2070,7 +2063,7 @@
 
     function exportarExcel() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return alert("Nenhum dado.");
+        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
         const ws = XLSX.utils.json_to_sheet(lista.map(m => ({ 
             Nome: m[1], 
             Categoria: m[2], 
@@ -2092,7 +2085,7 @@
     
     async function exportarPDF() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return alert("Nenhum dado.");
+        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
         try {

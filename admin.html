@@ -432,8 +432,8 @@
          const simular = document.getElementById('manualSimular')?.checked === true;
          const categorias = categoriasSelecionadas();
 
-         if (!corpo) { alert('Digite a mensagem da notificação.'); return; }
-         if (categorias && !categorias.length) { alert('Selecione pelo menos um destinatário.'); return; }
+         if (!corpo) { UI.toast('Digite a mensagem da notificação.', { tipo: 'aviso' }); return; }
+         if (categorias && !categorias.length) { UI.toast('Selecione pelo menos um destinatário.', { tipo: 'aviso' }); return; }
 
          const alvoTxt = categorias ? categorias.join(', ') : 'Todos os usuários';
          if (!simular && !(await UI.confirmar(`Enviar esta notificação para: ${alvoTxt}?`, { titulo: 'Enviar notificação', textoOk: 'Enviar' }))) return;

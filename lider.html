@@ -388,11 +388,6 @@
             .select('id, nome, categoria, superior_id')
             .eq('email', user.email)
             .single();
-       /* if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
-            alert("Acesso restrito a líderes.");
-            window.location.href = "index.html";
-            return;
-        }*/
 
         const catPermitida = normalizarCategoria(pessoa.categoria);
             if (!pessoa || !['administrador', 'líder', 'lider'].includes(catPermitida)) {
@@ -694,7 +689,7 @@
 
     // ========== GESTÃO DE MEMBROS ==========
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
         document.getElementById('cadastroModalCelulaHidden').value = celulaAtiva.id;
         document.getElementById('modalCadastroMembro').classList.remove('hidden');
     }
@@ -760,7 +755,7 @@
 
     // ========== RELATÓRIO ==========
     function abrirModalRelatorio() {
-        if (!celulaAtiva) { alert("Selecione uma célula."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula.", { tipo: 'aviso' }); return; }
         document.getElementById('relModalCelulaNome').innerText = celulaAtiva.nome;
         document.getElementById('relModalCelulaHidden').value = celulaAtiva.nome;
         document.getElementById('relModalData').valueAsDate = new Date();
@@ -1021,7 +1016,7 @@
     async function abrirApascentar() {
         if (!celulaAtiva) return;
         const faltosos = await calcularFaltosos();
-        alert(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.");
+        UI.mensagem(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
     }
 
    async function calcularFaltosos() {
@@ -1123,7 +1118,7 @@
         const titulo = document.getElementById('anotacaoTitulo').value.trim();
         const conteudo = document.getElementById('anotacaoConteudo').value.trim();
         if (!titulo) {
-            alert("Informe um título para a anotação.");
+            UI.toast("Informe um título para a anotação.", { tipo: 'aviso' });
             btn.disabled = false;
             return;
         }
@@ -1410,17 +1405,6 @@
     }
 
     // ========== COPIAR PIX ==========
-    /*function copiarPix() {
-        const input = document.getElementById('chavePix');
-        input.select(); input.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(input.value).then(() => {
-            const btn = document.getElementById('btnCopiarPix');
-            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-            btn.style.background = '#059669';
-            setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i> Copiar'; btn.style.background = '#10b981'; }, 2000);
-        }).catch(err => alert("Erro ao copiar. Copie manualmente!"));
-    }*/
-
     function copiarPix() {
             const input = document.getElementById('chavePix');
             input.select();
@@ -1629,13 +1613,13 @@ if (formPromoverMembro) {
         const usuario = document.getElementById('promoverMembroUsuario').value.trim().toLowerCase();
 
         if (!membroId) {
-            alert("Selecione um membro.");
+            UI.toast("Selecione um membro.", { tipo: 'aviso' });
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
         }
         if (!usuario) {
-            alert("Informe o nome de usuário (login) para o novo líder.");
+            UI.toast("Informe o nome de usuário (login) para o novo líder.", { tipo: 'aviso' });
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
@@ -1801,9 +1785,9 @@ async function concluirMultiplicacao() {
     const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
     const novoLiderId = document.getElementById('multNovoLider').value;
 
-    if (!novoNome) { alert("Dê um nome para a nova célula."); return; }
-    if (!novoLiderId) { alert("Selecione um líder."); return; }
-    if (membrosQueVao.length === 0) { alert("Escolha membros."); return; }
+    if (!novoNome) { UI.toast("Dê um nome para a nova célula.", { tipo: 'aviso' }); return; }
+    if (!novoLiderId) { UI.toast("Selecione um líder.", { tipo: 'aviso' }); return; }
+    if (membrosQueVao.length === 0) { UI.toast("Escolha membros.", { tipo: 'aviso' }); return; }
 
     try {
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);

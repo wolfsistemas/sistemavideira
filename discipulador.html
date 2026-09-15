@@ -671,12 +671,10 @@ function filtrarCelulasRede() {
 async function abrirApascentar() {
     if (!celulaAtiva) return;
     const faltosos = await calcularFaltosos();
-    alert(
-        faltosos.length
+    UI.mensagem(faltosos.length
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
-            : "Nenhum faltoso nos últimos 30 dias."
-    );
+            : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
 }
 
     async function calcularFaltosos() {
@@ -779,7 +777,7 @@ async function abrirApascentar() {
     }
 
    function abrirModalCadastroMembro() {
-    if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+    if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
     
     // Popula o select de células com as células supervisionadas
     const selectCelula = document.getElementById('addMembroCelula');

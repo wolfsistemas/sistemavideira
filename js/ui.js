@@ -36,6 +36,7 @@
     ".ui-modal__icon--info{background:#e0e7ff;color:#3730a3;}",
     ".ui-modal__title{margin:0 0 6px;font-size:1.08rem;font-weight:800;color:#111;text-align:center;}",
     ".ui-modal__msg{margin:0 0 18px;font-size:.9rem;color:#555;line-height:1.5;text-align:center;word-wrap:break-word;}",
+    ".ui-modal__msg--bloco{white-space:pre-line;text-align:left;max-height:55vh;overflow:auto;}",
     ".ui-modal__field{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #ddd;border-radius:10px;font-size:.95rem;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;}",
     ".ui-modal__field:focus{border-color:#000;box-shadow:0 0 0 3px rgba(0,0,0,.07);}",
     ".ui-modal__copiar{display:flex;gap:8px;margin-bottom:18px;}",
@@ -243,10 +244,54 @@
     });
   }
 
+  function mensagem(texto, opcoes) {
+    opcoes = opcoes || {};
+    injetarCSS();
+    return new Promise(function (resolve) {
+      var tipo = ICONE[opcoes.tipo] ? opcoes.tipo : "aviso";
+      var overlay = document.createElement("div");
+      overlay.className = "ui-overlay";
+      overlay.innerHTML =
+        '<div class="ui-modal" role="dialog" aria-modal="true">' +
+        '<div class="ui-modal__icon ui-modal__icon--' + (tipo === "erro" ? "perigo" : "info") + '">' +
+        '<i class="fas ' + ICONE[tipo] + '"></i></div>' +
+        '<h3 class="ui-modal__title"></h3>' +
+        '<p class="ui-modal__msg ui-modal__msg--bloco"></p>' +
+        '<div class="ui-modal__actions">' +
+        '<button type="button" class="ui-btn ui-btn--primary" data-ok></button>' +
+        "</div></div>";
+      overlay.querySelector(".ui-modal__title").textContent = opcoes.titulo || "Aviso";
+      overlay.querySelector(".ui-modal__msg").textContent = String(texto == null ? "" : texto);
+      var btnOk = overlay.querySelector("[data-ok]");
+      btnOk.textContent = opcoes.textoOk || "Entendi";
+
+      var anterior = document.activeElement;
+      function encerrar() {
+        document.removeEventListener("keydown", onKey);
+        travarScroll(false);
+        overlay.style.animation = "uiFade .15s reverse";
+        setTimeout(function () {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          if (anterior && anterior.focus) { try { anterior.focus(); } catch (e) {} }
+        }, 130);
+        resolve(true);
+      }
+      function onKey(e) {
+        if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); encerrar(); }
+      }
+      btnOk.addEventListener("click", encerrar);
+      overlay.addEventListener("mousedown", function (e) { if (e.target === overlay) encerrar(); });
+      document.addEventListener("keydown", onKey);
+      travarScroll(true);
+      document.body.appendChild(overlay);
+      btnOk.focus();
+    });
+  }
+
   function restrito(mensagem, url) {
     toast(mensagem || "Acesso restrito.", { tipo: "erro" });
     setTimeout(function () { window.location.href = url || "index.html"; }, 1400);
   }
 
-  window.UI = { toast: toast, confirmar: confirmar, prompt: abrirPrompt, restrito: restrito };
+  window.UI = { toast: toast, confirmar: confirmar, prompt: abrirPrompt, mensagem: mensagem, restrito: restrito };
 })();
