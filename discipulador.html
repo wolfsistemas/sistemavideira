@@ -340,8 +340,7 @@
     const cat = normalizarCategoria(pessoa.categoria);
     const permitidos = ["discipulador", "pastor de rede", "pastor de governo", "pastor", "administrador"];
     if (!permitidos.includes(cat)) {
-        alert("Acesso restrito.");
-        window.location.href = "index.html";
+        UI.restrito("Acesso restrito.", "index.html");
         return;
     }
     sessionStorage.setItem('discipuladorId', pessoa.id);
@@ -622,7 +621,7 @@ function filtrarCelulasRede() {
         .select('*')
         .eq('id', id)
         .single();
-    if (!relatorio) return alert("Relatório não encontrado.");
+    if (!relatorio) return UI.toast("Relatório não encontrado.", { tipo: 'erro' });
 
     const { data: presencas } = await supabaseClient
         .from('presencas')
@@ -741,7 +740,7 @@ async function abrirApascentar() {
 
     async function abrirEditarMembro(id) {
     const m = dadosMembros.find(x => String(x.id) === String(id));
-    if (!m) return alert('Membro não encontrado.');
+    if (!m) return UI.toast('Membro não encontrado.', { tipo: 'erro' });
 
     document.getElementById('editMembroId').value = m.id;
     document.getElementById('editMembroNome').value = m.nome || '';
@@ -921,7 +920,7 @@ function baixarPalavraTXT() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } catch (e) {
-        alert('Erro ao gerar arquivo TXT.');
+        UI.toast('Erro ao gerar arquivo TXT.', { tipo: 'erro' });
     } finally {
         if (icon) icon.className = 'fas fa-download';
     }
@@ -1061,7 +1060,7 @@ function capituloProximo() {
                 arquivado: false
             };
             await supabaseClient.from('pessoas').insert([dados]);
-            alert("Membro cadastrado!");
+            UI.toast("Membro cadastrado!", { tipo: 'sucesso' });
             fecharModal('modalAdicionarMembro');
             carregarTudo();
             if (celulaAtiva) {
@@ -1088,7 +1087,7 @@ function capituloProximo() {
                 dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
             };
             await supabaseClient.from('pessoas').update(dados).eq('id', id);
-            alert("Membro atualizado!");
+            UI.toast("Membro atualizado!", { tipo: 'sucesso' });
             fecharModal('modalEditarMembro');
             carregarTudo();
             if (celulaAtiva) {
@@ -1118,10 +1117,10 @@ function capituloProximo() {
                 } else {
                     await supabaseClient.from('celulas').insert([dados]);
                 }
-                alert("Célula salva!");
+                UI.toast("Célula salva!", { tipo: 'sucesso' });
                 fecharModal('modalEditarCelula');
                 carregarTudo();
-            } catch(err) { alert("Erro: " + err.message); }
+            } catch(err) { UI.toast("Erro: " + err.message, { tipo: 'erro' }); }
         };
 
         document.getElementById('filtroLiderRede')?.addEventListener('change', filtrarCelulasRede);

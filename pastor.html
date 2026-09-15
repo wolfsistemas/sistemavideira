@@ -239,8 +239,7 @@
         const cat = normalizarCategoria(pessoa.categoria);
         const permitidos = ["pastor de governo", "pastor de rede", "pastor", "administrador"];
         if (!permitidos.includes(cat)) {
-            alert("Acesso restrito.");
-            window.location.href = "index.html";
+            UI.restrito("Acesso restrito.", "index.html");
             return;
         }
         sessionStorage.setItem('pastorId', pessoa.id);
@@ -336,11 +335,11 @@
 
             if (falhas.length) {
                 console.warn('Atualização parcial. Falhou em: ' + falhas.join(', '));
-                alert('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.');
+                UI.toast('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.', { tipo: 'erro' });
             }
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            alert("Erro ao carregar dados. Verifique a conexão.");
+            UI.toast("Erro ao carregar dados. Verifique a conexão.", { tipo: 'erro' });
         } finally {
             if (icon) icon.classList.remove('fa-spin');
         }
@@ -885,7 +884,7 @@
                 .single();
             if (fetchError) throw fetchError;
             if (!pedido) {
-                alert("Pedido não encontrado.");
+                UI.toast("Pedido não encontrado.", { tipo: 'erro' });
                 return;
             }
     
@@ -906,7 +905,7 @@
             await carregarSugestoes();
         } catch (e) {
             console.error("Erro ao concluir pedido:", e);
-            alert("Erro ao concluir. Tente novamente.");
+            UI.toast("Erro ao concluir. Tente novamente.", { tipo: 'erro' });
         }
     }
 
@@ -1087,7 +1086,7 @@
             await carregarEventos();
         } catch (err) {
             console.error(err);
-            alert(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''));
+            UI.toast(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1182,7 +1181,7 @@
             gerarLinkEvento(eventoId, true);
         } catch (err) {
             console.error("Erro ao salvar evento:", err);
-            alert("Erro ao salvar evento: " + (err.message || ''));
+            UI.toast("Erro ao salvar evento: " + (err.message || ''), { tipo: 'erro' });
         } finally {
             btn.disabled = false;
         }
@@ -1201,7 +1200,7 @@
             document.getElementById('modalLinkGerado').classList.remove('hidden');
             document.getElementById('textoLinkGerado').innerText = link;
         } else if (copiado) {
-            alert("Link de inscrição copiado!");
+            UI.toast("Link de inscrição copiado!", { tipo: 'sucesso' });
         } else {
             await UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: link, somenteLeitura: true });
         }
@@ -1218,7 +1217,7 @@
 
     function copiarTextoLink() {
         const txt = document.getElementById('textoLinkGerado').innerText;
-        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!")).catch(() => UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: txt, somenteLeitura: true }));
+        navigator.clipboard.writeText(txt).then(() => UI.toast("Link copiado!", { tipo: 'sucesso' })).catch(() => UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: txt, somenteLeitura: true }));
     }
 
     async function excluirEvento(id) {
@@ -1234,7 +1233,7 @@
             await carregarEventos();
         } catch (err) {
             console.error(err);
-            alert("Erro ao excluir evento: " + (err.message || ''));
+            UI.toast("Erro ao excluir evento: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1388,7 +1387,7 @@
             if (eventoId) abrirModalInscricoes(eventoId);
         } catch (err) {
             console.error(err);
-            alert("Erro ao alterar status: " + (err.message || ''));
+            UI.toast("Erro ao alterar status: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1403,7 +1402,7 @@
             if (eventoId) abrirModalInscricoes(eventoId);
         } catch (err) {
             console.error(err);
-            alert("Erro ao excluir inscrição: " + (err.message || ''));
+            UI.toast("Erro ao excluir inscrição: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1502,7 +1501,7 @@
             await carregarPalavrasDados();
         } catch (error) {
             console.error("Erro ao salvar palavra:", error);
-            alert("Erro ao salvar: " + error.message);
+            UI.toast("Erro ao salvar: " + error.message, { tipo: 'erro' });
         }
     }
 
@@ -1758,7 +1757,7 @@
     // Buscar dados atualizados
     const { data: celulas } = await supabaseClient.from('celulas').select('*');
     if (!celulas || celulas.length === 0) {
-        alert("Nenhuma célula cadastrada.");
+        UI.toast("Nenhuma célula cadastrada.", { tipo: 'aviso' });
         return;
     }
 
@@ -2210,7 +2209,7 @@
                 await carregarTudo();
                 mudarSecao('lista');
             } catch (err) { 
-                alert("Erro ao salvar membro: " + err.message); 
+                UI.toast("Erro ao salvar membro: " + err.message, { tipo: 'erro' }); 
             }
         });
 
@@ -2230,7 +2229,7 @@
                 else await supabaseClient.from('celulas').insert([dados]);
                 fecharModal('modalEditarCelula');
                 await carregarTudo();
-            } catch (err) { alert("Erro ao salvar célula: " + err.message); }
+            } catch (err) { UI.toast("Erro ao salvar célula: " + err.message, { tipo: 'erro' }); }
         });
         
 
@@ -2383,7 +2382,7 @@
                         })
                         .catch((err) => {
                             console.warn('Erro ao iniciar stream:', err);
-                            alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+                            UI.toast('Não foi possível conectar à Vinha FM. Tente novamente.', { tipo: 'erro' });
                         });
                 } else {
                     radioAudio.pause();
@@ -2407,7 +2406,7 @@
                     radioPlaying = false;
                     radioToggle.classList.remove('playing');
                     radioIcon.className = 'fas fa-play';
-                    alert('Stream indisponível no momento.');
+                    UI.toast('Stream indisponível no momento.', { tipo: 'erro' });
                 }
             });
         });

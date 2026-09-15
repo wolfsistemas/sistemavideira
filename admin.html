@@ -135,8 +135,7 @@
 
     const cat = normalizarCategoria(usuario?.categoria);
     if (cat !== 'administrador') {
-        alert("Acesso restrito. Apenas administradores podem acessar este painel.");
-        window.location.href = "index.html";
+        UI.restrito("Acesso restrito. Apenas administradores podem acessar este painel.", "index.html");
         return;
     }
 
@@ -476,7 +475,7 @@
             registrarLogAcao(`${ativo ? 'Ativou' : 'Desativou'} a notificação: ${NOTIF_LABELS[chave] || chave}`);
          } catch(e) {
             console.error("Erro ao salvar notificação:", e);
-            alert("Erro ao salvar a notificação. Detalhes: " + e.message);
+            UI.toast("Erro ao salvar a notificação. Detalhes: " + e.message, { tipo: 'erro' });
             carregarTudo();
          }
       }
@@ -499,7 +498,7 @@
              renderizarNotificacoes(config || []);
          } catch(e) {
              console.error("Erro ao carregar dados:", e);
-             alert("Erro ao carregar dados do servidor. Verifique sua conexão.");
+             UI.toast("Erro ao carregar dados do servidor. Verifique sua conexão.", { tipo: 'erro' });
          } finally {
              if(icon) icon.classList.remove('fa-spin');
          }
@@ -667,10 +666,10 @@
                     .limit(100);
                 renderizarLogs(logs || []);
                 
-                alert('Log excluído com sucesso.');
+                UI.toast('Log excluído com sucesso.', { tipo: 'sucesso' });
             } catch (e) {
                 console.error('Erro ao excluir log:', e);
-                alert('Erro ao excluir: ' + e.message);
+                UI.toast('Erro ao excluir: ' + e.message, { tipo: 'erro' });
             }
         }
 
@@ -804,7 +803,7 @@
             }
 
             registrarLogAcao(`Editou o usuário: ${d.usuario}`);
-            alert("Usuário atualizado com sucesso!");
+            UI.toast("Usuário atualizado com sucesso!", { tipo: 'sucesso' });
             mudarSecao('usuarios');
 
         } else {
@@ -826,7 +825,7 @@
         carregarTudo();
     } catch(error) {
         console.error("Erro ao salvar:", error);
-        alert("Erro de conexão ao salvar. Detalhes: " + error.message);
+        UI.toast("Erro de conexão ao salvar. Detalhes: " + error.message, { tipo: 'erro' });
     } finally {
         btn.disabled = false; 
         btn.innerText = "Salvar Usuário";
@@ -839,11 +838,11 @@
              const { error } = await supabaseClient.from('pessoas').delete().eq('id', id);
              if (error) throw error;
              registrarLogAcao(`Excluiu o usuário: ${nome}`);
-             alert("Usuário excluído com sucesso!");
+             UI.toast("Usuário excluído com sucesso!", { tipo: 'sucesso' });
              carregarTudo();
          } catch(e) {
              console.error("Erro ao excluir:", e);
-             alert("Erro ao excluir usuário. Detalhes: " + e.message);
+             UI.toast("Erro ao excluir usuário. Detalhes: " + e.message, { tipo: 'erro' });
          }
       }
 
@@ -853,17 +852,17 @@
              const { error } = await supabaseClient.from('logs').delete().not('datahora', 'is', null);
              if (error) throw error;
              registrarLogAcao("Limpou o histórico de logs do sistema.");
-             alert("Logs apagados com sucesso!");
+             UI.toast("Logs apagados com sucesso!", { tipo: 'sucesso' });
              carregarTudo();
          } catch(e) {
              console.error("Erro ao limpar logs:", e);
-             alert("Erro ao limpar os logs. Detalhes: " + e.message);
+             UI.toast("Erro ao limpar os logs. Detalhes: " + e.message, { tipo: 'erro' });
          }
       }
 
       async function redefinirSenha(email) {
           if (!email || email === 'E-mail não cadastrado') {
-              alert("Este usuário não possui e-mail cadastrado. Impossível redefinir senha.");
+              UI.toast("Este usuário não possui e-mail cadastrado. Impossível redefinir senha.", { tipo: 'erro' });
               return;
           }
           if (!(await UI.confirmar(`Deseja enviar um link de redefinição de senha para ${email}?`, { titulo: 'Redefinir senha', textoOk: 'Enviar link' }))) return;
@@ -873,11 +872,11 @@
               });
               if (error) throw error;
               registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
-              alert("Link de redefinição enviado com sucesso! O usuário receberá um e-mail.");
+              UI.toast("Link de redefinição enviado com sucesso! O usuário receberá um e-mail.", { tipo: 'sucesso' });
               registrarLogAcao(`Resetou a senha: ${d.usuario}`);
           } catch (e) {
               console.error("Erro ao enviar link:", e);
-              alert("Erro ao enviar link de redefinição: " + e.message);
+              UI.toast("Erro ao enviar link de redefinição: " + e.message, { tipo: 'erro' });
           }
       }
 
@@ -885,7 +884,7 @@
           const input = document.getElementById('linkConvite');
           input.select();
           document.execCommand('copy');
-          alert('Link copiado! Cole no WhatsApp do usuário.');
+          UI.toast('Link copiado! Cole no WhatsApp do usuário.', { tipo: 'sucesso' });
       }
 
      async function registrarLogAcao(acaoRealizada) {
