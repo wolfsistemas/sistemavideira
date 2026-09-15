@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/push.js"></script>
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -1078,7 +1079,7 @@
         if (!ev) return;
         const novoEstado = ev.inscricoes_abertas === false;
         const acao = novoEstado ? 'Ativar' : 'Encerrar';
-        if (!confirm(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`)) return;
+        if (!(await UI.confirmar(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`, { titulo: `${acao} inscrições`, textoOk: acao }))) return;
         try {
             const { error } = await supabaseClient.from('eventos').update({ inscricoes_abertas: novoEstado }).eq('id', eventoId);
             if (error) throw error;
@@ -1202,7 +1203,7 @@
         } else if (copiado) {
             alert("Link de inscrição copiado!");
         } else {
-            prompt("Copie o link abaixo:", link);
+            await UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: link, somenteLeitura: true });
         }
         registrarLogAcao(`Gerou link de inscrição do evento`);
     }
@@ -1217,13 +1218,13 @@
 
     function copiarTextoLink() {
         const txt = document.getElementById('textoLinkGerado').innerText;
-        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!")).catch(() => prompt("Copie o link abaixo:", txt));
+        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!")).catch(() => UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: txt, somenteLeitura: true }));
     }
 
     async function excluirEvento(id) {
         const ev = listaEventos.find(e => e.id === id);
         const nome = ev ? ev.nome : '';
-        if (!confirm(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`)) return;
+        if (!(await UI.confirmar(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`, { titulo: 'Excluir evento', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error: insErr } = await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
             if (insErr) throw insErr;
@@ -1392,7 +1393,7 @@
     }
 
     async function excluirInscricao(id) {
-        if (!confirm("Excluir esta inscrição?")) return;
+        if (!(await UI.confirmar("Excluir esta inscrição?", { titulo: 'Excluir inscrição', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
             if (error) throw error;
@@ -2015,10 +2016,10 @@
     document.getElementById('selectCelulas').value = m[13] || '';
 }
     async function arquivarMembro(id, nome) {
-        if (confirm(`Arquivar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
+        if (await UI.confirmar(`Arquivar ${nome}?`, { titulo: 'Arquivar membro', textoOk: 'Arquivar' })) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
     }
     async function restaurarMembro(id, nome) {
-        if (confirm(`Restaurar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
+        if (await UI.confirmar(`Restaurar ${nome}?`, { titulo: 'Restaurar membro', textoOk: 'Restaurar' })) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
     }
 
     // ========== NAVEGAÇÃO ==========
@@ -2156,9 +2157,8 @@
         return base;
     }
 
-    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
-    function fazerLogout() { 
-        if(confirm("Sair?")) { 
+    async function fazerLogout() { 
+        if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
             sessionStorage.clear(); 
            window.location.href = "index.html?t=" + Date.now(); 
         } 

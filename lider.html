@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/push.js"></script>
     <!-- Módulo unificado da Bíblia -->
     <script src="js/biblia.js"></script>
@@ -748,7 +749,7 @@
 }
 
     async function arquivarMembro(id) {
-        if (!confirm("Arquivar este membro?")) return;
+        if (!(await UI.confirmar("Arquivar este membro?", { titulo: 'Arquivar membro', textoOk: 'Arquivar' }))) return;
         await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id);
         registrarLogAcao(`Arquivou membro ID ${id}`);
         carregarTudo();
@@ -1154,7 +1155,7 @@
     async function excluirAnotacao(id) {
         const a = listaAnotacoes.find(x => x.id === id);
         const titulo = a ? a.titulo : '';
-        if (!confirm(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`)) return;
+        if (!(await UI.confirmar(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`, { titulo: 'Excluir anotação', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error } = await supabaseClient.from('anotacoes').delete().eq('id', id);
             if (error) throw error;
@@ -1176,9 +1177,8 @@
         if (s === 'anotacoes') carregarAnotacoes();
     }
 
-    //function fazerLogout() { if(confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
-    function fazerLogout() { 
-            if(confirm("Sair?")) { 
+    async function fazerLogout() { 
+            if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
                 sessionStorage.clear(); 
                 window.location.href = "index.html?t=" + Date.now(); 
             } 

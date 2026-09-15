@@ -6,6 +6,7 @@
     <title>Painel Administrador - Videira Jataí</title>
     
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -436,7 +437,7 @@
          if (categorias && !categorias.length) { alert('Selecione pelo menos um destinatário.'); return; }
 
          const alvoTxt = categorias ? categorias.join(', ') : 'Todos os usuários';
-         if (!simular && !confirm(`Enviar esta notificação para: ${alvoTxt}?`)) return;
+         if (!simular && !(await UI.confirmar(`Enviar esta notificação para: ${alvoTxt}?`, { titulo: 'Enviar notificação', textoOk: 'Enviar' }))) return;
 
          btn.disabled = true;
          status.textContent = 'Enviando...';
@@ -641,24 +642,11 @@
           });
       }
 
-      // Senha para excluir logs individualmente (altere aqui se quiser)
-        //const SENHA_EXCLUSAO_LOG = '142569';
-        
         async function excluirLogIndividual(id) {
             if (!id) return;
-            
-            /*// 1. Pedir a senha
-            const senhaDigitada = prompt('Digite a senha para excluir este log:');
-            if (senhaDigitada === null) return; // cancelou
-            
-            // 2. Validar senha
-            if (senhaDigitada !== SENHA_EXCLUSAO_LOG) {
-                alert('Senha incorreta. Ação cancelada.');
-                return;
-            }*/
-            
-            // 3. Confirmar exclusão
-            if (!confirm('Tem certeza que deseja excluir este log individualmente?')) return;
+
+            // Confirmar exclusão
+            if (!(await UI.confirmar('Tem certeza que deseja excluir este log individualmente?', { titulo: 'Excluir log', textoOk: 'Excluir', perigo: true }))) return;
             
             try {
                 const { error } = await supabaseClient
@@ -846,7 +834,7 @@
 };
 
       async function excluirUsuario(id, nome) {
-         if(!confirm(`Tem certeza que deseja EXCLUIR o usuário '${nome}'?`)) return;
+         if(!(await UI.confirmar(`Tem certeza que deseja EXCLUIR o usuário '${nome}'?`, { titulo: 'Excluir usuário', textoOk: 'Excluir', perigo: true }))) return;
          try {
              const { error } = await supabaseClient.from('pessoas').delete().eq('id', id);
              if (error) throw error;
@@ -860,7 +848,7 @@
       }
 
       async function limparLogs() {
-         if(!confirm("ATENÇÃO: Deseja apagar todo o histórico de logs? Esta ação não pode ser desfeita.")) return;
+         if(!(await UI.confirmar("ATENÇÃO: Deseja apagar todo o histórico de logs? Esta ação não pode ser desfeita.", { titulo: 'Limpar histórico', textoOk: 'Apagar tudo', perigo: true }))) return;
          try {
              const { error } = await supabaseClient.from('logs').delete().not('datahora', 'is', null);
              if (error) throw error;
@@ -878,7 +866,7 @@
               alert("Este usuário não possui e-mail cadastrado. Impossível redefinir senha.");
               return;
           }
-          if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return;
+          if (!(await UI.confirmar(`Deseja enviar um link de redefinição de senha para ${email}?`, { titulo: 'Redefinir senha', textoOk: 'Enviar link' }))) return;
           try {
               const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                   redirectTo: new URL('nova-senha.html', window.location.href).href
@@ -938,8 +926,8 @@
         window.location.href = painel + '.html?t=' + timestamp;
       }
       
-      function fazerLogout() { 
-         if(confirm("Sair?")) { 
+      async function fazerLogout() { 
+         if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
            sessionStorage.clear();
            //localStorage.clear();
            window.location.href = "index.html?t=" + Date.now(); 

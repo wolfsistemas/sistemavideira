@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/push.js"></script>
     <script src="js/biblia.js"></script>
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -767,13 +768,13 @@ async function abrirApascentar() {
 }
 
     async function arquivarMembro(id) {
-        if (!confirm("Deseja arquivar este membro?")) return;
+        if (!(await UI.confirmar("Deseja arquivar este membro?", { titulo: 'Arquivar membro', textoOk: 'Arquivar' }))) return;
         await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id);
         carregarTudo();
     }
 
     async function restaurarMembro(id) {
-        if (!confirm("Restaurar este membro?")) return;
+        if (!(await UI.confirmar("Restaurar este membro?", { titulo: 'Restaurar membro', textoOk: 'Restaurar' }))) return;
         await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id);
         carregarTudo();
     }
@@ -1033,9 +1034,8 @@ function capituloProximo() {
             document.body.style.overflow = '';
         }
     }
-    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
-    function fazerLogout() { 
-        if(confirm("Sair?")) { 
+    async function fazerLogout() { 
+        if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
             sessionStorage.clear(); 
            window.location.href = "index.html?t=" + Date.now(); 
         } 
