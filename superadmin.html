@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel Fornecedor - Videira</title>
+
+    <script src="config.js"></script>
+    <script src="js/ui.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/push.js"></script>
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+      .container { max-width: 800px; margin: 0 auto; padding: 15px; }
+      .header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid #0f172a; }
+      .header h3 { margin: 0; color: #000; font-weight: 800; text-transform: uppercase; font-size: 1.1rem; }
+      .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; }
+      .btn-add { background: #0f172a; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; }
+      .btn-add:hover { opacity: 0.9; }
+      .secao-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 15px; }
+      .secao-titulo h4 { margin: 0; color: var(--text-light); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.03em; }
+      .igreja-card { background: #fff; padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #eee; }
+      .igreja-info { flex: 1 1 auto; min-width: 0; }
+      .igreja-info h4 { margin: 0 0 4px; color: var(--text-main); font-size: 1.05rem; overflow-wrap: anywhere; }
+      .igreja-info p { margin: 0; font-size: 0.8rem; color: #777; overflow-wrap: anywhere; }
+      .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; margin-top: 6px; }
+      .badge.on { background: rgba(21,128,61,0.12); color: #15803d; }
+      .badge.off { background: #eee; color: #666; }
+      .btn-acao { flex: 0 0 auto; background: #eef2ff; color: #1d4ed8; border: none; padding: 10px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; text-align: center; }
+      .btn-acao:hover { background: #e0e7ff; }
+      .carregando { text-align: center; color: #999; font-size: 0.9rem; }
+      .rodape { text-align: center; color: #aaa; font-size: 0.75rem; margin: 25px 0 10px; }
+      @media (max-width: 480px) {
+        .igreja-card { flex-direction: column; align-items: stretch; }
+        .btn-acao { justify-content: center; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" style="display:none">
+      <div class="container">
+        <div class="header">
+          <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+            <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 90px;">
+            <div style="min-width:0;">
+              <h3 style="overflow-wrap:anywhere;">Painel Fornecedor</h3>
+              <span id="nomeSuper" style="font-size:0.78rem; color:#777; overflow-wrap:anywhere;"></span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap: 12px;">
+            <button onclick="carregarIgrejas()" class="btn-refresh" title="Atualizar"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+            <button onclick="sair()" class="btn-refresh" style="color:#991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
+          </div>
+        </div>
+
+        <div class="secao-titulo">
+          <h4>Igrejas</h4>
+          <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
+        </div>
+        <div id="listaIgrejas"><p class="carregando">Carregando...</p></div>
+
+        <p class="rodape">Acesso restrito ao fornecedor.</p>
+      </div>
+    </div>
+
+    <script>
+      let sb = null;
+      let IGREJAS = [];
+
+      (async () => {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) { window.location.href = "index.html"; return; }
+
+        const { data: pessoa } = await sb
+          .from('pessoas')
+          .select('nome, categoria, super_admin')
+          .eq('email', user.email)
+          .maybeSingle();
+
+        if (!pessoa || pessoa.super_admin !== true) {
+          UI.restrito("Acesso restrito ao fornecedor.", "index.html");
+          return;
+        }
+
+        sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
+        sessionStorage.setItem('loginDigitado', user.email);
+        document.getElementById('app').style.display = '';
+        document.getElementById('nomeSuper').textContent = pessoa.nome || user.email;
+        if (window.VideiraPush) VideiraPush.ativar(sb);
+        carregarIgrejas();
+      })();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function slugify(s) {
+        return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
+      }
+
+      async function carregarIgrejas() {
+        const box = document.getElementById('listaIgrejas');
+        const icone = document.getElementById('iconRefresh');
+        if (icone) icone.classList.add('fa-spin');
+        box.innerHTML = '<p class="carregando">Carregando...</p>';
+
+        const { data, error } = await sb
+          .from('igrejas')
+          .select('id, nome, slug, ativa, criado_em')
+          .order('criado_em', { ascending: true });
+
+        if (icone) icone.classList.remove('fa-spin');
+
+        if (error) {
+          box.innerHTML = '';
+          UI.toast('Falha ao carregar igrejas.', { tipo: 'erro' });
+          console.error(error);
+          return;
+        }
+
+        IGREJAS = data || [];
+        if (!IGREJAS.length) {
+          box.innerHTML = '<p class="carregando">Nenhuma igreja cadastrada.</p>';
+          return;
+        }
+
+        box.innerHTML = IGREJAS.map(ig => `
+          <div class="igreja-card">
+            <div class="igreja-info">
+              <h4>${esc(ig.nome)}</h4>
+              <p>slug: ${esc(ig.slug)}</p>
+              <span class="badge ${ig.ativa ? 'on' : 'off'}">${ig.ativa ? 'Ativa' : 'Inativa'}</span>
+            </div>
+            <div>
+              <button class="btn-acao" onclick="gerarConvite('${ig.id}', '${esc(ig.nome)}')">
+                <i class="fas fa-user-plus"></i> Convite do 1º usuário
+              </button>
+            </div>
+          </div>`).join('');
+      }
+
+      async function novaIgreja() {
+        const nome = await UI.prompt('Nome da igreja (ex.: Videira Rio Verde):', {
+          titulo: 'Nova igreja', placeholder: 'Nome da igreja', textoOk: 'Continuar'
+        });
+        if (nome === null) return;
+
+        const nomeTrim = nome.trim();
+        if (!nomeTrim) { UI.toast('Informe o nome da igreja.', { tipo: 'aviso' }); return; }
+
+        const slug = slugify(nomeTrim);
+        if (!slug) { UI.toast('Nome inválido para gerar o slug.', { tipo: 'aviso' }); return; }
+
+        const ok = await UI.confirmar(
+          'Criar a igreja "' + nomeTrim + '"?\nSlug: ' + slug,
+          { titulo: 'Confirmar', textoOk: 'Criar' }
+        );
+        if (!ok) return;
+
+        const { error } = await sb.from('igrejas').insert([{ nome: nomeTrim, slug }]);
+        if (error) {
+          UI.toast(error.code === '23505' ? 'Já existe uma igreja com esse slug.' : ('Falha ao criar: ' + error.message), { tipo: 'erro' });
+          return;
+        }
+        UI.toast('Igreja criada com sucesso!', { tipo: 'sucesso' });
+        carregarIgrejas();
+      }
+
+      async function gerarConvite(igrejaId, igrejaNome) {
+        const usuario = await UI.prompt('Usuário de login do primeiro cadastro (sem espaços):', {
+          titulo: 'Convite - ' + igrejaNome, placeholder: 'ex.: secretaria', textoOk: 'Continuar'
+        });
+        if (usuario === null) return;
+
+        const u = usuario.trim().toLowerCase();
+        if (!u || /\s/.test(u)) { UI.toast('Usuário inválido (use um login sem espaços).', { tipo: 'aviso' }); return; }
+
+        const cat = await UI.prompt('Categoria do primeiro usuário:', {
+          titulo: 'Categoria', valor: 'Administrador', placeholder: 'Administrador',
+          textoOk: 'Gerar convite'
+        });
+        if (cat === null) return;
+        const categoria = (cat || '').trim() || 'Administrador';
+
+        const { data: existe, error: errChk } = await sb
+          .from('pessoas')
+          .select('id')
+          .ilike('usuario', u)
+          .limit(1);
+        if (errChk) { UI.toast('Falha ao validar o usuário.', { tipo: 'erro' }); console.error(errChk); return; }
+        if (existe && existe.length) { UI.toast('Já existe um usuário com esse login.', { tipo: 'erro' }); return; }
+
+        const token = crypto.randomUUID();
+        const { error } = await sb.from('pessoas').insert([{
+          nome: u,
+          usuario: u,
+          categoria: categoria,
+          igreja_id: igrejaId,
+          is_user: false,
+          super_admin: false,
+          token_convite: token
+        }]);
+
+        if (error) { UI.toast('Falha ao gerar convite: ' + error.message, { tipo: 'erro' }); console.error(error); return; }
+
+        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const link = base + 'completar-cadastro.html?token=' + token;
+        UI.prompt('Envie este link para a pessoa concluir o cadastro:', {
+          titulo: 'Link de convite', valor: link, somenteLeitura: true, textoOk: 'Fechar'
+        });
+      }
+
+      async function sair() {
+        if (await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) {
+          try { await sb.auth.signOut(); } catch (e) {}
+          sessionStorage.clear();
+          window.location.href = "index.html?t=" + Date.now();
+        }
+      }
+    </script>
+  </body>
+</html>

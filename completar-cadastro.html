@@ -87,6 +87,7 @@
         let pessoaId = null;
         let categoriaPessoa = '';
         let superiorOriginalId = null;
+        let igrejaPessoaId = null;
 
        async function carregarDados() {
     if (!token) {
@@ -96,7 +97,7 @@
 
     const { data: pessoa, error } = await supabaseClient
         .from('pessoas')
-        .select('id, usuario, categoria, superior_id')
+        .select('id, usuario, categoria, superior_id, igreja_id')
         .eq('token_convite', token)
         .maybeSingle();
 
@@ -108,6 +109,7 @@
     // Guarda o ID da pessoa e o superior original definido pelo admin
     pessoaId = pessoa.id;
     superiorOriginalId = pessoa.superior_id;   // ← preserva o superior do admin
+    igrejaPessoaId = pessoa.igreja_id;         // ← escopo: mesma igreja
 
     // Normaliza a categoria para uso interno
     categoriaPessoa = (pessoa.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -118,10 +120,10 @@
     document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
     document.getElementById('area-form').style.display = 'block';
 
-    // Carrega o select de superiores baseado na categoria da pessoa
-    await carregarSuperiores(pessoa.categoria, pessoa.superior_id);
+    // Carrega o select de superiores baseado na categoria da pessoa (mesma igreja)
+    await carregarSuperiores(pessoa.categoria, pessoa.superior_id, igrejaPessoaId);
 }
-        async function carregarSuperiores(categoria, superiorIdAtual) {
+        async function carregarSuperiores(categoria, superiorIdAtual, igrejaId) {
             const select = document.getElementById('superior_id');
             const grupo = document.getElementById('grupo-superior');
             
@@ -136,6 +138,7 @@
                 .from('pessoas')
                 .select('id, nome, categoria')
                 .in('categoria', categoriasSuperiores)
+                .eq('igreja_id', igrejaId)
                 .order('nome');
 
             if (error || !superiores || superiores.length === 0) {

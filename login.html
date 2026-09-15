@@ -299,10 +299,10 @@
         
             const { data: pessoa } = await supabaseClient
                 .from('pessoas')
-                .select('nome, categoria')
+                .select('nome, categoria, super_admin')
                 .eq('email', emailParaLogin)
                 .maybeSingle();
-        
+
             if (!pessoa) {
                 erro.innerText = "⚠️ Registro não encontrado na base de dados.";
                 erro.style.display = 'block';
@@ -310,10 +310,17 @@
                 btn.disabled = false;
                 return;
             }
-        
+
             const nomeReal = pessoa.nome;
             const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
-        
+
+            if (pessoa.super_admin === true) {
+                registrarLog(entrada, nomeReal, "Fez login (super admin)");
+                gravarSessaoLocal(nomeReal, emailParaLogin, 'superadmin', ['superadmin']);
+                window.location.href = 'superadmin.html';
+                return;
+            }
+
             if (categoriaNormalizada !== 'administrador') {
                 registrarLog(entrada, nomeReal, "Fez login no sistema");
             }
@@ -457,7 +464,7 @@
 
                 const { data: pessoa } = await supabaseClient
                     .from('pessoas')
-                    .select('nome, categoria')
+                    .select('nome, categoria, super_admin')
                     .eq('email', cadastro.email)
                     .maybeSingle();
 
@@ -465,6 +472,14 @@
 
                 const nomeReal = pessoa.nome;
                 const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+
+                if (pessoa.super_admin === true) {
+                    registrarLog(cadastro.email, nomeReal, "Fez login (super admin)");
+                    gravarSessaoLocal(nomeReal, cadastro.email, 'superadmin', ['superadmin']);
+                    window.location.href = 'superadmin.html';
+                    return;
+                }
+
                 const paginas = paginasPorCategoria(categoriaNormalizada);
 
                 if (categoriaNormalizada !== 'administrador') {
