@@ -906,6 +906,307 @@
         });
     }
 
+    // ========== EVENTOS / ENCONTROS (INSCRIÇÕES) ==========
+    let listaEventos = [];
+    let inscricoesPorEvento = {};
+
+    function hojeISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function formatarDataBR(d) {
+        if (!d) return '';
+        const p = String(d).split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+    }
+    function formatarValorBR(v) {
+        const n = parseFloat(v || 0);
+        return n > 0 ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Gratuito';
+    }
+    function linkInscricao(eventoId) {
+        const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+        return `${base}inscricao-evento.html?evento=${encodeURIComponent(eventoId)}`;
+    }
+
+    async function carregarEventos() {
+        const grid = document.getElementById('listaEventos');
+        if (grid) grid.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Carregando...</p>';
+        try {
+            const { data: ev, error: evErr } = await supabaseClient
+                .from('eventos')
+                .select('*')
+                .order('data_evento', { ascending: false });
+            if (evErr) throw evErr;
+            listaEventos = ev || [];
+
+            const { data: ins, error: insErr } = await supabaseClient
+                .from('inscricoes_eventos')
+                .select('id, evento_id, nome, email, telefone, celula, observacoes, status, criado_em')
+                .order('criado_em', { ascending: false });
+            if (insErr) throw insErr;
+            inscricoesPorEvento = {};
+            (ins || []).forEach(i => {
+                if (!inscricoesPorEvento[i.evento_id]) inscricoesPorEvento[i.evento_id] = [];
+                inscricoesPorEvento[i.evento_id].push(i);
+            });
+            renderizarEventos();
+        } catch (err) {
+            console.error("Erro ao carregar eventos:", err);
+            if (grid) grid.innerHTML = '<p style="text-align:center; color:var(--danger-text); margin-top:20px; grid-column:1/-1;">Erro ao carregar eventos. Verifique a conexão.</p>';
+        }
+    }
+
+    function renderizarEventos() {
+        const grid = document.getElementById('listaEventos');
+        if (!grid) return;
+        const cont = document.getElementById('totalEventos');
+        grid.innerHTML = '';
+        if (cont) cont.innerText = listaEventos.length;
+        if (!listaEventos.length) {
+            grid.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Nenhum evento criado ainda.</p>';
+            return;
+        }
+        const hoje = hojeISO();
+        listaEventos.forEach(ev => {
+            const inscricoes = inscricoesPorEvento[ev.id] || [];
+            const abertas = inscricoes.filter(i => i.status !== 'cancelada').length;
+            const encerrado = ev.data_fim_inscricoes && ev.data_fim_inscricoes < hoje;
+            const statusHtml = encerrado
+                ? '<span class="status-pill" style="background:#fde8e8; color:#991b1b;">Inscrições encerradas</span>'
+                : '<span class="status-pill active">Inscrições abertas</span>';
+            grid.innerHTML += `
+                <div class="member-card">
+                    ${ev.foto_url ? `<img src="${escaparHTML(ev.foto_url)}" style="width:100%; height:160px; object-fit:cover; border-radius:12px; margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
+                    <div class="card-header">
+                        <h4 class="card-name">${escaparHTML(ev.nome)}</h4>
+                        <span class="cat-badge" style="background:rgba(212,175,55,0.15); color:#b58900; border-color:#D4AF37; text-transform:uppercase;">${escaparHTML(ev.tipo || 'Evento')}</span>
+                    </div>
+                    <div class="card-info"><i class="fas fa-calendar-day"></i> ${formatarDataBR(ev.data_evento)} ${ev.hora_evento ? '• ' + escaparHTML(ev.hora_evento) : ''}</div>
+                    ${ev.local ? `<div class="card-info"><i class="fas fa-map-marker-alt"></i> ${escaparHTML(ev.local)}</div>` : ''}
+                    <div class="card-info"><i class="fas fa-tag"></i> Valor: ${formatarValorBR(ev.valor)}</div>
+                    ${ev.data_fim_inscricoes ? `<div class="card-info"><i class="fas fa-hourglass-end"></i> Inscrições até ${formatarDataBR(ev.data_fim_inscricoes)}</div>` : ''}
+                    <div class="status-row">${statusHtml}<span class="status-pill">${abertas} inscrições</span></div>
+                    <div class="card-actions">
+                        <button onclick="copiarLinkEvento('${ev.id}')" class="btn-card" style="background:var(--success-bg); color:var(--success-text); border-color:#c3e6cb;" title="Copiar link de inscrição"><i class="fas fa-link"></i></button>
+                        <button onclick="abrirModalInscricoes('${ev.id}')" class="btn-card" title="Ver inscrições"><i class="fas fa-list-ul"></i></button>
+                        <button onclick="abrirModalEvento('${ev.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="excluirEvento('${ev.id}')" class="btn-card" style="color:var(--danger-text);" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function abrirModalEvento(id) {
+        document.getElementById('formEvento').reset();
+        document.getElementById('eventoId').value = id || '';
+        const prev = document.getElementById('eventoFotoPreview');
+        prev.removeAttribute('src');
+        prev.style.display = 'none';
+        prev.dataset.savedUrl = '';
+        if (id) {
+            const ev = listaEventos.find(e => e.id === id);
+            if (!ev) return;
+            document.getElementById('eventoNome').value = ev.nome || '';
+            document.getElementById('eventoTipo').value = ev.tipo || 'encontro';
+            document.getElementById('eventoData').value = ev.data_evento || '';
+            document.getElementById('eventoHora').value = ev.hora_evento || '';
+            document.getElementById('eventoLocal').value = ev.local || '';
+            document.getElementById('eventoValor').value = ev.valor || '';
+            document.getElementById('eventoFimInscricoes').value = ev.data_fim_inscricoes || '';
+            document.getElementById('eventoDescricao').value = ev.descricao || '';
+            if (ev.foto_url) {
+                prev.dataset.savedUrl = ev.foto_url;
+                prev.src = ev.foto_url;
+                prev.style.display = 'block';
+            }
+            document.getElementById('tituloModalEvento').innerText = 'Editar Evento';
+        } else {
+            document.getElementById('tituloModalEvento').innerText = 'Novo Evento';
+            const hoje = new Date();
+            const dias = d => { const x = new Date(hoje); x.setDate(x.getDate() + d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+            document.getElementById('eventoData').value = dias(15);
+            document.getElementById('eventoFimInscricoes').value = dias(10);
+        }
+        document.getElementById('modalEvento').classList.remove('hidden');
+    }
+
+    async function salvarEvento(e) {
+        e.preventDefault();
+        const id = document.getElementById('eventoId').value;
+        const nome = document.getElementById('eventoNome').value.trim();
+        const dataEvento = document.getElementById('eventoData').value;
+        if (!nome || !dataEvento) { alert("Preencha nome e data do evento."); return; }
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        try {
+            const prev = document.getElementById('eventoFotoPreview');
+            let foto_url = prev.dataset.savedUrl || '';
+            const fileInput = document.getElementById('eventoFoto');
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+                const path = `eventos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const { error: upErr } = await supabaseClient.storage.from('eventos').upload(path, file, { upsert: false, contentType: file.type });
+                if (upErr) throw upErr;
+                foto_url = supabaseClient.storage.from('eventos').getPublicUrl(path).data.publicUrl;
+            }
+            const dados = {
+                nome,
+                tipo: document.getElementById('eventoTipo').value,
+                data_evento: dataEvento,
+                hora_evento: document.getElementById('eventoHora').value || null,
+                local: document.getElementById('eventoLocal').value.trim() || null,
+                valor: parseFloat(document.getElementById('eventoValor').value || 0),
+                data_fim_inscricoes: document.getElementById('eventoFimInscricoes').value || null,
+                descricao: document.getElementById('eventoDescricao').value.trim() || null,
+                foto_url: foto_url || null
+            };
+            let eventoId = id;
+            if (id) {
+                const { error } = await supabaseClient.from('eventos').update(dados).eq('id', id);
+                if (error) throw error;
+                registrarLogAcao(`Editou o evento "${nome}"`);
+            } else {
+                dados.criado_por = sessionStorage.getItem('pastorId');
+                const { data: novo, error } = await supabaseClient.from('eventos').insert([dados]).select('id').single();
+                if (error) throw error;
+                eventoId = novo.id;
+                registrarLogAcao(`Criou o evento "${nome}"`);
+            }
+            document.getElementById('modalEvento').classList.add('hidden');
+            await carregarEventos();
+            gerarLinkEvento(eventoId, true);
+        } catch (err) {
+            console.error("Erro ao salvar evento:", err);
+            alert("Erro ao salvar evento: " + (err.message || ''));
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function gerarLinkEvento(eventoId, abrirModal) {
+        const link = linkInscricao(eventoId);
+        let copiado = false;
+        try {
+            await navigator.clipboard.writeText(link);
+            copiado = true;
+        } catch (err) {
+            copiado = false;
+        }
+        if (abrirModal) {
+            document.getElementById('modalLinkGerado').classList.remove('hidden');
+            document.getElementById('textoLinkGerado').innerText = link;
+        } else if (copiado) {
+            alert("Link de inscrição copiado!");
+        } else {
+            prompt("Copie o link abaixo:", link);
+        }
+        registrarLogAcao(`Gerou link de inscrição do evento`);
+    }
+
+    async function copiarLinkEvento(eventoId) {
+        await gerarLinkEvento(eventoId, false);
+    }
+
+    function fecharModalLinkGerado() {
+        document.getElementById('modalLinkGerado').classList.add('hidden');
+    }
+
+    function copiarTextoLink() {
+        const txt = document.getElementById('textoLinkGerado').innerText;
+        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!")).catch(() => prompt("Copie o link abaixo:", txt));
+    }
+
+    async function excluirEvento(id) {
+        const ev = listaEventos.find(e => e.id === id);
+        const nome = ev ? ev.nome : '';
+        if (!confirm(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`)) return;
+        try {
+            const { error: insErr } = await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
+            if (insErr) throw insErr;
+            const { error } = await supabaseClient.from('eventos').delete().eq('id', id);
+            if (error) throw error;
+            registrarLogAcao(`Excluiu o evento "${nome}"`);
+            await carregarEventos();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao excluir evento: " + (err.message || ''));
+        }
+    }
+
+    async function abrirModalInscricoes(eventoId) {
+        const ev = listaEventos.find(e => e.id === eventoId);
+        const inscricoes = inscricoesPorEvento[eventoId] || [];
+        document.getElementById('tituloInscricoes').innerText = `Inscrições • ${ev ? ev.nome : ''}`;
+        document.getElementById('totalInscricoes').innerText = `${inscricoes.length} inscrição(ões)`;
+        const div = document.getElementById('listaInscricoes');
+        div.innerHTML = '';
+        if (!inscricoes.length) {
+            div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma inscrição ainda.</p>';
+        } else {
+            inscricoes.forEach(i => {
+                div.innerHTML += `
+                    <div class="member-card">
+                        <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill">${escaparHTML(i.status || 'pendente')}</span></div>
+                        ${i.email ? `<div class="card-info"><i class="fas fa-envelope"></i> ${escaparHTML(i.email)}</div>` : ''}
+                        ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)}</div>` : ''}
+                        ${i.celula ? `<div class="card-info"><i class="fas fa-users"></i> ${escaparHTML(i.celula)}</div>` : ''}
+                        ${i.observacoes ? `<div class="card-info"><i class="fas fa-circle-info"></i> ${escaparHTML(i.observacoes)}</div>` : ''}
+                        <div class="card-actions">
+                            <button class="btn-card" style="color:var(--success-text);" onclick="alterarStatusInscricao('${i.id}','confirmada')">Confirmar</button>
+                            <button class="btn-card" style="color:#b58900;" onclick="alterarStatusInscricao('${i.id}','pendente')">Pendente</button>
+                            <button class="btn-card" style="color:var(--danger-text);" onclick="alterarStatusInscricao('${i.id}','cancelada')">Cancelar</button>
+                            <button class="btn-card" style="color:var(--danger-text);" onclick="excluirInscricao('${i.id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`;
+            });
+        }
+        const modal = document.getElementById('modalInscricoes');
+        modal.classList.remove('hidden');
+        modal.dataset.eventoId = eventoId;
+    }
+
+    async function alterarStatusInscricao(id, status) {
+        try {
+            const { error } = await supabaseClient.from('inscricoes_eventos').update({ status }).eq('id', id);
+            if (error) throw error;
+            registrarLogAcao(`Alterou status de inscrição para "${status}"`);
+            const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
+            await carregarEventos();
+            if (eventoId) abrirModalInscricoes(eventoId);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao alterar status: " + (err.message || ''));
+        }
+    }
+
+    async function excluirInscricao(id) {
+        if (!confirm("Excluir esta inscrição?")) return;
+        try {
+            const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
+            if (error) throw error;
+            registrarLogAcao(`Excluiu uma inscrição`);
+            const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
+            await carregarEventos();
+            if (eventoId) abrirModalInscricoes(eventoId);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao excluir inscrição: " + (err.message || ''));
+        }
+    }
+
+    function fecharModalInscricoes() {
+        document.getElementById('modalInscricoes').classList.add('hidden');
+    }
+
+    function previewFotoEvento(input) {
+        const prev = document.getElementById('eventoFotoPreview');
+        if (input.files && input.files[0]) {
+            prev.src = URL.createObjectURL(input.files[0]);
+            prev.style.display = 'block';
+        }
+    }
+
     // ========== PALAVRAS ==========
     async function carregarPalavrasDados() {
         const { data } = await supabaseClient.from('palavras').select('*').order('data', { ascending: false });
@@ -1513,7 +1814,7 @@
 
     // ========== NAVEGAÇÃO ==========
     function mudarSecao(s) {
-        ['lista', 'minha-rede', 'relatorios', 'sugestoes', 'agenda', 'palavras', 'minha-igreja'].forEach(id => { const el = document.getElementById(`secao-${id}`); if (el) el.classList.add('hidden'); });
+        ['lista', 'minha-rede', 'relatorios', 'sugestoes', 'agenda', 'palavras', 'eventos', 'minha-igreja'].forEach(id => { const el = document.getElementById(`secao-${id}`); if (el) el.classList.add('hidden'); });
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         const ativa = document.getElementById(`secao-${s}`); if (ativa) ativa.classList.remove('hidden');
         const btn = document.getElementById(`btn-${s}`); if (btn) btn.classList.add('active');
@@ -1521,6 +1822,7 @@
         if (s === 'minha-igreja') carregarEstatisticas();
         if (s === 'lista') aplicarFiltros();
         if (s === 'biblia') abrirBiblia()
+        if (s === 'eventos') carregarEventos();
     }
     function fecharModal(id) {
         document.getElementById(id).classList.add('hidden');
@@ -1698,6 +2000,7 @@
         
 
         document.getElementById('formPalavra').addEventListener('submit', salvarPalavra);
+        document.getElementById('formEvento').addEventListener('submit', salvarEvento);
         setupMultiselects();
 
         const observer = new MutationObserver(() => {
@@ -1906,6 +2209,7 @@
         <button id="btn-sugestoes" class="nav-btn" onclick="mudarSecao('sugestoes')"><i class="fas fa-hands-praying"></i> Pedidos</button>
         <button id="btn-agenda" class="nav-btn" onclick="mudarSecao('agenda')"><i class="far fa-calendar-alt"></i> Agenda</button>
         <button id="btn-palavras" class="nav-btn" onclick="mudarSecao('palavras')"><i class="fas fa-book-open"></i> Palavras</button>
+        <button id="btn-eventos" class="nav-btn" onclick="mudarSecao('eventos')"><i class="fas fa-calendar-check"></i> Eventos</button>
         <button id="btn-minha-igreja" class="nav-btn" onclick="mudarSecao('minha-igreja')"><i class="fas fa-chart-bar"></i> Minha Igreja</button>
     </div>
 
@@ -1995,6 +2299,15 @@
             <button onclick="novaPalavra()" class="btn-card" style="background:var(--success-text); color:white; padding:5px 10px; font-size:0.65rem;"><i class="fas fa-plus"></i> Nova</button>
         </div>
         <div id="listaPalavras"></div>
+    </div>
+
+    <!-- EVENTOS (ENCONTROS / INSCRIÇÕES) -->
+    <div id="secao-eventos" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:8px;">
+            <h4 style="margin:0;"><span id="totalEventos">0</span> Eventos</h4>
+            <button onclick="abrirModalEvento()" class="btn-card" style="background:var(--primary); color:white; padding:7px 14px; font-size:0.72rem; border:none;"><i class="fas fa-plus"></i> Novo Evento</button>
+        </div>
+        <div id="listaEventos" class="member-grid"></div>
     </div>
 
     <!-- MINHA IGREJA (REMODELADA - PROFISSIONAL) -->
@@ -2185,6 +2498,70 @@
     <audio id="radioAudio" preload="none" style="display:none;">
         <source src="https://streaming.vinhafm.com.br/stream" type="audio/mpeg">
     </audio>
+
+<!-- MODAL EVENTO (CRIAR/EDITAR) -->
+<div id="modalEvento" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:600px; max-height:90vh;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModal('modalEvento')">&times;</button>
+        <h2 id="tituloModalEvento" style="margin-top:0; margin-bottom:20px; color:var(--primary);">Novo Evento</h2>
+        <form id="formEvento">
+            <input type="hidden" id="eventoId">
+            <div class="form-group"><label>Nome do Evento</label><input type="text" id="eventoNome" placeholder="Ex.: Encontro com Deus" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1;"><label>Tipo</label>
+                    <select id="eventoTipo" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+                        <option value="encontro">Encontro</option>
+                        <option value="culto">Culto</option>
+                        <option value="retiro">Retiro</option>
+                        <option value="cursao">Cursão</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;"><label>Valor da Inscrição (R$)</label><input type="number" id="eventoValor" min="0" step="0.01" placeholder="0,00" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1;"><label>Data do Evento</label><input type="date" id="eventoData" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+                <div class="form-group" style="flex:1;"><label>Horário</label><input type="time" id="eventoHora" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1;"><label>Data Limite de Inscrição</label><input type="date" id="eventoFimInscricoes" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+                <div class="form-group" style="flex:1;"><label>Local</label><input type="text" id="eventoLocal" placeholder="Endereço do evento" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            </div>
+            <div class="form-group"><label>Foto do Evento</label>
+                <input type="file" id="eventoFoto" accept="image/*" onchange="previewFotoEvento(this)" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:white;">
+                <img id="eventoFotoPreview" style="display:none; width:100%; max-height:180px; object-fit:cover; border-radius:10px; margin-top:8px;">
+            </div>
+            <div class="form-group"><label>Descrição</label><textarea id="eventoDescricao" rows="3" placeholder="Informações adicionais para os inscritos" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:vertical;"></textarea></div>
+            <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;"><i class="fas fa-save"></i> Salvar Evento</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL INSCRIÇÕES -->
+<div id="modalInscricoes" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:700px; max-height:90vh;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalInscricoes()">&times;</button>
+        <h2 id="tituloInscricoes" style="margin-top:0; margin-bottom:5px; color:var(--primary);">Inscrições</h2>
+        <p style="color:#888; font-size:0.8rem; margin-bottom:15px;" id="totalInscricoes">0 inscrições</p>
+        <div id="listaInscricoes" class="member-grid"></div>
+    </div>
+</div>
+
+<!-- MODAL LINK GERADO -->
+<div id="modalLinkGerado" class="modal-overlay hidden" onclick="fecharModalLinkGerado()">
+    <div class="modal-content" style="max-width:480px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalLinkGerado()">&times;</button>
+        <div style="text-align:center;">
+            <div style="font-size:3rem; color:var(--success-text); margin-bottom:10px;"><i class="fas fa-check-circle"></i></div>
+            <h3 style="margin:0 0 5px; color:var(--success-text);">Evento salvo!</h3>
+            <p style="color:#666; font-size:0.85rem;">Link de inscrição gerado e copiado. Compartilhe com a igreja:</p>
+            <div id="textoLinkGerado" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:10px; padding:12px; word-break:break-all; font-size:0.8rem; color:var(--text-main); margin:15px 0;"></div>
+            <button onclick="copiarTextoLink()" class="btn-card" style="background:var(--success-text); color:white; border:none; padding:10px 20px; width:100%;"><i class="fas fa-copy"></i> Copiar Link</button>
+            <button onclick="fecharModalLinkGerado()" class="btn-card" style="margin-top:8px; width:100%;">Fechar</button>
+        </div>
+    </div>
+</div>
+
     <script src="js/pwa.js"></script>
 
 </body>

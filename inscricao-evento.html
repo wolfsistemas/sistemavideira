@@ -252,10 +252,10 @@
             <button type="submit" class="btn-submit" id="btnEnviar">
                 <i class="fas fa-paper-plane"></i> Confirmar Inscrição
             </button>
-            <div id="msgSucesso" class="msg sucesso"></div>
-            <div id="msgErro" class="msg erro"></div>
-            <div id="avisoEncerrado" class="aviso-encerrado" style="display:none;">Inscrições encerradas para este evento.</div>
         </form>
+        <div id="msgSucesso" class="msg"></div>
+        <div id="msgErro" class="msg"></div>
+        <div id="avisoEncerrado" class="aviso-encerrado" style="display:none;">Inscrições encerradas para este evento.</div>
 
         <div class="rodape">Sistema Videira • Igreja Videira Jataí</div>
     </div>
@@ -267,6 +267,15 @@
     let eventoAtual = null;
 
     // ========== UTILITÁRIOS ==========
+    function escHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
     function fmtData(d) {
         if (!d) return '';
         const p = String(d).split('-');
@@ -275,6 +284,10 @@
     function fmtValor(v) {
         const n = parseFloat(v || 0);
         return n > 0 ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Gratuito';
+    }
+    function hojeISOLocal() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     // ========== CARREGAR EVENTO ==========
@@ -307,21 +320,20 @@
             document.getElementById('tituloEvento').innerText = ev.nome || 'Evento';
 
             const encerrado = ev.data_fim_inscricoes
-                && ev.data_fim_inscricoes < new Date().toISOString().split('T')[0];
+                && ev.data_fim_inscricoes < hojeISOLocal();
 
             let detalhes = '';
             if (ev.foto_url) {
-                detalhes += `<img class="evento-foto" src="${ev.foto_url}" alt="${ev.nome}" onerror="this.style.display='none'">`;
+                detalhes += `<img class="evento-foto" src="${escHTML(ev.foto_url)}" alt="${escHTML(ev.nome)}" onerror="this.style.display='none'">`;
             }
             detalhes += `<div class="valor-badge"><i class="fas fa-tag"></i> ${fmtValor(ev.valor)}</div>`;
             detalhes += `<div class="info-grid">
                 <div class="info-item"><i class="fas fa-calendar-day"></i> Data<strong>${fmtData(ev.data_evento)}</strong></div>
-                <div class="info-item"><i class="fas fa-clock"></i> Horário<strong>${ev.hora_evento || 'A definir'}</strong></div>
-                ${ev.local ? `<div class="info-item full"><i class="fas fa-map-marker-alt"></i> Local<strong>${ev.local}</strong></div>` : ''}
-                ${ev.data_fim_inscricoes ? `<div class="info-item"><i class="fas fa-hourglass-end"></i> Inscrições até<strong>${fmtData(ev.data_fim_inscricoes)}</strong></div>` : ''}
-                <div class="info-item"><i class="fas fa-tag"></i> Investimento<strong>${fmtValor(ev.valor)}</strong></div>
+                <div class="info-item"><i class="fas fa-clock"></i> Horário<strong>${escHTML(ev.hora_evento || 'A definir')}</strong></div>
+                ${ev.local ? `<div class="info-item full"><i class="fas fa-map-marker-alt"></i> Local<strong>${escHTML(ev.local)}</strong></div>` : ''}
+                ${ev.data_fim_inscricoes ? `<div class="info-item full"><i class="fas fa-hourglass-end"></i> Inscrições até<strong>${fmtData(ev.data_fim_inscricoes)}</strong></div>` : ''}
             </div>`;
-            if (ev.descricao) detalhes += `<div class="descricao">${ev.descricao}</div>`;
+            if (ev.descricao) detalhes += `<div class="descricao">${escHTML(ev.descricao)}</div>`;
 
             document.getElementById('detalhesEvento').innerHTML = detalhes;
 
@@ -338,17 +350,35 @@
     }
 
     // ========== ENVIO ==========
+    function mostrarErro(msg) {
+        const el = document.getElementById('msgErro');
+        el.innerText = msg;
+        el.classList.add('erro');
+        el.style.display = 'block';
+    }
+    function limparErro() {
+        const el = document.getElementById('msgErro');
+        el.innerText = '';
+        el.classList.remove('erro');
+        el.style.display = 'none';
+    }
+
     document.getElementById('formInscricao').addEventListener('submit', async e => {
         e.preventDefault();
+        if (!eventoAtual) { mostrarErro('Evento não carregado. Recarregue a página.'); return; }
+        if (eventoAtual.data_fim_inscricoes && eventoAtual.data_fim_inscricoes < hojeISOLocal()) {
+            mostrarErro('As inscrições para este evento estão encerradas.');
+            return;
+        }
+
         const btn = document.getElementById('btnEnviar');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-        document.getElementById('msgErro').style.display = 'none';
+        limparErro();
 
         const nome = document.getElementById('campoNome').value.trim();
         if (!nome) {
-            document.getElementById('msgErro').innerText = 'Informe seu nome completo.';
-            document.getElementById('msgErro').style.display = 'block';
+            mostrarErro('Informe seu nome completo.');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirmar Inscrição';
             return;
@@ -368,31 +398,16 @@
             const { error } = await supabaseClient.from('inscricoes_eventos').insert([dados]);
             if (error) throw error;
 
-            document.getElementById('msgSucesso').innerHTML = '<strong>Inscrição confirmada!</strong><br>Aguarde o contato da igreja para confirmar o pagamento.';
             document.getElementById('formInscricao').style.display = 'none';
-
-            // ====== GANCHO DE E-MAIL (GAS) - ativar quando quiser ======
-            // const API_URL = sessionStorage.getItem('urlApi') || (typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '');
-            // if (API_URL) {
-            //     fetch(API_URL, {
-            //         method: 'POST',
-            //         body: JSON.stringify({
-            //             action: 'enviarEmailInscricao',
-            //             payload: {
-            //                 evento: eventoAtual.nome,
-            //                 nome,
-            //                 email: dados.email,
-            //                 telefone: dados.telefone
-            //             }
-            //         })
-            //     }).catch(() => {});
-            // }
+            const ok = document.getElementById('msgSucesso');
+            ok.innerHTML = '<strong>Inscrição confirmada!</strong><br>Aguarde o contato da igreja para confirmar o pagamento.';
+            ok.classList.add('sucesso');
+            ok.style.display = 'block';
         } catch (err) {
             console.error(err);
-            document.getElementById('msgErro').innerText = 'Erro ao enviar inscrição. Tente novamente.';
-            document.getElementById('msgErro').style.display = 'block';
-        } finally {
+            mostrarErro('Erro ao enviar inscrição. Tente novamente.');
             btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirmar Inscrição';
         }
     });
 

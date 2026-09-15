@@ -135,19 +135,22 @@ async function montarNotificacao(
         alvo: { modo: "todos" },
       };
 
-    case "eventos":
+    case "eventos": {
+      const eventoId = texto(record.id);
       return {
         titulo: "Novo evento",
         corpo: texto(record.titulo) || texto(record.nome) || "Um novo evento foi publicado.",
-        url: "./inscricao-evento.html",
+        url: eventoId ? `./inscricao-evento.html?evento=${encodeURIComponent(eventoId)}` : "./inscricao-evento.html",
         alvo: { modo: "todos" },
       };
+    }
 
     case "inscricoes_eventos": {
       const ids = await idsPastoresEDiscipuladores(sb);
+      const nomeInscrito = texto(record.nome);
       return {
         titulo: "Nova inscrição em evento",
-        corpo: "Há uma nova inscrição em evento.",
+        corpo: nomeInscrito ? `${nomeInscrito} se inscreveu em um evento.` : "Há uma nova inscrição em evento.",
         url: "./pastor.html",
         alvo: { modo: "ids", ids },
       };
