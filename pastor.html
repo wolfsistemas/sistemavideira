@@ -93,8 +93,10 @@
         .table-clean th { background: var(--primary); color: white; padding: 10px; font-size: 0.8rem; }
         .table-clean td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3100; display: flex; justify-content: center; align-items: flex-end; /*backdrop-filter: blur(2px);*/ }
-        .modal-content { background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3100; display: flex; justify-content: center; align-items: flex-end; overscroll-behavior: contain; /*backdrop-filter: blur(2px);*/ }
+        .modal-content { background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        /* Fundo travado enquanto houver modal aberto (evita rolar a pagina por tras) */
+        body.modal-aberto { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .btn-close-modal { position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #555; display: flex; align-items: center; justify-content: center; }
         .hidden { display: none !important; }
@@ -1448,8 +1450,6 @@
             btn.classList.add('hidden');
         }
         document.getElementById('modalPalavra').classList.remove('hidden');
-        // TRAVAR SCROLL DO FUNDO
-        document.body.style.overflow = 'hidden';
     
         // 🔹 REGISTRA LOG DA AÇÃO
         const titulo = p.tema || 'Sem título';
@@ -2033,12 +2033,38 @@
         if (s === 'biblia') abrirBiblia()
         if (s === 'eventos') carregarEventos();
     }
+    // ========== TRAVAMENTO DE SCROLL DOS MODAIS ==========
+    // Mantem o fundo imovel enquanto qualquer modal-overlay estiver aberto.
+    let _scrollAntesDoModal = 0;
+    function travarScrollFundo() {
+        if (document.body.classList.contains('modal-aberto')) return;
+        _scrollAntesDoModal = window.scrollY || document.documentElement.scrollTop || 0;
+        document.body.style.top = '-' + _scrollAntesDoModal + 'px';
+        document.body.classList.add('modal-aberto');
+    }
+    function destravarScrollFundo() {
+        if (!document.body.classList.contains('modal-aberto')) return;
+        document.body.classList.remove('modal-aberto');
+        document.body.style.top = '';
+        window.scrollTo(0, _scrollAntesDoModal);
+    }
+    // Observa todos os modais: abre/fecha de qualquer jeito (funcao, clique no
+    // fundo, ESC etc.) e trava/destrava o scroll automaticamente.
+    function iniciarTravamentoModais() {
+        const modais = Array.from(document.querySelectorAll('.modal-overlay'));
+        if (!modais.length || !window.MutationObserver) return;
+        const atualizar = () => {
+            const algumAberto = modais.some(m => !m.classList.contains('hidden'));
+            if (algumAberto) travarScrollFundo();
+            else destravarScrollFundo();
+        };
+        const observer = new MutationObserver(atualizar);
+        modais.forEach(m => observer.observe(m, { attributes: true, attributeFilter: ['class'] }));
+        atualizar();
+    }
+
     function fecharModal(id) {
         document.getElementById(id).classList.add('hidden');
-        // Restaurar o scroll se o modal fechado for o de palavras
-        if (id === 'modalPalavra') {
-            document.body.style.overflow = '';
-        }
     }
     function fecharModalClique(e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden'); }
 
@@ -2216,6 +2242,8 @@
             if (!document.getElementById('modalEditarCelula').classList.contains('hidden')) preencherSelectLideres();
         });
         observer.observe(document.getElementById('modalEditarCelula'), { attributes: true, attributeFilter: ['class'] });
+
+        iniciarTravamentoModais();
     }
 
     window.onload = () => {
