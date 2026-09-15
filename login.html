@@ -72,6 +72,7 @@
     <meta name="twitter:image" content="https://videirajatai.com.br/sistema/og-image.png">
 
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
   
     <style>
         body, html { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%); }
@@ -566,7 +567,7 @@
                 });
                 if (error) throw error;
 
-                alert("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+                UI.toast("E-mail de recuperação enviado! Verifique sua caixa de entrada.", { tipo: 'sucesso' });
                 registrarLog(email, "Solicitou Recuperação de Senha");
                 document.getElementById('rec-email').value = "";
                 mudarTela('bloco-login');
