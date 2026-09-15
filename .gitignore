@@ -2,3 +2,4 @@ supabase/.secrets
 supabase/.temp/
 .DS_Store
 node_modules/
+gas/gas-completo.gs

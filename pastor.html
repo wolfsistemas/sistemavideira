@@ -271,28 +271,43 @@
     }
 
     // ========== CARREGAMENTO ==========
+    // Recarrega TODOS os dados do sistema e re-renderiza o que já estiver na tela.
+    // Nao faz bind de eventos nem troca de secao (isso fica em inicializarEventos()).
     async function carregarTudo() {
         const icon = document.getElementById('iconRefresh');
         if (icon) icon.classList.add('fa-spin');
-        try {
-            const { data: memData } = await supabaseClient.from('pessoas').select('*');
-            dadosMembros = memData ? memData.map(m => {
-                let tipo = normalizarCategoria(m.tipo || m.categoria);
-                let categoriaStr = 'Membro';
-                if (tipo === 'lider' || tipo === 'líder') categoriaStr = 'Líder';
-                else if (tipo === 'pastor' || tipo === 'pastor de governo' || tipo === 'pastor de rede') categoriaStr = 'Pastor';
-                else if (tipo === 'discipulador') categoriaStr = 'Discipulador';
-                else if (tipo === 'frequentador') categoriaStr = 'Frequentador';
-                else if (tipo === 'tesoureiro') categoriaStr = 'Tesoureiro';
-                else if (tipo === 'administrador') categoriaStr = 'Administrador';
-                return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
-            }) : [];
+        const falhas = [];
+        const passo = async (rotulo, fn) => {
+            try { await fn(); } catch (err) {
+                console.error(`Falha ao atualizar ${rotulo}:`, err);
+                falhas.push(rotulo);
+            }
+        };
 
-            
-            const { data: celData } = await supabaseClient.from('celulas').select('*');
-           // dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
-            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '', c.anfitriao_user_id || '']) : [];
-            
+        try {
+            await passo('membros', async () => {
+                const { data: memData, error } = await supabaseClient.from('pessoas').select('*');
+                if (error) throw error;
+                dadosMembros = memData ? memData.map(m => {
+                    let tipo = normalizarCategoria(m.tipo || m.categoria);
+                    let categoriaStr = 'Membro';
+                    if (tipo === 'lider' || tipo === 'líder') categoriaStr = 'Líder';
+                    else if (tipo === 'pastor' || tipo === 'pastor de governo' || tipo === 'pastor de rede') categoriaStr = 'Pastor';
+                    else if (tipo === 'discipulador') categoriaStr = 'Discipulador';
+                    else if (tipo === 'frequentador') categoriaStr = 'Frequentador';
+                    else if (tipo === 'tesoureiro') categoriaStr = 'Tesoureiro';
+                    else if (tipo === 'administrador') categoriaStr = 'Administrador';
+                    return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
+                }) : [];
+            });
+
+            await passo('células', async () => {
+                const { data: celData, error } = await supabaseClient.from('celulas').select('*');
+                if (error) throw error;
+                // dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
+                dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '', c.anfitriao_user_id || '']) : [];
+            });
+
             window.celulaMap = {};
             dadosCelulas.forEach(c => { window.celulaMap[c[0]] = c[1]; });
             dadosMembros.forEach(m => { if (m[13]) m[3] = window.celulaMap[m[13]] || 'Sem Célula'; });
@@ -306,10 +321,20 @@
             renderizarCelulasRede(dadosCelulas);
             window.celulasRedeCompleta = dadosCelulas;
 
-            await carregarRelatorios();
-            try { listaAgenda = await fetchGoogle('buscarAgenda') || []; renderizarAgenda(listaAgenda); } catch (e) {}
-            await carregarPalavrasDados();
-            if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
+            await passo('relatórios', carregarRelatorios);
+            await passo('agenda', async () => {
+                listaAgenda = await fetchGoogle('buscarAgenda') || [];
+                renderizarAgenda(listaAgenda);
+            });
+            await passo('palavras', carregarPalavrasDados);
+            await passo('pedidos de oração', carregarSugestoes);
+            await passo('eventos e inscrições', carregarEventos);
+            await passo('estatísticas', async () => carregarEstatisticas());
+
+            if (falhas.length) {
+                console.warn('Atualização parcial. Falhou em: ' + falhas.join(', '));
+                alert('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.');
+            }
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
             alert("Erro ao carregar dados. Verifique a conexão.");
@@ -1223,9 +1248,13 @@
             inscricoes.forEach(i => {
                 const wa = linkWhatsApp(i.telefone);
                 const comprovante = linkArquivoSeguro(i.comprovante_url);
+                const confirmada = (i.status || '').toLowerCase() === 'confirmada';
+                const estiloCard = confirmada
+                    ? ' style="background:#eef8f0; border-color:#bfe3c9; border-left:4px solid var(--success-text);"'
+                    : '';
                 div.innerHTML += `
-                    <div class="member-card">
-                        <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill">${escaparHTML(i.status || 'pendente')}</span></div>
+                    <div class="member-card"${estiloCard}>
+                        <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill${confirmada ? ' active' : ''}">${escaparHTML(i.status || 'pendente')}</span></div>
                         ${i.email ? `<div class="card-info"><i class="fas fa-envelope"></i> ${escaparHTML(i.email)}</div>` : ''}
                         ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)} ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="btn-card" style="flex:0 0 auto; padding:2px 8px; font-size:0.65rem; color:#1e8e3e; margin-left:4px;" title="Conversar no WhatsApp"><i class="fab fa-whatsapp"></i> Chamar</a>` : ''}</div>` : ''}
                         ${i.celula ? `<div class="card-info"><i class="fas fa-users"></i> ${escaparHTML(i.celula)}</div>` : ''}
