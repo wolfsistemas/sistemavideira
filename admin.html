@@ -30,10 +30,12 @@
       .header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid #000; }
       .header h3 { margin: 0; color: #000; font-weight: 800; text-transform: uppercase; font-size: 1.1rem; }
       .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; }
-      .nav-menu { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-      .nav-btn { flex: 1 1 45%; min-width: 100px; padding: 12px; border: none; border-radius: 10px; background: white; color: var(--text-light); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.85rem; }
-      .nav-btn i { font-size: 1.2rem; }
+      .nav-menu { display: flex; gap: 8px; flex-wrap: nowrap; justify-content: center; margin-bottom: 20px; }
+      .nav-btn { flex: 1 1 0; min-width: 0; padding: 12px 6px; border: none; border-radius: 10px; background: white; color: var(--text-light); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.78rem; line-height: 1.1; transition: 0.2s; }
+      .nav-btn i { font-size: 1.15rem; }
+      .nav-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
       .nav-btn.active { background: #000; color: white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+      @media (max-width: 380px) { .nav-btn { font-size: 0.7rem; padding: 10px 4px; } .nav-btn i { font-size: 1.05rem; } }
       .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; }
       .filter-bar input, .filter-bar select { margin-bottom: 0; padding: 10px; font-size: 0.9rem; border-color: #ddd; }
       .user-card { background: white; padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
@@ -88,6 +90,33 @@
       .dropdown-item i {
         margin-right: 8px;
       }
+      .notif-head h4 { margin: 0 0 3px 0; color: var(--text-light); }
+      .notif-head p { font-size: 0.8rem; color: #777; margin: 0 0 15px 0; }
+      .notif-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid #eee; padding: 16px; margin-bottom: 18px; }
+      .notif-card-head { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; font-weight: 700; color: #222; margin-bottom: 14px; }
+      .notif-card-head i { color: var(--text-light); }
+      .notif-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: #f9f9f9; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; }
+      .notif-row:last-child { margin-bottom: 0; }
+      .notif-row .switch-label-text { font-size: 0.88rem; color: #333; font-weight: 600; }
+      .notif-row .switch { margin-bottom: 0; flex-shrink: 0; }
+      .notif-hint { font-size: 0.78rem; color: #777; margin: 0 0 14px 0; line-height: 1.45; }
+      .notif-label { display: block; font-size: 0.74rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .4px; margin: 0 0 6px 2px; }
+      .notif-label span { font-weight: 500; text-transform: none; color: #999; letter-spacing: 0; }
+      .notif-input { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1px solid #ddd; border-radius: 10px; font-size: 0.9rem; font-family: inherit; background: #fff; margin: 0 0 14px 0; outline: none; transition: border-color .2s, box-shadow .2s; }
+      .notif-input:focus { border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
+      textarea.notif-input { resize: vertical; min-height: 76px; }
+      .notif-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .notif-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #333; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 999px; padding: 7px 13px; cursor: pointer; transition: .2s; user-select: none; margin: 0; }
+      .notif-chip:hover { background: #ececee; }
+      .notif-chip input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; padding: 0; }
+      .notif-chip.on { background: #000; border-color: #000; color: #fff; }
+      .notif-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+      .notif-btn { background: #000; color: #fff; border: none; border-radius: 10px; padding: 12px 22px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: .2s; }
+      .notif-btn:hover { opacity: .85; }
+      .notif-btn:disabled { opacity: .5; cursor: default; }
+      .notif-sim { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: #555; cursor: pointer; margin: 0; }
+      .notif-sim input { width: auto; margin: 0; padding: 0; }
+      .notif-status { font-size: 0.82rem; margin-top: 12px; min-height: 18px; line-height: 1.4; }
     </style>
   </head>
   <body>
@@ -148,9 +177,9 @@
       </div>
 
       <div class="nav-menu">
-        <button onclick="mudarSecao('usuarios')" class="nav-btn active" id="btn-usuarios"><i class="fas fa-users-cog"></i> Usuários</button>
-        <button onclick="mudarSecao('logs')" class="nav-btn" id="btn-logs"><i class="fas fa-history"></i> Auditoria (Logs)</button>
-        <button onclick="mudarSecao('notificacoes')" class="nav-btn" id="btn-notificacoes"><i class="fas fa-bell"></i> Notificações</button>
+        <button onclick="mudarSecao('usuarios')" class="nav-btn active" id="btn-usuarios"><i class="fas fa-users-cog"></i><span>Usuários</span></button>
+        <button onclick="mudarSecao('logs')" class="nav-btn" id="btn-logs"><i class="fas fa-history"></i><span>Auditoria</span></button>
+        <button onclick="mudarSecao('notificacoes')" class="nav-btn" id="btn-notificacoes"><i class="fas fa-bell"></i><span>Notificações</span></button>
       </div>
 
       <div id="secao-usuarios">
@@ -244,37 +273,45 @@
       </div>
 
       <div id="secao-notificacoes" class="hidden">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-           <h4 style="margin:0; color: var(--text-light);">Notificações Push</h4>
-        </div>
-        <p style="font-size:0.8rem; color:#777; margin:0 0 15px 0;">Ligue ou desligue cada aviso enviado pelo sistema.</p>
-        <div id="listaNotificacoes">
-           <p style="text-align:center; color:#999;">Carregando...</p>
+        <div class="notif-head">
+           <h4>Notificações Push</h4>
+           <p>Ligue ou desligue cada aviso enviado pelo sistema.</p>
         </div>
 
-        <div class="switch-container" style="display:block;">
-           <strong style="font-size:0.9rem; color:#333; display:block; margin-bottom:4px;">Enviar notificação manual</strong>
-           <p style="font-size:0.75rem; color:#777; margin:0 0 12px 0;">Escreva um aviso e escolha para quem enviar. Para testar sozinho, selecione apenas "Administrador".</p>
-           <input id="manualTitulo" type="text" placeholder="Título (opcional)" maxlength="60"
-              style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; font-family:inherit; margin-bottom:8px; background:#fff;">
-           <textarea id="manualCorpo" rows="3" placeholder="Mensagem da notificação *" maxlength="240"
-              style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; font-family:inherit; margin-bottom:12px; resize:vertical; background:#fff;"></textarea>
-           <div style="font-size:0.8rem; color:#555; font-weight:600; margin-bottom:6px;">Destinatários</div>
-           <div id="manualCategorias" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+        <div class="notif-card">
+           <div class="notif-card-head"><i class="fas fa-sliders-h"></i> Avisos automáticos</div>
+           <div id="listaNotificacoes">
+              <p style="text-align:center; color:#999;">Carregando...</p>
+           </div>
+        </div>
+
+        <div class="notif-card">
+           <div class="notif-card-head"><i class="fas fa-paper-plane"></i> Enviar notificação manual</div>
+           <p class="notif-hint">Escreva um aviso e escolha para quem enviar. Para testar sozinho, selecione apenas "Administrador".</p>
+
+           <label class="notif-label" for="manualTitulo">Título <span>(opcional)</span></label>
+           <input id="manualTitulo" type="text" class="notif-input" placeholder="Ex: Reunião de líderes" maxlength="60">
+
+           <label class="notif-label" for="manualCorpo">Mensagem <span>(obrigatória)</span></label>
+           <textarea id="manualCorpo" class="notif-input" rows="3" placeholder="Escreva a mensagem da notificação..." maxlength="240"></textarea>
+
+           <label class="notif-label">Destinatários</label>
+           <div id="manualCategorias" class="notif-chips">
               <span style="font-size:0.8rem; color:#999;">Carregando...</span>
            </div>
-           <input id="manualUrl" type="text" placeholder="Link ao abrir (opcional, ex: ./membro.html)"
-              style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; font-family:inherit; margin-bottom:12px; background:#fff;">
-           <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-              <button id="btnEnviarManual" onclick="enviarPushManual()"
-                 style="background:#000; color:#fff; border:none; border-radius:8px; padding:11px 18px; font-size:0.9rem; font-weight:600; cursor:pointer;">
+
+           <label class="notif-label" for="manualUrl">Link ao abrir <span>(opcional)</span></label>
+           <input id="manualUrl" type="text" class="notif-input" placeholder="Ex: ./membro.html">
+
+           <div class="notif-actions">
+              <button id="btnEnviarManual" onclick="enviarPushManual()" class="notif-btn">
                  <i class="fas fa-paper-plane"></i> Enviar
               </button>
-              <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#555; cursor:pointer;">
+              <label class="notif-sim">
                  <input type="checkbox" id="manualSimular"> Simular (não envia)
               </label>
            </div>
-           <div id="manualStatus" style="font-size:0.8rem; margin-top:10px;"></div>
+           <div id="manualStatus" class="notif-status"></div>
         </div>
       </div>
 
@@ -326,10 +363,8 @@
             achou = true;
             const ativo = mapa[chave];
             div.innerHTML += `
-            <div class="switch-container">
-               <div style="padding-right:10px;">
-                  <strong style="font-size:0.9rem; color:#333; display:block;">${NOTIF_LABELS[chave] || chave}</strong>
-               </div>
+            <div class="notif-row">
+               <span class="switch-label-text">${NOTIF_LABELS[chave] || chave}</span>
                <label class="switch">
                   <input type="checkbox" ${ativo ? 'checked' : ''} onchange="toggleNotificacao('${chave}', this.checked)">
                   <span class="slider"></span>
@@ -359,8 +394,8 @@
          const opcoes = [{ valor: PUSH_TODOS, label: 'Todos os usuários' },
             ...categorias.map(c => ({ valor: c, label: c }))];
          div.innerHTML = opcoes.map(o => `
-            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#333; background:#fff; border:1px solid #ddd; border-radius:20px; padding:6px 12px; cursor:pointer;">
-               <input type="checkbox" value="${o.valor.replace(/"/g, '&quot;')}" onchange="toggleCategoriaPush(this)"> ${o.label}
+            <label class="notif-chip">
+               <input type="checkbox" value="${o.valor.replace(/"/g, '&quot;')}" onchange="toggleCategoriaPush(this)"> <span>${o.label}</span>
             </label>`).join('');
       }
 
@@ -372,6 +407,14 @@
             const todos = document.querySelector(`#manualCategorias input[value="${PUSH_TODOS}"]`);
             if (todos) todos.checked = false;
          }
+         atualizarChips();
+      }
+
+      function atualizarChips() {
+         document.querySelectorAll('#manualCategorias .notif-chip').forEach(label => {
+            const cb = label.querySelector('input[type=checkbox]');
+            label.classList.toggle('on', !!(cb && cb.checked));
+         });
       }
 
       function categoriasSelecionadas() {
