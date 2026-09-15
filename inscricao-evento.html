@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="config.js"></script>
+    <script src="js/upload.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -186,6 +187,41 @@
             color: var(--text-light);
         }
         .aviso-nao-encontrado i { font-size: 3rem; color: #cbd5e1; display: block; margin-bottom: 12px; }
+        .pix-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        .pix-label { font-size: 0.75rem; font-weight: 700; color: #166534; margin-bottom: 6px; }
+        .pix-key { font-size: 0.98rem; font-weight: 800; color: #14532d; word-break: break-all; margin-bottom: 10px; }
+        .btn-copiar-pix {
+            background: #166534;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-copiar-pix:hover { background: #14532d; }
+        .btn-copiar-pix.copiado { background: #0f766e; }
+        .pix-hint { font-size: 0.7rem; color: #4d7c5a; margin-top: 8px; }
+        .link-site {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .link-site:hover { text-decoration: underline; }
+        .comprovante-nome { display: block; margin-top: 6px; color: var(--text-light); font-size: 0.72rem; word-break: break-all; }
         .rodape {
             text-align: center;
             font-size: 0.72rem;
@@ -248,6 +284,14 @@
                 <label>Observações / Necessidades Especiais</label>
                 <input type="text" id="campoObservacoes" placeholder="Opcional">
             </div>
+            <div class="form-group" id="grupoComprovante">
+                <label>Comprovante de Pagamento (opcional)</label>
+                <input type="file" id="campoComprovante" accept="image/*,application/pdf">
+                <small class="comprovante-nome" id="comprovanteNome"></small>
+                <small class="comprovante-dica" style="display:block;opacity:.7;margin-top:4px;">
+                    Imagem (JPG/PNG) ou PDF. A imagem é otimizada automaticamente antes do envio.
+                </small>
+            </div>
 
             <button type="submit" class="btn-submit" id="btnEnviar">
                 <i class="fas fa-paper-plane"></i> Confirmar Inscrição
@@ -290,6 +334,82 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
+    function copiarPix() {
+        const el = document.getElementById('pixChaveTexto');
+        const texto = el ? el.innerText.trim() : '';
+        if (!texto) return;
+        const btn = document.getElementById('btnCopiarPix');
+        const fim = () => {
+            if (!btn) return;
+            const original = btn.innerHTML;
+            btn.classList.add('copiado');
+            btn.innerHTML = '<i class="fas fa-check"></i> Chave PIX copiada!';
+            setTimeout(() => { btn.classList.remove('copiado'); btn.innerHTML = original; }, 2500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texto).then(fim).catch(() => prompt('Copie a chave PIX abaixo:', texto));
+        } else {
+            prompt('Copie a chave PIX abaixo:', texto);
+        }
+    }
+
+    function enviarEmailConfirmacao(inscricao, evento) {
+        try {
+            const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL)
+                || (typeof urlBackend !== 'undefined' && urlBackend) || '';
+            if (!url) return;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'enviarEmailInscricao',
+                    payload: {
+                        evento: evento.nome,
+                        data_evento: evento.data_evento,
+                        hora_evento: evento.hora_evento,
+                        local: evento.local,
+                        valor: evento.valor,
+                        pix_chave: evento.pix_chave,
+                        nome: inscricao.nome,
+                        email: inscricao.email,
+                        telefone: inscricao.telefone
+                    }
+                })
+            }).catch(() => {});
+        } catch (e) {
+            console.error('Falha ao solicitar e-mail de confirmação:', e);
+        }
+    }
+
+    async function uploadComprovante() {
+        const input = document.getElementById('campoComprovante');
+        if (!input || !input.files || !input.files[0]) return null;
+        let file = input.files[0];
+        if (window.VideiraUpload) {
+            file = await VideiraUpload.prepararArquivo(file, {
+                maxImagemOrigemMB: 12,
+                maxImagemFinalMB: 3,
+                maxPdfMB: 8
+            });
+        }
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `inscricoes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabaseClient.storage.from('comprovantes')
+            .upload(path, file, { upsert: false, contentType: file.type });
+        if (error) throw error;
+        return supabaseClient.storage.from('comprovantes').getPublicUrl(path).data.publicUrl;
+    }
+
+    document.getElementById('campoComprovante')?.addEventListener('change', (e) => {
+        const nomeEl = document.getElementById('comprovanteNome');
+        const f = e.target.files && e.target.files[0];
+        if (nomeEl) {
+            nomeEl.innerText = f
+                ? `Anexo: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`
+                : '';
+        }
+    });
+
     // ========== CARREGAR EVENTO ==========
     async function carregarEvento() {
         const params = new URLSearchParams(window.location.search);
@@ -319,8 +439,8 @@
             document.getElementById('formInscricao').style.display = 'block';
             document.getElementById('tituloEvento').innerText = ev.nome || 'Evento';
 
-            const encerrado = ev.data_fim_inscricoes
-                && ev.data_fim_inscricoes < hojeISOLocal();
+            const encerrado = (ev.inscricoes_abertas === false)
+                || (ev.data_fim_inscricoes && ev.data_fim_inscricoes < hojeISOLocal());
 
             let detalhes = '';
             if (ev.foto_url) {
@@ -335,7 +455,18 @@
             </div>`;
             if (ev.descricao) detalhes += `<div class="descricao">${escHTML(ev.descricao)}</div>`;
 
+            if (ev.pix_chave && Number(ev.valor) > 0) {
+                detalhes += `<div class="pix-box">
+                    <div class="pix-label"><i class="fas fa-qrcode"></i> Chave PIX para pagamento</div>
+                    <div class="pix-key" id="pixChaveTexto">${escHTML(ev.pix_chave)}</div>
+                    <button type="button" class="btn-copiar-pix" id="btnCopiarPix" onclick="copiarPix()"><i class="fas fa-copy"></i> Copiar chave PIX</button>
+                    <div class="pix-hint">Após o pagamento, anexe o comprovante no campo abaixo.</div>
+                </div>`;
+            }
+
             document.getElementById('detalhesEvento').innerHTML = detalhes;
+
+            if (!(Number(ev.valor) > 0)) document.getElementById('grupoComprovante').style.display = 'none';
 
             if (encerrado) {
                 document.getElementById('avisoEncerrado').style.display = 'block';
@@ -366,7 +497,8 @@
     document.getElementById('formInscricao').addEventListener('submit', async e => {
         e.preventDefault();
         if (!eventoAtual) { mostrarErro('Evento não carregado. Recarregue a página.'); return; }
-        if (eventoAtual.data_fim_inscricoes && eventoAtual.data_fim_inscricoes < hojeISOLocal()) {
+        if (eventoAtual.inscricoes_abertas === false
+            || (eventoAtual.data_fim_inscricoes && eventoAtual.data_fim_inscricoes < hojeISOLocal())) {
             mostrarErro('As inscrições para este evento estão encerradas.');
             return;
         }
@@ -384,28 +516,40 @@
             return;
         }
 
-        const dados = {
-            evento_id: eventoAtual.id,
-            nome,
-            email: document.getElementById('campoEmail').value.trim() || null,
-            telefone: document.getElementById('campoTelefone').value.trim() || null,
-            celula: document.getElementById('campoCelula').value.trim() || null,
-            observacoes: document.getElementById('campoObservacoes').value.trim() || null,
-            status: 'pendente'
-        };
-
         try {
+            const comprovante_url = await uploadComprovante();
+
+            const dados = {
+                evento_id: eventoAtual.id,
+                nome,
+                email: document.getElementById('campoEmail').value.trim() || null,
+                telefone: document.getElementById('campoTelefone').value.trim() || null,
+                celula: document.getElementById('campoCelula').value.trim() || null,
+                observacoes: document.getElementById('campoObservacoes').value.trim() || null,
+                comprovante_url,
+                status: 'pendente'
+            };
+
             const { error } = await supabaseClient.from('inscricoes_eventos').insert([dados]);
             if (error) throw error;
 
+            enviarEmailConfirmacao(dados, eventoAtual);
+
             document.getElementById('formInscricao').style.display = 'none';
             const ok = document.getElementById('msgSucesso');
-            ok.innerHTML = '<strong>Inscrição confirmada!</strong><br>Aguarde o contato da igreja para confirmar o pagamento.';
+            ok.innerHTML = `
+                <strong>Inscrição confirmada!</strong>
+                <p style="margin:10px 0 0;">Pode fechar esta tela. O comprovante chegará no seu e-mail após a confirmação do pagamento.</p>
+                <a class="link-site" href="https://videirajatai.com.br" target="_blank" rel="noopener">
+                    <i class="fas fa-church"></i> videirajatai.com.br
+                </a>`;
             ok.classList.add('sucesso');
             ok.style.display = 'block';
         } catch (err) {
             console.error(err);
-            mostrarErro('Erro ao enviar inscrição. Tente novamente.');
+            mostrarErro(err && err.message
+                ? err.message
+                : 'Erro ao enviar inscrição. Tente novamente.');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirmar Inscrição';
         }

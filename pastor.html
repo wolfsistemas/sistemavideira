@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
+    <script src="js/upload.js"></script>
     <script src="js/push.js"></script>
     <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
@@ -923,6 +924,50 @@
         const n = parseFloat(v || 0);
         return n > 0 ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Gratuito';
     }
+    function linkWhatsApp(tel) {
+        const digitos = String(tel || '').replace(/\D/g, '');
+        return digitos.length >= 10 ? `https://wa.me/55${digitos}` : '';
+    }
+    function linkArquivoSeguro(url) {
+        const u = String(url || '').trim();
+        return /^https?:\/\//i.test(u) ? escaparHTML(u) : '';
+    }
+    function chamarGAS(action, payload) {
+        try {
+            const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL)
+                || (typeof urlBackend !== 'undefined' && urlBackend) || '';
+            if (!url || !action) return;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action, payload })
+            }).catch(() => {});
+        } catch (e) {
+            console.error('Falha ao chamar GAS:', e);
+        }
+    }
+    function acharInscricao(id) {
+        for (const evId in inscricoesPorEvento) {
+            const inscricao = inscricoesPorEvento[evId].find(i => i.id === id);
+            if (inscricao) return { inscricao, evento: listaEventos.find(e => e.id === evId) || {} };
+        }
+        return null;
+    }
+    function notificarPagamentoConfirmado(id) {
+        const achado = acharInscricao(id);
+        if (!achado || !achado.inscricao.email) return;
+        const ev = achado.evento;
+        chamarGAS('enviarEmailPagamentoConfirmado', {
+            evento: ev.nome,
+            data_evento: ev.data_evento,
+            hora_evento: ev.hora_evento,
+            local: ev.local,
+            valor: ev.valor,
+            nome: achado.inscricao.nome,
+            email: achado.inscricao.email,
+            comprovante_url: achado.inscricao.comprovante_url
+        });
+    }
     function linkInscricao(eventoId) {
         const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
         return `${base}inscricao-evento.html?evento=${encodeURIComponent(eventoId)}`;
@@ -941,7 +986,7 @@
 
             const { data: ins, error: insErr } = await supabaseClient
                 .from('inscricoes_eventos')
-                .select('id, evento_id, nome, email, telefone, celula, observacoes, status, criado_em')
+                .select('id, evento_id, nome, email, telefone, celula, observacoes, comprovante_url, status, criado_em')
                 .order('criado_em', { ascending: false });
             if (insErr) throw insErr;
             inscricoesPorEvento = {};
@@ -970,9 +1015,11 @@
         listaEventos.forEach(ev => {
             const inscricoes = inscricoesPorEvento[ev.id] || [];
             const abertas = inscricoes.filter(i => i.status !== 'cancelada').length;
-            const encerrado = ev.data_fim_inscricoes && ev.data_fim_inscricoes < hoje;
+            const manualFechado = ev.inscricoes_abertas === false;
+            const porData = ev.data_fim_inscricoes && ev.data_fim_inscricoes < hoje;
+            const encerrado = manualFechado || porData;
             const statusHtml = encerrado
-                ? '<span class="status-pill" style="background:#fde8e8; color:#991b1b;">Inscrições encerradas</span>'
+                ? `<span class="status-pill" style="background:#fde8e8; color:#991b1b;">Inscrições encerradas${manualFechado ? ' (manual)' : ''}</span>`
                 : '<span class="status-pill active">Inscrições abertas</span>';
             grid.innerHTML += `
                 <div class="member-card">
@@ -984,16 +1031,36 @@
                     <div class="card-info"><i class="fas fa-calendar-day"></i> ${formatarDataBR(ev.data_evento)} ${ev.hora_evento ? '• ' + escaparHTML(ev.hora_evento) : ''}</div>
                     ${ev.local ? `<div class="card-info"><i class="fas fa-map-marker-alt"></i> ${escaparHTML(ev.local)}</div>` : ''}
                     <div class="card-info"><i class="fas fa-tag"></i> Valor: ${formatarValorBR(ev.valor)}</div>
+                    ${ev.pix_chave ? `<div class="card-info"><i class="fas fa-qrcode"></i> PIX: ${escaparHTML(ev.pix_chave)}</div>` : ''}
                     ${ev.data_fim_inscricoes ? `<div class="card-info"><i class="fas fa-hourglass-end"></i> Inscrições até ${formatarDataBR(ev.data_fim_inscricoes)}</div>` : ''}
                     <div class="status-row">${statusHtml}<span class="status-pill">${abertas} inscrições</span></div>
                     <div class="card-actions">
                         <button onclick="copiarLinkEvento('${ev.id}')" class="btn-card" style="background:var(--success-bg); color:var(--success-text); border-color:#c3e6cb;" title="Copiar link de inscrição"><i class="fas fa-link"></i></button>
                         <button onclick="abrirModalInscricoes('${ev.id}')" class="btn-card" title="Ver inscrições"><i class="fas fa-list-ul"></i></button>
+                        <button onclick="imprimirInscritos('${ev.id}')" class="btn-card" title="Gerar PDF dos inscritos"><i class="fas fa-file-pdf"></i></button>
+                        <button onclick="toggleInscricoes('${ev.id}')" class="btn-card" style="color:${manualFechado ? 'var(--success-text)' : 'var(--danger-text)'};" title="${manualFechado ? 'Ativar inscrições' : 'Encerrar inscrições'}"><i class="fas fa-${manualFechado ? 'lock-open' : 'lock'}"></i></button>
                         <button onclick="abrirModalEvento('${ev.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
                         <button onclick="excluirEvento('${ev.id}')" class="btn-card" style="color:var(--danger-text);" title="Excluir"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>`;
         });
+    }
+
+    async function toggleInscricoes(eventoId) {
+        const ev = listaEventos.find(e => e.id === eventoId);
+        if (!ev) return;
+        const novoEstado = ev.inscricoes_abertas === false;
+        const acao = novoEstado ? 'Ativar' : 'Encerrar';
+        if (!confirm(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`)) return;
+        try {
+            const { error } = await supabaseClient.from('eventos').update({ inscricoes_abertas: novoEstado }).eq('id', eventoId);
+            if (error) throw error;
+            registrarLogAcao(`${acao}ou as inscrições do evento "${ev.nome}"`);
+            await carregarEventos();
+        } catch (err) {
+            console.error(err);
+            alert(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''));
+        }
     }
 
     function abrirModalEvento(id) {
@@ -1013,6 +1080,7 @@
             document.getElementById('eventoLocal').value = ev.local || '';
             document.getElementById('eventoValor').value = ev.valor || '';
             document.getElementById('eventoFimInscricoes').value = ev.data_fim_inscricoes || '';
+            document.getElementById('eventoPixChave').value = ev.pix_chave || '';
             document.getElementById('eventoDescricao').value = ev.descricao || '';
             if (ev.foto_url) {
                 prev.dataset.savedUrl = ev.foto_url;
@@ -1043,7 +1111,13 @@
             let foto_url = prev.dataset.savedUrl || '';
             const fileInput = document.getElementById('eventoFoto');
             if (fileInput.files && fileInput.files[0]) {
-                const file = fileInput.files[0];
+                let file = fileInput.files[0];
+                if (window.VideiraUpload) {
+                    file = await VideiraUpload.prepararArquivo(file, {
+                        maxImagemOrigemMB: 15,
+                        maxImagemFinalMB: 3
+                    });
+                }
                 const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
                 const path = `eventos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
                 const { error: upErr } = await supabaseClient.storage.from('eventos').upload(path, file, { upsert: false, contentType: file.type });
@@ -1058,6 +1132,7 @@
                 local: document.getElementById('eventoLocal').value.trim() || null,
                 valor: parseFloat(document.getElementById('eventoValor').value || 0),
                 data_fim_inscricoes: document.getElementById('eventoFimInscricoes').value || null,
+                pix_chave: document.getElementById('eventoPixChave').value.trim() || null,
                 descricao: document.getElementById('eventoDescricao').value.trim() || null,
                 foto_url: foto_url || null
             };
@@ -1068,6 +1143,7 @@
                 registrarLogAcao(`Editou o evento "${nome}"`);
             } else {
                 dados.criado_por = sessionStorage.getItem('pastorId');
+                dados.inscricoes_abertas = true;
                 const { data: novo, error } = await supabaseClient.from('eventos').insert([dados]).select('id').single();
                 if (error) throw error;
                 eventoId = novo.id;
@@ -1145,13 +1221,16 @@
             div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma inscrição ainda.</p>';
         } else {
             inscricoes.forEach(i => {
+                const wa = linkWhatsApp(i.telefone);
+                const comprovante = linkArquivoSeguro(i.comprovante_url);
                 div.innerHTML += `
                     <div class="member-card">
                         <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill">${escaparHTML(i.status || 'pendente')}</span></div>
                         ${i.email ? `<div class="card-info"><i class="fas fa-envelope"></i> ${escaparHTML(i.email)}</div>` : ''}
-                        ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)}</div>` : ''}
+                        ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)} ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="btn-card" style="flex:0 0 auto; padding:2px 8px; font-size:0.65rem; color:#1e8e3e; margin-left:4px;" title="Conversar no WhatsApp"><i class="fab fa-whatsapp"></i> Chamar</a>` : ''}</div>` : ''}
                         ${i.celula ? `<div class="card-info"><i class="fas fa-users"></i> ${escaparHTML(i.celula)}</div>` : ''}
                         ${i.observacoes ? `<div class="card-info"><i class="fas fa-circle-info"></i> ${escaparHTML(i.observacoes)}</div>` : ''}
+                        ${comprovante ? `<div class="card-info"><i class="fas fa-receipt"></i> <a href="${comprovante}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:600;">Ver comprovante</a></div>` : ''}
                         <div class="card-actions">
                             <button class="btn-card" style="color:var(--success-text);" onclick="alterarStatusInscricao('${i.id}','confirmada')">Confirmar</button>
                             <button class="btn-card" style="color:#b58900;" onclick="alterarStatusInscricao('${i.id}','pendente')">Pendente</button>
@@ -1166,11 +1245,112 @@
         modal.dataset.eventoId = eventoId;
     }
 
+    async function imprimirInscritos(eventoId) {
+        const ev = listaEventos.find(e => e.id === eventoId);
+        if (!ev) return;
+        const inscricoes = inscricoesPorEvento[eventoId] || [];
+        if (!inscricoes.length) { alert('Nenhuma inscrição para imprimir.'); return; }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const largura = doc.internal.pageSize.getWidth();
+        const altura = doc.internal.pageSize.getHeight();
+        const PRIMARIA = [128, 0, 32];
+        const OURO = [212, 175, 55];
+
+        try {
+            const resp = await fetch('logo.png');
+            const blob = await resp.blob();
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            await new Promise(r => { reader.onload = r; });
+            doc.addImage(reader.result, 'PNG', 14, 10, 18, 18);
+        } catch (e) {}
+
+        doc.setFillColor(...PRIMARIA);
+        doc.rect(0, 0, largura, 32, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.text('LISTA DE INSCRITOS', 40, 18);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(ev.nome || '', 40, 25);
+        doc.setFillColor(...OURO);
+        doc.rect(0, 32, largura, 1.6, 'F');
+
+        doc.setTextColor(70, 70, 70);
+        doc.setFontSize(9);
+        const confirmadas = inscricoes.filter(i => (i.status || '').toLowerCase() === 'confirmada').length;
+        const pendentes = inscricoes.filter(i => (i.status || 'pendente').toLowerCase() === 'pendente').length;
+        const canceladas = inscricoes.filter(i => (i.status || '').toLowerCase() === 'cancelada').length;
+        const info = [
+            `Data: ${formatarDataBR(ev.data_evento)}${ev.hora_evento ? ' às ' + ev.hora_evento : ''}`,
+            `Local: ${ev.local || '-'}`,
+            `Valor: ${formatarValorBR(ev.valor)}${ev.pix_chave ? '  |  PIX: ' + ev.pix_chave : ''}`,
+            `Inscrições: ${ev.inscricoes_abertas === false ? 'Encerradas (manual)' : 'Abertas'}${ev.data_fim_inscricoes ? ' até ' + formatarDataBR(ev.data_fim_inscricoes) : ''}`,
+            `Total: ${inscricoes.length}  |  Confirmadas: ${confirmadas}  |  Pendentes: ${pendentes}  |  Canceladas: ${canceladas}`,
+            `Gerado em ${new Date().toLocaleString('pt-BR')}`
+        ];
+        let y = 40;
+        info.forEach(t => { doc.text(t, 14, y); y += 5; });
+
+        const body = inscricoes.map((i, idx) => [
+            idx + 1,
+            i.nome || '',
+            i.telefone || '',
+            i.email || '',
+            i.celula || '',
+            (i.status || 'pendente'),
+            i.comprovante_url ? 'Sim' : 'Não',
+            i.observacoes || ''
+        ]);
+
+        doc.autoTable({
+            startY: y + 2,
+            head: [['#', 'Nome', 'Telefone', 'E-mail', 'Célula', 'Status', 'Compr.', 'Observações']],
+            body,
+            theme: 'grid',
+            styles: { fontSize: 7.5, cellPadding: 1.6, valign: 'middle', textColor: [50, 50, 50], overflow: 'linebreak' },
+            headStyles: { fillColor: PRIMARIA, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+            alternateRowStyles: { fillColor: [250, 244, 246] },
+            columnStyles: {
+                0: { cellWidth: 8, halign: 'center' },
+                1: { cellWidth: 33 },
+                2: { cellWidth: 22 },
+                3: { cellWidth: 33 },
+                4: { cellWidth: 22 },
+                5: { cellWidth: 17, halign: 'center' },
+                6: { cellWidth: 13, halign: 'center' },
+                7: { cellWidth: 'auto' }
+            },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 5) {
+                    const v = String(data.cell.raw || '').toLowerCase();
+                    if (v === 'confirmada') data.cell.styles.textColor = [21, 128, 61];
+                    else if (v === 'cancelada') data.cell.styles.textColor = [185, 28, 28];
+                    else data.cell.styles.textColor = [181, 137, 0];
+                }
+            },
+            didDrawPage: () => {
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text('Igreja Videira Jataí • videirajatai.com.br', 14, altura - 8);
+                doc.text(`Página ${doc.internal.getNumberOfPages()}`, largura - 14, altura - 8, { align: 'right' });
+            }
+        });
+
+        const nomeArquivo = (ev.nome || 'evento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\-]+/g, '_');
+        doc.save(`Inscritos_${nomeArquivo}.pdf`);
+        registrarLogAcao(`Gerou PDF dos inscritos do evento "${ev.nome}" (${inscricoes.length})`);
+    }
+
     async function alterarStatusInscricao(id, status) {
         try {
             const { error } = await supabaseClient.from('inscricoes_eventos').update({ status }).eq('id', id);
             if (error) throw error;
             registrarLogAcao(`Alterou status de inscrição para "${status}"`);
+            if (status === 'confirmada') notificarPagamentoConfirmado(id);
             const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
             await carregarEventos();
             if (eventoId) abrirModalInscricoes(eventoId);
@@ -2527,6 +2707,7 @@
                 <div class="form-group" style="flex:1;"><label>Data Limite de Inscrição</label><input type="date" id="eventoFimInscricoes" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
                 <div class="form-group" style="flex:1;"><label>Local</label><input type="text" id="eventoLocal" placeholder="Endereço do evento" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
             </div>
+            <div class="form-group"><label>Chave PIX (opcional)</label><input type="text" id="eventoPixChave" placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
             <div class="form-group"><label>Foto do Evento</label>
                 <input type="file" id="eventoFoto" accept="image/*" onchange="previewFotoEvento(this)" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:white;">
                 <img id="eventoFotoPreview" style="display:none; width:100%; max-height:180px; object-fit:cover; border-radius:10px; margin-top:8px;">
