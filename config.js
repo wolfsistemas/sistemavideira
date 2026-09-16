@@ -27,6 +27,25 @@ async function resolverIgrejaAtual(cliente) {
   return (typeof IGREJA_ID !== 'undefined') ? IGREJA_ID : '';
 }
 
+// Valida um UUID (evita confiar em texto arbitrario vindo da URL).
+function ehUuid(valor) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    .test(String(valor || '').trim());
+}
+
+// Igreja da requisicao para paginas sem login (publicas): prioriza o parametro
+// ?igreja=<uuid> que os links carregam (permite abrir o link de outra igreja com
+// a RLS correta) e, sem ele, usa o fallback do deploy (IGREJA_ID). Nas paginas
+// com usuario logado o servidor resolve por minha_igreja(), entao o header nao
+// interfere.
+function igrejaDaUrl() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('igreja');
+    if (ehUuid(raw)) return String(raw).trim().toLowerCase();
+  } catch (e) { /* ignora */ }
+  return (typeof IGREJA_ID !== 'undefined') ? IGREJA_ID : '';
+}
+
 // true somente para a igreja que usa o Google Agenda (GAS).
 function usaGoogleAgenda(igrejaId) {
   return !!igrejaId && igrejaId === IGREJA_GOOGLE_AGENDA_ID;

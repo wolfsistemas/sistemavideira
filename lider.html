@@ -1616,7 +1616,8 @@ if (formNovoLider) {
             document.getElementById('tipoNovoLider').disabled = true;
             const pessoa = novaPessoa[0];
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
+            const igId = pessoa.igreja_id || await resolverIgrejaAtual(supabaseClient);
+            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}${igId ? `&igreja=${encodeURIComponent(igId)}` : ''}`;
             document.getElementById('linkConviteNovoLider').value = link;
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
@@ -1675,7 +1676,8 @@ if (formPromoverMembro) {
             document.getElementById('camposPromoverMembro').style.display = 'none';
             document.getElementById('tipoNovoLider').disabled = true;
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
+            const igId = await resolverIgrejaAtual(supabaseClient);
+            const link = `${base}completar-cadastro.html?token=${tokenConvite}${igId ? `&igreja=${encodeURIComponent(igId)}` : ''}`;
             document.getElementById('linkConviteNovoLider').value = link;
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {

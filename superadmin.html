@@ -460,7 +460,7 @@
         if (error) { UI.toast('Falha ao gerar convite: ' + error.message, { tipo: 'erro' }); console.error(error); return; }
 
         const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        const link = base + 'completar-cadastro.html?token=' + token;
+        const link = base + 'completar-cadastro.html?token=' + token + '&igreja=' + igrejaId;
         UI.prompt('Envie este link para a pessoa concluir o cadastro:', {
           titulo: 'Link de convite', valor: link, somenteLeitura: true, textoOk: 'Fechar'
         });
@@ -679,7 +679,7 @@
             document.getElementById('piFormTitulo').innerText = 'Usuário criado!';
             const pessoa = resultado.data[0];
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            document.getElementById('piLinkConvite').value = base + 'completar-cadastro.html?token=' + pessoa.token_convite;
+            document.getElementById('piLinkConvite').value = base + 'completar-cadastro.html?token=' + pessoa.token_convite + '&igreja=' + igrejaAtual.id;
             document.getElementById('piConviteBox').classList.remove('hidden');
             await piCarregarTudo();
           }

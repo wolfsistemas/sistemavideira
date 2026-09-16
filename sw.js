@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videira-pwa-v13';
+const CACHE_NAME = 'videira-pwa-v14';
 const PRECACHE = [
   './',
   './index.html',

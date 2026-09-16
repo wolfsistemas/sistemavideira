@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscrição • Videira Jataí</title>
+    <title>Inscrição • Sistema de Células - Videira</title>
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -244,7 +244,7 @@
     <div class="card-banner">
         <img class="logo" src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira">
         <h1 id="tituloEvento">Evento</h1>
-        <div class="subtitulo" id="subtituloEvento">Igreja Videira Jataí</div>
+        <div class="subtitulo" id="subtituloEvento">Sistema de Células - Videira</div>
     </div>
 
     <div class="card-body">
@@ -302,20 +302,17 @@
         <div id="msgErro" class="msg"></div>
         <div id="avisoEncerrado" class="aviso-encerrado" style="display:none;">Inscrições encerradas para este evento.</div>
 
-        <div class="rodape">Sistema Videira • Igreja Videira Jataí</div>
+        <div class="rodape">Sistema de Células - Videira</div>
     </div>
 </div>
 
 <script>
     // ========== CONFIG ==========
     // A igreja vem no link (?igreja=<uuid>), gerado pelo painel pastoral do
-    // evento. Assim a RLS libera a leitura/gravação na igreja certa (o header
-    // x-igreja-id define a igreja da requisicao anonima). Fallback: IGREJA_ID
-    // do config.js (comportamento antigo, Jatai).
-    const IGREJA_URL = (new URLSearchParams(window.location.search).get('igreja') || '').trim();
-    const IGREJA_PAGINA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(IGREJA_URL)
-        ? IGREJA_URL
-        : (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '');
+    // evento. Assim a RLS libera a leitura/gravacao na igreja certa (o header
+    // x-igreja-id define a igreja da requisicao anonima). Sem o parametro,
+    // igrejaDaUrl() cai no fallback do config.js (IGREJA_ID, Jatai).
+    const IGREJA_PAGINA = igrejaDaUrl();
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
         global: { headers: { 'x-igreja-id': IGREJA_PAGINA } }
     });
@@ -553,8 +550,8 @@
             ok.innerHTML = `
                 <strong>Inscrição confirmada!</strong>
                 <p style="margin:10px 0 0;">Pode fechar esta tela. O comprovante chegará no seu e-mail após a confirmação do pagamento.</p>
-                <a class="link-site" href="https://videirajatai.com.br" target="_blank" rel="noopener">
-                    <i class="fas fa-church"></i> videirajatai.com.br
+                <a class="link-site" href="./">
+                    <i class="fas fa-church"></i> Sistema de Células - Videira
                 </a>`;
             ok.classList.add('sucesso');
             ok.style.display = 'block';

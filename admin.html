@@ -905,7 +905,8 @@
             document.getElementById('tituloFormUsuario').innerText = 'Usuário criado!';
             const pessoa = resultado.data[0];
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
+            const ig = pessoa.igreja_id ? `&igreja=${encodeURIComponent(pessoa.igreja_id)}` : '';
+            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}${ig}`;
             document.getElementById('linkConvite').value = link;
             document.getElementById('conviteLinkBox').classList.remove('hidden');
         }
