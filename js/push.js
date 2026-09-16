@@ -75,6 +75,23 @@
         return;
       }
 
+      // Caminho principal: RPC SECURITY DEFINER (migration 018). Ela faz o upsert
+      // pelo endpoint assumindo a posse da assinatura, evitando o 403 quando o
+      // navegador/aparelho e compartilhado por mais de uma pessoa.
+      const { error: rpcErro } = await sb.rpc('registrar_push', {
+        p_endpoint: json.endpoint,
+        p_p256dh: json.keys.p256dh,
+        p_auth: json.keys.auth,
+        p_user_agent: navigator.userAgent
+      });
+
+      if (!rpcErro) {
+        console.log('[push] subscription gravada');
+        return;
+      }
+
+      // Fallback: RPC indisponivel (migration ainda nao aplicada). Grava direto;
+      // so funciona quando a linha do endpoint ja pertence a esta pessoa.
       const { data: pessoa, error: pessoaErro } = await sb
         .from('pessoas')
         .select('id')
@@ -103,7 +120,7 @@
         console.error('[push] erro ao gravar subscription', upsertErro);
         return;
       }
-      console.log('[push] subscription gravada');
+      console.log('[push] subscription gravada (fallback)');
     } catch (e) {
       console.error('[push] falha', e);
     }

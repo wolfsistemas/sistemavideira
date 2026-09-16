@@ -84,4 +84,16 @@ Chaves: `global`, `palavra`, `evento`, `inscricao`, `oracao`, `relatorio`, `aniv
 
 As Edge Functions `notificar` e `notificar-diario` leem essa tabela e ignoram o envio quando a chave estiver desligada.
 
+## 9. Registro da assinatura (migration 018)
+
+O front grava a assinatura com a RPC `registrar_push` (SECURITY DEFINER), que faz o upsert pelo `endpoint` e assume a posse da assinatura para o usuario logado.
+
+Sem ela, o upsert direto dava 403 quando o navegador/aparelho era compartilhado: o `endpoint` ja pertencia a outra pessoa e a RLS barrava o UPDATE.
+
+```bash
+supabase/migrations/018_push_registrar.sql
+```
+
+Rollback em `supabase/rollback/018_push_registrar_rollback.sql`.
+
 
