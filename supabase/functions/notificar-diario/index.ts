@@ -55,8 +55,8 @@ function dataHoje(): { iso: string; mes: string; dia: string } {
 
 type Alvo = { modo: "todos" } | { modo: "ids"; ids: string[] };
 
-async function configPush(sb: SupabaseClient): Promise<Record<string, boolean>> {
-  const { data, error } = await sb.from("push_config").select("chave, ativo");
+async function configPush(sb: SupabaseClient, igrejaId: string): Promise<Record<string, boolean>> {
+  const { data, error } = await sb.from("push_config").select("chave, ativo").eq("igreja_id", igrejaId);
   if (error) return {};
   const mapa: Record<string, boolean> = {};
   for (const row of data || []) mapa[row.chave] = row.ativo === true;
@@ -74,11 +74,13 @@ async function enviar(
   corpo: string,
   url: string,
   alvo: Alvo,
+  igrejaId: string,
   dryRun: boolean,
 ) {
   let query = sb
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth, pessoa_id, pessoas!inner(id, is_user)");
+    .select("id, endpoint, p256dh, auth, pessoa_id, pessoas!inner(id, is_user)")
+    .eq("igreja_id", igrejaId);
 
   if (alvo.modo === "todos") {
     query = query.eq("pessoas.is_user", true);
@@ -115,7 +117,7 @@ async function enviar(
   return { alvo: (rows || []).length, enviados, removidos: expirados.length };
 }
 
-async function notificarAniversariantes(sb: SupabaseClient, dryRun: boolean) {
+async function notificarAniversariantes(sb: SupabaseClient, igrejaId: string, dryRun: boolean) {
   const { iso, mes, dia } = dataHoje();
 
   const { data: pessoas, error } = await sb
@@ -123,7 +125,8 @@ async function notificarAniversariantes(sb: SupabaseClient, dryRun: boolean) {
     .select("id, nome, nascimento, celula_id")
     .not("nascimento", "is", null)
     .not("celula_id", "is", null)
-    .eq("arquivado", false);
+    .eq("arquivado", false)
+    .eq("igreja_id", igrejaId);
   if (error) throw new Error(error.message);
 
   const aniversariantes = (pessoas || []).filter((p) => {
@@ -134,7 +137,11 @@ async function notificarAniversariantes(sb: SupabaseClient, dryRun: boolean) {
   if (!aniversariantes.length) return { data: iso, aniversariantes: 0, lideres: 0, resultado: [] };
 
   const celulaIds = [...new Set(aniversariantes.map((p) => p.celula_id).filter(Boolean))];
-  const { data: celulas } = await sb.from("celulas").select("id, nome, lider_user_id").in("id", celulaIds);
+  const { data: celulas } = await sb
+    .from("celulas")
+    .select("id, nome, lider_user_id")
+    .in("id", celulaIds)
+    .eq("igreja_id", igrejaId);
 
   const porLider = new Map<string, string[]>();
   let semLider = 0;
@@ -162,6 +169,7 @@ async function notificarAniversariantes(sb: SupabaseClient, dryRun: boolean) {
       corpo,
       "./lider.html",
       { modo: "ids", ids: [liderId] },
+      igrejaId,
       dryRun,
     );
     resultado.push({ liderId, nomes, ...r });
@@ -170,13 +178,14 @@ async function notificarAniversariantes(sb: SupabaseClient, dryRun: boolean) {
   return { data: iso, aniversariantes: aniversariantes.length, lideres: porLider.size, semLider, resultado };
 }
 
-async function notificarAgenda(sb: SupabaseClient, dryRun: boolean) {
+async function notificarAgenda(sb: SupabaseClient, igrejaId: string, dryRun: boolean) {
   const { iso } = dataHoje();
 
   const { data: eventos, error } = await sb
     .from("eventos")
     .select("id, nome, hora_evento, local")
     .eq("data_evento", iso)
+    .eq("igreja_id", igrejaId)
     .or("ativo.is.null,ativo.eq.true");
   if (error) throw new Error(error.message);
 
@@ -189,7 +198,7 @@ async function notificarAgenda(sb: SupabaseClient, dryRun: boolean) {
     })
     .join(" | ");
 
-  const r = await enviar(sb, "Agenda de hoje", corpo, "./membro.html", { modo: "todos" }, dryRun);
+  const r = await enviar(sb, "Agenda de hoje", corpo, "./membro.html", { modo: "todos" }, igrejaId, dryRun);
   return { data: iso, eventos: eventos.length, resultado: r };
 }
 
@@ -218,14 +227,25 @@ serve(async (req) => {
   );
 
   try {
-    const config = await configPush(sb);
-    const aniversariantes = chaveAtiva(config, "aniversario")
-      ? await notificarAniversariantes(sb, dryRun)
-      : { desativado: true };
-    const agenda = chaveAtiva(config, "agenda")
-      ? await notificarAgenda(sb, dryRun)
-      : { desativado: true };
-    return json(200, { ok: true, dry_run: dryRun, aniversariantes, agenda });
+    const { data: igrejas, error: igError } = await sb
+      .from("igrejas")
+      .select("id, nome")
+      .eq("ativa", true);
+    if (igError) throw new Error(igError.message);
+
+    const resultados = [];
+    for (const igreja of igrejas || []) {
+      const config = await configPush(sb, igreja.id);
+      const aniversariantes = chaveAtiva(config, "aniversario")
+        ? await notificarAniversariantes(sb, igreja.id, dryRun)
+        : { desativado: true };
+      const agenda = chaveAtiva(config, "agenda")
+        ? await notificarAgenda(sb, igreja.id, dryRun)
+        : { desativado: true };
+      resultados.push({ igreja_id: igreja.id, igreja: igreja.nome, aniversariantes, agenda });
+    }
+
+    return json(200, { ok: true, dry_run: dryRun, igrejas: resultados.length, resultados });
   } catch (e) {
     return json(500, { error: String(e) });
   }

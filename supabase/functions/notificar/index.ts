@@ -51,25 +51,26 @@ function configurarVapid() {
   webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
 }
 
-async function idsPorCategoria(sb: SupabaseClient, padrao: string): Promise<string[]> {
+async function idsPorCategoria(sb: SupabaseClient, padrao: string, igrejaId: string): Promise<string[]> {
   const { data, error } = await sb
     .from("pessoas")
     .select("id")
     .ilike("categoria", padrao)
-    .eq("is_user", true);
+    .eq("is_user", true)
+    .eq("igreja_id", igrejaId);
   if (error) throw new Error(error.message);
   return (data || []).map((p) => p.id);
 }
 
-async function idsPastoresEDiscipuladores(sb: SupabaseClient): Promise<string[]> {
+async function idsPastoresEDiscipuladores(sb: SupabaseClient, igrejaId: string): Promise<string[]> {
   const [pastores, discipuladores] = await Promise.all([
-    idsPorCategoria(sb, "%pastor%"),
-    idsPorCategoria(sb, "%discipulador%"),
+    idsPorCategoria(sb, "%pastor%", igrejaId),
+    idsPorCategoria(sb, "%discipulador%", igrejaId),
   ]);
   return [...new Set([...pastores, ...discipuladores])];
 }
 
-async function superioresDoLider(sb: SupabaseClient, liderId: string): Promise<string[]> {
+async function superioresDoLider(sb: SupabaseClient, liderId: string, igrejaId: string): Promise<string[]> {
   const alvos: string[] = [];
   let atual = liderId;
 
@@ -78,6 +79,7 @@ async function superioresDoLider(sb: SupabaseClient, liderId: string): Promise<s
       .from("pessoas")
       .select("id, superior_id")
       .eq("id", atual)
+      .eq("igreja_id", igrejaId)
       .maybeSingle();
     if (error || !data || !data.superior_id) break;
     alvos.push(data.superior_id);
@@ -99,8 +101,8 @@ const CHAVE_POR_TABELA: Record<string, string> = {
   relatorios: "relatorio",
 };
 
-async function configPush(sb: SupabaseClient): Promise<Record<string, boolean>> {
-  const { data, error } = await sb.from("push_config").select("chave, ativo");
+async function configPush(sb: SupabaseClient, igrejaId: string): Promise<Record<string, boolean>> {
+  const { data, error } = await sb.from("push_config").select("chave, ativo").eq("igreja_id", igrejaId);
   if (error) return {};
   const mapa: Record<string, boolean> = {};
   for (const row of data || []) mapa[row.chave] = row.ativo === true;
@@ -123,6 +125,7 @@ async function montarNotificacao(
   sb: SupabaseClient,
   table: string,
   record: Record<string, unknown>,
+  igrejaId: string,
 ): Promise<Notificacao | { erro: string }> {
   const texto = (v: unknown, fallback = "") => (typeof v === "string" ? v : fallback);
 
@@ -146,7 +149,7 @@ async function montarNotificacao(
     }
 
     case "inscricoes_eventos": {
-      const ids = await idsPastoresEDiscipuladores(sb);
+      const ids = await idsPastoresEDiscipuladores(sb, igrejaId);
       const nomeInscrito = texto(record.nome);
       return {
         titulo: "Nova inscrição em evento",
@@ -157,7 +160,7 @@ async function montarNotificacao(
     }
 
     case "sugestoes": {
-      const ids = await idsPorCategoria(sb, "%pastor%");
+      const ids = await idsPorCategoria(sb, "%pastor%", igrejaId);
       return {
         titulo: "Novo pedido de oração",
         corpo: texto(record.mensagem).slice(0, 120) || "Um novo pedido de oração foi enviado.",
@@ -176,6 +179,7 @@ async function montarNotificacao(
           .from("celulas")
           .select("nome, lider_user_id")
           .eq("id", celulaId)
+          .eq("igreja_id", igrejaId)
           .maybeSingle();
         if (cel) {
           celulaNome = texto(cel.nome, "célula");
@@ -183,7 +187,7 @@ async function montarNotificacao(
         }
       }
 
-      const ids = liderId ? await superioresDoLider(sb, liderId) : [];
+      const ids = liderId ? await superioresDoLider(sb, liderId, igrejaId) : [];
       return {
         titulo: "Novo relatório de célula",
         corpo: `${celulaNome} - ${texto(record.data)}`.trim(),
@@ -197,10 +201,11 @@ async function montarNotificacao(
   }
 }
 
-async function enviar(sb: SupabaseClient, notificacao: Notificacao, dryRun = false) {
+async function enviar(sb: SupabaseClient, notificacao: Notificacao, igrejaId: string, dryRun = false) {
   let query = sb
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth, pessoas!inner(id, is_user)");
+    .select("id, endpoint, p256dh, auth, pessoas!inner(id, is_user)")
+    .eq("igreja_id", igrejaId);
 
   if (notificacao.alvo.modo === "todos") {
     query = query.eq("pessoas.is_user", true);
@@ -277,6 +282,9 @@ serve(async (req) => {
   const record = body.record || {};
   if (!table) return json(400, { error: "table_required" });
 
+  const igrejaId = typeof record.igreja_id === "string" ? record.igreja_id : "";
+  if (!igrejaId) return json(200, { ok: true, table, ignorado: "igreja_ausente" });
+
   const sb = createClient(
     Deno.env.get("SUPABASE_URL") || "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
@@ -284,19 +292,19 @@ serve(async (req) => {
 
   const chave = CHAVE_POR_TABELA[table];
   if (chave) {
-    const config = await configPush(sb);
+    const config = await configPush(sb, igrejaId);
     if (!chaveAtiva(config, chave)) {
       return json(200, { ok: true, table, desativado: chave });
     }
   }
 
-  const notificacao = await montarNotificacao(sb, table, record);
+  const notificacao = await montarNotificacao(sb, table, record, igrejaId);
   if ("erro" in notificacao) {
     return json(200, { ok: true, ignorado: notificacao.erro });
   }
 
   try {
-    const resultado = await enviar(sb, notificacao, body.dry_run === true);
+    const resultado = await enviar(sb, notificacao, igrejaId, body.dry_run === true);
     return json(200, { ok: true, table, ...resultado });
   } catch (e) {
     return json(500, { error: String(e) });
