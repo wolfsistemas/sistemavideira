@@ -49,6 +49,10 @@
     ".ui-btn--primary:hover{opacity:.88;}",
     ".ui-btn--danger{background:#b91c1c;color:#fff;}",
     ".ui-btn--danger:hover{opacity:.9;}",
+    ".ui-loading{position:fixed;inset:0;background:rgba(15,23,42,.62);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:2147483002;animation:uiFade .15s ease;}",
+    ".ui-loading__spinner{width:46px;height:46px;border-radius:50%;border:4px solid rgba(255,255,255,.28);border-top-color:#fff;animation:uiSpin .8s linear infinite;}",
+    ".ui-loading__txt{color:#fff;font-size:.95rem;font-weight:600;font-family:inherit;}",
+    "@keyframes uiSpin{to{transform:rotate(360deg);}}",
     "@media (max-width:400px){.ui-toasts{bottom:14px;}.ui-modal{padding:20px 18px 16px;}}",
   ].join("");
 
@@ -293,5 +297,27 @@
     setTimeout(function () { window.location.href = url || "index.html"; }, 1400);
   }
 
-  window.UI = { toast: toast, confirmar: confirmar, prompt: abrirPrompt, mensagem: mensagem, restrito: restrito };
+  // Overlay de "Carregando" (fundo escuro, SEM blur - o blur trava alguns
+  // navegadores). Retorna uma funcao para fechar; seguro chamar mais de uma vez.
+  function carregando(texto) {
+    injetarCSS();
+    var overlay = document.createElement("div");
+    overlay.className = "ui-loading";
+    var spinner = document.createElement("div");
+    spinner.className = "ui-loading__spinner";
+    var txt = document.createElement("div");
+    txt.className = "ui-loading__txt";
+    txt.textContent = texto || "Carregando...";
+    overlay.appendChild(spinner);
+    overlay.appendChild(txt);
+    document.body.appendChild(overlay);
+    var fechado = false;
+    return function () {
+      if (fechado) return;
+      fechado = true;
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    };
+  }
+
+  window.UI = { toast: toast, confirmar: confirmar, prompt: abrirPrompt, mensagem: mensagem, restrito: restrito, carregando: carregando };
 })();

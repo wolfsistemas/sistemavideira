@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
+    <script src="js/pdf.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/push.js"></script>
@@ -625,32 +626,38 @@
         document.getElementById('modalEditarCelula').classList.remove('hidden');
     }
 
-    function exportarListaCelulasPDF() {
+    async function exportarListaCelulasPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Células - Videira", 14, 20);
-        
+            const P = window.VideiraPDF;
+            const C = P.cores;
+
             // Pega a lista de células ativas (filtradas ou todas)
             const celulas = window.celulasRedeCompleta || dadosCelulas;
-        
+
             // Monta o corpo da tabela substituindo os UUIDs pelos nomes
             const corpo = celulas.map(c => {
                 const nomeLider = mapaNomes[c[2]] || 'Não definido';
                 const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
                 return [c[1], nomeLider, c[3], c[4], nomeSupervisor];
             });
-        
+
+            const y = await P.cabecalho(doc, 'Lista de Células', `Total: ${celulas.length} célula(s)  -  Gerado em ${new Date().toLocaleString('pt-BR')}`);
+
             doc.autoTable({
                 head: [["Nome", "Líder", "Dia", "Endereço", "Supervisor"]],
                 body: corpo,
-                startY: 30,
+                startY: y,
                 theme: 'grid',
-                headStyles: { fillColor: [128, 0, 32] },
-                styles: { fontSize: 9 }
+                margin: { bottom: 16 },
+                headStyles: { fillColor: C.ROXO, textColor: [255, 255, 255] },
+                alternateRowStyles: { fillColor: C.AZUL_CLARO },
+                styles: { fontSize: 9 },
+                didDrawPage: () => { P.rodape(doc); }
             });
-        
+
             doc.save(`Celulas_${new Date().toISOString().slice(0,10)}.pdf`);
-        
+
             // 🔹 Registra log da ação (opcional, mas consistente)
             registrarLogAcao(`Exportou lista de células em PDF (${celulas.length} registros)`);
         }
@@ -1397,6 +1404,7 @@
         const ev = listaEventos.find(e => e.id === id);
         const nome = ev ? ev.nome : '';
         if (!(await UI.confirmar(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`, { titulo: 'Excluir evento', textoOk: 'Excluir', perigo: true }))) return;
+        const fecharCarregando = UI.carregando('Excluindo evento...');
         try {
             const inscricoes = inscricoesPorEvento[id] || [];
             const urlsComprovantes = inscricoes.map(i => i.comprovante_url).filter(Boolean);
@@ -1415,6 +1423,8 @@
         } catch (err) {
             console.error(err);
             UI.toast("Erro ao excluir evento: " + (err.message || ''), { tipo: 'erro' });
+        } finally {
+            fecharCarregando();
         }
     }
 
@@ -1465,33 +1475,13 @@
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
-        const largura = doc.internal.pageSize.getWidth();
-        const altura = doc.internal.pageSize.getHeight();
-        const PRIMARIA = [128, 0, 32];
-        const OURO = [212, 175, 55];
+        const P = window.VideiraPDF;
+        const C = P.cores;
 
-        try {
-            const resp = await fetch('logo.png');
-            const blob = await resp.blob();
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            await new Promise(r => { reader.onload = r; });
-            doc.addImage(reader.result, 'PNG', 14, 10, 18, 18);
-        } catch (e) {}
-
-        doc.setFillColor(...PRIMARIA);
-        doc.rect(0, 0, largura, 32, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text('LISTA DE INSCRITOS', 40, 18);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.text(ev.nome || '', 40, 25);
-        doc.setFillColor(...OURO);
-        doc.rect(0, 32, largura, 1.6, 'F');
+        let y = await P.cabecalho(doc, 'Lista de Inscritos', ev.nome || '');
 
         doc.setTextColor(70, 70, 70);
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         const confirmadas = inscricoes.filter(i => (i.status || '').toLowerCase() === 'confirmada').length;
         const pendentes = inscricoes.filter(i => (i.status || 'pendente').toLowerCase() === 'pendente').length;
@@ -1504,7 +1494,6 @@
             `Total: ${inscricoes.length}  |  Confirmadas: ${confirmadas}  |  Pendentes: ${pendentes}  |  Canceladas: ${canceladas}`,
             `Gerado em ${new Date().toLocaleString('pt-BR')}`
         ];
-        let y = 40;
         info.forEach(t => { doc.text(t, 14, y); y += 5; });
 
         const body = inscricoes.map((i, idx) => [
@@ -1523,9 +1512,10 @@
             head: [['#', 'Nome', 'Telefone', 'E-mail', 'Célula', 'Status', 'Compr.', 'Observações']],
             body,
             theme: 'grid',
+            margin: { bottom: 16 },
             styles: { fontSize: 7.5, cellPadding: 1.6, valign: 'middle', textColor: [50, 50, 50], overflow: 'linebreak' },
-            headStyles: { fillColor: PRIMARIA, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-            alternateRowStyles: { fillColor: [250, 244, 246] },
+            headStyles: { fillColor: C.ROXO, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+            alternateRowStyles: { fillColor: C.AZUL_CLARO },
             columnStyles: {
                 0: { cellWidth: 8, halign: 'center' },
                 1: { cellWidth: 33 },
@@ -1544,12 +1534,7 @@
                     else data.cell.styles.textColor = [181, 137, 0];
                 }
             },
-            didDrawPage: () => {
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text('Igreja Videira • Sistema de Células', 14, altura - 8);
-                doc.text(`Página ${doc.internal.getNumberOfPages()}`, largura - 14, altura - 8, { align: 'right' });
-            }
+            didDrawPage: () => { P.rodape(doc); }
         });
 
         const nomeArquivo = (ev.nome || 'evento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\-]+/g, '_');
@@ -1576,6 +1561,7 @@
         if (!(await UI.confirmar("Excluir esta inscrição?", { titulo: 'Excluir inscrição', textoOk: 'Excluir', perigo: true }))) return;
         const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
         const inscricao = (inscricoesPorEvento[eventoId] || []).find(i => i.id === id);
+        const fecharCarregando = UI.carregando('Excluindo inscrição...');
         try {
             const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
             if (error) throw error;
@@ -1589,6 +1575,8 @@
         } catch (err) {
             console.error(err);
             UI.toast("Erro ao excluir inscrição: " + (err.message || ''), { tipo: 'erro' });
+        } finally {
+            fecharCarregando();
         }
     }
 
@@ -1933,10 +1921,120 @@
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Status Espiritual dos Membros';
         registrarLogAcao(`Abriu estatistica espiritual dos Membros`);
     }
+
+    // Membros arquivados (deixaram a célula) - lista na tela + PDF padrao.
+    function abrirRelatorioMembrosArquivados() {
+        const arquivados = obterInativos();
+        const conteudo = document.getElementById('conteudoRelatorio');
+        if (!arquivados.length) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Nenhum membro arquivado.</p>';
+        } else {
+            conteudo.innerHTML = `
+                <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+                    <button class="btn-card" style="width:auto; padding:8px 15px; background:var(--primary); color:white; border:none;" onclick="exportarMembrosArquivadosPDF()">
+                        <i class="fas fa-file-pdf"></i> Imprimir PDF
+                    </button>
+                </div>
+                <p style="color:#666; margin-top:0;">Membros que deixaram a célula (arquivados).</p>
+                <table class="table-clean">
+                    <thead><tr><th>Nome</th><th>Categoria</th><th>Célula</th><th>Telefone</th></tr></thead>
+                    <tbody>
+                        ${arquivados.map(m => `<tr><td>${m[1]}</td><td>${m[2]}</td><td>${m[3] || 'Sem célula'}</td><td>${m[4] || '-'}</td></tr>`).join('')}
+                    </tbody>
+                </table>`;
+        }
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Membros Arquivados (deixaram a célula)';
+        registrarLogAcao(`Abriu relatório de membros arquivados (${arquivados.length})`);
+    }
+
+    async function exportarMembrosArquivadosPDF() {
+        const arquivados = obterInativos();
+        if (!arquivados.length) { UI.toast('Nenhum membro arquivado para imprimir.', { tipo: 'aviso' }); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const P = window.VideiraPDF;
+        const C = P.cores;
+
+        const y = await P.cabecalho(doc, 'Membros Arquivados', `Membros que deixaram a célula  -  Gerado em ${new Date().toLocaleString('pt-BR')}`);
+
+        doc.autoTable({
+            startY: y,
+            head: [['Nome', 'Categoria', 'Célula', 'Telefone']],
+            body: arquivados.map(m => [m[1], m[2], m[3] || 'Sem célula', m[4] || '-']),
+            theme: 'grid',
+            margin: { bottom: 16 },
+            styles: { fontSize: 9, cellPadding: 2, textColor: [50, 50, 50] },
+            headStyles: { fillColor: C.ROXO, textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: C.AZUL_CLARO },
+            columnStyles: { 0: { cellWidth: 62 }, 1: { cellWidth: 34 }, 2: { cellWidth: 44 } },
+            didDrawPage: () => { P.rodape(doc); }
+        });
+
+        doc.save(`Membros_Arquivados_${new Date().toISOString().slice(0,10)}.pdf`);
+        registrarLogAcao(`Gerou PDF de membros arquivados (${arquivados.length})`);
+    }
     
 
-    function imprimirRelatorio() {
-        window.print();
+    // Imprime o relatorio gerencial padronizado: cabecalho da igreja (roxo->azul),
+    // titulo, data de emissao e a tabela do relatorio aberto no modal.
+    async function imprimirRelatorio() {
+        const conteudo = document.getElementById('conteudoRelatorio').innerHTML;
+        const titulo = document.getElementById('tituloRelatorioPersonalizado').innerText || 'Relatório';
+
+        let info = {};
+        try { info = await window.VideiraPDF.carregarInfo(); } catch (e) { info = {}; }
+        const nomeIgreja = window.VideiraPDF.nomeIgreja(info);
+        const dadosIgreja = [
+            info.cnpj ? 'CNPJ: ' + info.cnpj : '',
+            window.VideiraPDF.nomePastor(info) ? 'Pastor: ' + window.VideiraPDF.nomePastor(info) : '',
+            window.VideiraPDF.linhaEndereco(info)
+        ].filter(Boolean).join(' &nbsp;-&nbsp; ');
+        const logoUrl = new URL('logo.png', window.location.href).href;
+        const emissao = new Date().toLocaleString('pt-BR');
+
+        const janela = window.open('', '_blank', 'width=900,height=700');
+        if (!janela) {
+            UI.toast('Por favor, permita pop-ups para esta funcionalidade.', { tipo: 'aviso' });
+            return;
+        }
+        janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+        <title>${titulo}</title>
+        <style>
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; margin: 24px; color: #222; }
+            .marca { display:flex; align-items:center; gap:14px; background: linear-gradient(90deg,#6A1B9A 0%,#1565C0 100%); color:#fff; padding:14px 18px; border-radius:10px; margin-bottom:18px; }
+            .marca img { height:56px; width:auto; }
+            .marca-nome { font-size:20px; font-weight:800; letter-spacing:.5px; }
+            .marca-dados { font-size:12px; opacity:.95; margin-top:3px; }
+            .titulo { color:#6A1B9A; font-size:22px; font-weight:800; margin:0 0 4px; }
+            .emissao { color:#777; font-size:12px; margin:0 0 18px; }
+            .table-clean { width:100%; border-collapse:collapse; }
+            .table-clean th { background:#6A1B9A; color:#fff; padding:10px 8px; text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+            .table-clean td { padding:8px; border-bottom:1px solid #e9ecef; font-size:13px; }
+            .table-clean tr:nth-child(even) td { background:#E3F2FD; }
+            .footer { margin-top:25px; text-align:center; font-size:11px; color:#999; border-top:1px solid #eee; padding-top:15px; }
+            @media print { body { margin: 12mm; } }
+        </style></head><body>
+            <div class="marca">
+                <img src="${logoUrl}" alt="Logo">
+                <div>
+                    <div class="marca-nome">${nomeIgreja}</div>
+                    ${dadosIgreja ? `<div class="marca-dados">${dadosIgreja}</div>` : ''}
+                </div>
+            </div>
+            <h1 class="titulo">${titulo}</h1>
+            <p class="emissao">Emitido em ${emissao}</p>
+            ${conteudo}
+            <div class="footer">Documento gerado pelo Sistema de Células - Videira</div>
+        </body></html>`);
+        janela.document.close();
+        janela.focus();
+        const disparar = () => { try { janela.print(); } catch (e) { /* ignora */ } };
+        if (janela.document.readyState === 'complete') setTimeout(disparar, 300);
+        else janela.onload = () => setTimeout(disparar, 300);
+
+        registrarLogAcao(`Imprimiu o relatório: ${titulo}`);
     }
 
    async function abrirSupervisaoGeral() {
@@ -1967,6 +2065,16 @@
         }
     });
 
+    // Dados da igreja para o cabecalho padrao (vem da RPC igreja_info).
+    const info = await window.VideiraPDF.carregarInfo();
+    const nomeIgreja = window.VideiraPDF.nomeIgreja(info);
+    const dadosIgreja = [
+        info.cnpj ? 'CNPJ: ' + info.cnpj : '',
+        window.VideiraPDF.nomePastor(info) ? 'Pastor: ' + window.VideiraPDF.nomePastor(info) : '',
+        window.VideiraPDF.linhaEndereco(info)
+    ].filter(Boolean).join(' &nbsp;-&nbsp; ');
+    const logoUrl = new URL('logo.png', window.location.href).href;
+
     // Montar HTML para impressão
     let html = `
     <html>
@@ -1985,17 +2093,30 @@
                 border-radius: 8px;
             }
             .celula-page:last-child { page-break-after: auto; }
+            .marca {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                background: linear-gradient(90deg, #6A1B9A 0%, #1565C0 100%);
+                color: #fff;
+                padding: 14px 18px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
+            .marca img { height: 56px; width: auto; }
+            .marca-nome { font-size: 20px; font-weight: 800; letter-spacing: .5px; }
+            .marca-dados { font-size: 12px; opacity: .95; margin-top: 3px; }
             .header {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                border-bottom: 3px solid #800020;
+                border-bottom: 3px solid #1565C0;
                 padding-bottom: 15px;
                 margin-bottom: 25px;
             }
             .header img { max-height: 70px; }
             .header h1 {
-                color: #800020;
+                color: #6A1B9A;
                 font-size: 26px;
                 font-weight: 800;
                 letter-spacing: 1px;
@@ -2033,7 +2154,7 @@
                 font-size: 13px;
             }
             th {
-                background: #800020;
+                background: #6A1B9A;
                 color: #fff;
                 padding: 10px 8px;
                 text-align: left;
@@ -2046,7 +2167,7 @@
                 padding: 8px 8px;
                 border-bottom: 1px solid #e9ecef;
             }
-            tr:nth-child(even) td { background: #f8f9fa; }
+            tr:nth-child(even) td { background: #E3F2FD; }
             .tag {
                 display: inline-block;
                 padding: 2px 10px;
@@ -2094,8 +2215,14 @@
 
         html += `
         <div class="celula-page">
+            <div class="marca">
+                <img src="${logoUrl}" alt="Logo">
+                <div>
+                    <div class="marca-nome">${nomeIgreja}</div>
+                    ${dadosIgreja ? `<div class="marca-dados">${dadosIgreja}</div>` : ''}
+                </div>
+            </div>
             <div class="header">
-                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira">
                 <h1>Ficha da Célula</h1>
             </div>
 
@@ -2109,7 +2236,7 @@
                 <div class="info-item" style="grid-column: span 2;"><strong>Endereço:</strong> <span class="valor">${endereco}</span></div>
             </div>
 
-            <h3 style="margin: 15px 0 10px; color: #800020;">Lista de Membros (${membros.length})</h3>
+            <h3 style="margin: 15px 0 10px; color: #6A1B9A;">Lista de Membros (${membros.length})</h3>
             <table>
                 <thead>
                     <tr>
@@ -2281,25 +2408,21 @@
         if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
-        try {
-            const resp = await fetch('logo.png'); 
-            const blob = await resp.blob(); 
-            const reader = new FileReader(); 
-            reader.readAsDataURL(blob);
-            await new Promise(r => reader.onload = r); 
-            doc.addImage(reader.result, 'PNG', 14, 10, 16, 16);
-        } catch (e) {}
-        doc.setFontSize(16); 
-        doc.text("Membros - Videira", 34, 16);
-        doc.setFontSize(9); 
-        doc.text(`Gerado em ${new Date().toLocaleString()} | Total: ${lista.length}`, 34, 22);
+        const P = window.VideiraPDF;
+        const C = P.cores;
+
+        const y = await P.cabecalho(doc, 'Membros', `Total: ${lista.length}  -  Gerado em ${new Date().toLocaleString('pt-BR')}`);
+
         doc.autoTable({
             head: [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz."]],
             body: lista.map(m => [m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12]]),
-            startY: 30, 
-            theme: 'grid', 
-            headStyles: { fillColor: [128, 0, 32] }, 
-            styles: { fontSize: 8 }
+            startY: y,
+            theme: 'grid',
+            margin: { bottom: 16 },
+            headStyles: { fillColor: C.ROXO, textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: C.AZUL_CLARO },
+            styles: { fontSize: 8 },
+            didDrawPage: () => { P.rodape(doc); }
         });
         doc.save(`Membros_${new Date().toISOString().slice(0,10)}.pdf`);
         // 🔹 REGISTRA LOG DA AÇÃO
@@ -2771,6 +2894,10 @@
             </button>
             <button class="report-btn" onclick="abrirRelatorioStatusEspiritual()">
                 <span><i class="fas fa-cross"></i> Status espiritual dos membros (%)</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="report-btn" onclick="abrirRelatorioMembrosArquivados()">
+                <span><i class="fas fa-box-archive"></i> Membros arquivados (deixaram a célula)</span>
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
