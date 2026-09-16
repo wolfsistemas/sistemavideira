@@ -160,7 +160,10 @@
 
         <div class="secao-titulo">
           <h4>Igrejas</h4>
-          <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="abrirFinanceiro()" class="btn-add" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;"><i class="fas fa-coins"></i> Financeiro</button>
+            <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
+          </div>
         </div>
         <div id="listaIgrejas"><p class="carregando">Carregando...</p></div>
 
@@ -473,6 +476,37 @@
       </div>
     </div>
 
+    <div id="painelFinanceiro" class="pi-overlay hidden">
+      <div class="pi-panel" style="max-width:520px;">
+        <div class="pi-head">
+          <div style="min-width:0;">
+            <h3>Financeiro</h3>
+            <span class="pi-sub">Valores padronizados do sistema</span>
+          </div>
+          <button class="pi-close" onclick="fecharFinanceiro()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="pi-body">
+          <div class="form-box">
+            <p style="font-size:0.85rem; color:#777; margin-top:0;">Estes são os valores padrão oferecidos às igrejas. Cada igreja pode ter um valor próprio definido na aba <strong>Plano</strong> (que tem prioridade).</p>
+            <div class="cfg-row">
+              <div>
+                <label>Valor mensal padrão (R$)</label>
+                <input type="number" id="finMensal" min="0" step="0.01" placeholder="Ex: 199.90" autocomplete="off">
+              </div>
+              <div>
+                <label>Valor anual padrão (R$)</label>
+                <input type="number" id="finAnual" min="0" step="0.01" placeholder="Ex: 1999.00" autocomplete="off">
+              </div>
+            </div>
+            <label>Dias de teste (trial)</label>
+            <input type="number" id="finTrial" min="0" max="365" placeholder="Ex: 7" autocomplete="off">
+            <button type="button" id="finBtnSalvar" class="btn-save" onclick="salvarFinanceiro()" style="width:100%; margin-top:5px;">Salvar valores</button>
+            <div id="finStatus" class="pi-ig-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       let sb = null;
       let IGREJAS = [];
@@ -681,6 +715,72 @@
         } catch (e) {
           if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar o plano.</span>';
           UI.toast('Falha ao salvar o plano.', { tipo: 'erro' });
+          console.error(e);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      /* ================= Financeiro (valores padrao) ================= */
+      function abrirFinanceiro() {
+        document.getElementById('painelFinanceiro').classList.remove('hidden');
+        carregarFinanceiro();
+      }
+
+      function fecharFinanceiro() {
+        document.getElementById('painelFinanceiro').classList.add('hidden');
+      }
+
+      function finValor(id) {
+        const el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+      }
+
+      async function carregarFinanceiro() {
+        const status = document.getElementById('finStatus');
+        if (status) status.innerHTML = '<span style="color:#999;">Carregando...</span>';
+        try {
+          const { data, error } = await sb.rpc('config_financeiro');
+          if (error) throw error;
+          const c = data || {};
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === null || v === undefined) ? '' : v; };
+          set('finMensal', c.valor_mensal);
+          set('finAnual', c.valor_anual);
+          set('finTrial', c.trial_dias);
+          if (status) status.innerHTML = '';
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar os valores.</span>';
+          console.error(e);
+        }
+      }
+
+      async function salvarFinanceiro() {
+        const btn = document.getElementById('finBtnSalvar');
+        const status = document.getElementById('finStatus');
+        const mensal = finValor('finMensal');
+        const anual = finValor('finAnual');
+        const trial = finValor('finTrial');
+
+        for (const [rotulo, v] of [['mensal', mensal], ['anual', anual]]) {
+          if (v !== '' && (isNaN(Number(v)) || Number(v) < 0)) { UI.toast('Valor ' + rotulo + ' invalido.', { tipo: 'aviso' }); return; }
+        }
+        if (trial !== '' && (isNaN(parseInt(trial, 10)) || parseInt(trial, 10) < 0 || parseInt(trial, 10) > 365)) {
+          UI.toast('Dias de trial devem estar entre 0 e 365.', { tipo: 'aviso' }); return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
+        try {
+          const { error } = await sb.rpc('definir_config_financeiro', {
+            p_config: { valor_mensal: mensal, valor_anual: anual, trial_dias: trial }
+          });
+          if (error) throw error;
+          if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Valores salvos.</span>';
+          UI.toast('Valores padrao atualizados!', { tipo: 'sucesso' });
+          piRegistrarLogAcao('Atualizou os valores padrao (mensal=' + (mensal || '-') + ', anual=' + (anual || '-') + ')');
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar os valores.</span>';
+          UI.toast('Falha ao salvar os valores.', { tipo: 'erro' });
           console.error(e);
         } finally {
           if (btn) btn.disabled = false;
