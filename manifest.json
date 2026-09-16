@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Sistema Videira",
   "short_name": "Videira",
-  "description": "Sistema de Células da Igreja Videira",
+  "description": "Sistema de Células - Videira",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "./index.html",

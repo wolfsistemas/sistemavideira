@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Painel Administrador - Sistema Videira</title>
+    <title>Sistema de Células - Videira</title>
     
     <script src="config.js"></script>
     <script src="js/ui.js"></script>
@@ -143,7 +143,6 @@
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
     sessionStorage.setItem('loginDigitado', user.email);
     if (window.VideiraPush) VideiraPush.ativar(supabaseTemp);
-    aplicarNomeIgreja(supabaseTemp, 'Painel Administrador - {igreja}');
 })();
       
     </script>
