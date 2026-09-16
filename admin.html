@@ -151,6 +151,11 @@
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
     sessionStorage.setItem('loginDigitado', user.email);
     if (window.VideiraPush) VideiraPush.ativar(supabaseTemp);
+    if (new URLSearchParams(location.search).get('assinatura')) {
+        window.addEventListener('load', () => {
+            try { mudarSecao('config'); mudarSubConfig('assinatura'); } catch (e) { /* ignora */ }
+        });
+    }
 })();
       
     </script>
@@ -487,25 +492,39 @@
 
       <div id="subcfg-assinatura" class="hidden">
         <div class="form-box">
-          <h4 class="cfg-title">Plano contratado</h4>
-          <p style="font-size:0.85rem; color:#777; margin-top:0;">Plano gerenciado pelo fornecedor do sistema. Para alterar, fale com o suporte.</p>
+          <h4 class="cfg-title">Meu plano</h4>
+          <p style="font-size:0.85rem; color:#777; margin-top:0;">A cobrança é processada pelo Mercado Pago. O acesso é liberado automaticamente após a confirmação do pagamento.</p>
           <div class="cfg-row">
             <div><label>Plano</label><input type="text" id="planoNome" placeholder="Não definido" disabled></div>
             <div><label>Situação</label><input type="text" id="planoStatus" placeholder="Não definido" disabled></div>
           </div>
           <div class="cfg-row">
             <div><label>Valor mensal</label><input type="text" id="planoValor" placeholder="--" disabled></div>
-            <div><label>Vencimento</label><input type="text" id="planoVencimento" placeholder="--" disabled></div>
+            <div><label>Valor anual</label><input type="text" id="planoValorAnual" placeholder="--" disabled></div>
+          </div>
+          <div class="cfg-row">
+            <div><label>Forma de pagamento</label><input type="text" id="planoMetodo" placeholder="--" disabled></div>
+            <div><label>Vencimento / acesso até</label><input type="text" id="planoVencimento" placeholder="--" disabled></div>
           </div>
           <div class="cfg-row">
             <div><label>Início</label><input type="text" id="planoInicio" placeholder="--" disabled></div>
-            <div><label>Fim do teste (trial)</label><input type="text" id="planoTrial" placeholder="--" disabled></div>
+            <div><label>Mensalidade (cartão)</label><input type="text" id="planoPreapproval" placeholder="--" disabled></div>
           </div>
           <label>Observação</label>
           <input type="text" id="planoObs" placeholder="--" disabled>
-          <div style="font-size:0.82rem; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px; margin-top:10px;">
-            <i class="fas fa-lock"></i> Em breve: cobrança, histórico de pagamentos e aviso de vencimento.
+
+          <div id="planoAviso" style="margin-top:10px;"></div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+            <button type="button" id="btnAssinarCartao" class="btn-save" onclick="assinarCartao()" style="flex:1 1 200px;"><i class="fas fa-credit-card"></i> Assinar mensal no cartão</button>
+            <button type="button" id="btnPagarPix" class="btn-save" onclick="gerarPixAnual()" style="flex:1 1 200px; background:#14532d;"><i class="fa-brands fa-pix"></i> Pagar plano anual no PIX</button>
           </div>
+          <div id="assinaturaStatus" style="font-size:0.85rem; margin-top:10px;"></div>
+        </div>
+
+        <div class="form-box" style="margin-top:15px;">
+          <h4 class="cfg-title">Faturas</h4>
+          <div id="listaFaturas"><p class="carregando">Carregando...</p></div>
         </div>
       </div>
 
@@ -576,7 +595,7 @@
          if (btn) btn.classList.add('active');
          if (sub === 'igreja') carregarIgrejaInfo();
          if (sub === 'oferta') carregarPix();
-         if (sub === 'assinatura') carregarPlano();
+         if (sub === 'assinatura') { carregarPlano(); carregarFaturas(); }
       }
 
       const IGREJA_CAMPOS = {
@@ -689,10 +708,29 @@
          inadimplente: 'Inadimplente', cancelado: 'Cancelado'
       };
 
+      const PLANO_STATUS_AVISOS = {
+         trial: { cor: '#b45309', bg: '#fffbeb', bd: '#fde68a', txt: 'Sua igreja está no período de teste.' },
+         ativo: { cor: '#166534', bg: '#f0fdf4', bd: '#bbf7d0', txt: 'Assinatura em dia. Obrigado!' },
+         isento: { cor: '#1e40af', bg: '#eff6ff', bd: '#bfdbfe', txt: 'Esta igreja é isenta de cobrança.' },
+         inadimplente: { cor: '#b91c1c', bg: '#fef2f2', bd: '#fecaca', txt: 'Existe um pagamento pendente. Regularize para evitar interrupção.' },
+         cancelado: { cor: '#475569', bg: '#f8fafc', bd: '#e2e8f0', txt: 'Assinatura cancelada. Assine novamente para reativar.' }
+      };
+
+      const METODO_LABELS = { credito: 'Cartão de crédito', pix: 'PIX' };
+      const FATURA_STATUS_LABELS = {
+         pendente: 'Pendente', em_processamento: 'Processando', aprovado: 'Pago',
+         recusado: 'Recusado', cancelado: 'Cancelado', reembolsado: 'Reembolsado'
+      };
+
       function formatarValorPlano(v) {
          if (v === null || v === undefined || v === '') return '';
          const n = Number(v);
          return isNaN(n) ? String(v) : 'R$ ' + n.toFixed(2).replace('.', ',');
+      }
+
+      function formatarDataBR(v) {
+         const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+         return m ? (m[3] + '/' + m[2] + '/' + m[1]) : '';
       }
 
       async function carregarPlano() {
@@ -702,13 +740,154 @@
             const p = data || {};
             const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
             set('planoNome', p.plano || '');
-            set('planoStatus', PLANO_STATUS_LABELS[p.status] || (p.status || ''));
+            set('planoStatus', PLANO_STATUS_LABELS[p.status] || (p.status || 'Não definido'));
             set('planoValor', formatarValorPlano(p.valor));
-            set('planoVencimento', p.dia_vencimento ? ('Dia ' + p.dia_vencimento) : '');
+            set('planoValorAnual', formatarValorPlano(p.valor_anual));
+            set('planoMetodo', METODO_LABELS[p.metodo] || '');
+            let venc = '';
+            if (p.modalidade === 'anual') venc = p.acesso_ate ? ('Acesso até ' + formatarDataBR(p.acesso_ate)) : '';
+            else if (p.proximo_vencimento) venc = formatarDataBR(p.proximo_vencimento);
+            else if (p.dia_vencimento) venc = 'Dia ' + p.dia_vencimento;
+            set('planoVencimento', venc);
             set('planoInicio', formatarDataBR(p.inicio));
-            set('planoTrial', formatarDataBR(p.trial_fim));
+            set('planoPreapproval', p.preapproval_id ? ('assinatura ativa' + (p.mp_status ? ' · ' + p.mp_status : '')) : 'sem assinatura no cartão');
             set('planoObs', p.observacao || '');
+
+            const aviso = document.getElementById('planoAviso');
+            if (aviso) {
+               const a = PLANO_STATUS_AVISOS[p.status];
+               aviso.innerHTML = a
+                  ? '<div style="font-size:0.82rem; color:' + a.cor + '; background:' + a.bg + '; border:1px solid ' + a.bd + '; border-radius:8px; padding:10px;"><i class="fas fa-circle-info"></i> ' + a.txt + '</div>'
+                  : '';
+            }
+            const ocultar = (p.status === 'isento');
+            const btnCartao = document.getElementById('btnAssinarCartao');
+            const btnPix = document.getElementById('btnPagarPix');
+            if (btnCartao) btnCartao.style.display = ocultar ? 'none' : '';
+            if (btnPix) btnPix.style.display = ocultar ? 'none' : '';
          } catch (e) { /* silencioso */ }
+      }
+
+      async function carregarFaturas() {
+         const box = document.getElementById('listaFaturas');
+         if (!box) return;
+         box.innerHTML = '<p class="carregando">Carregando...</p>';
+         try {
+            const { data, error } = await supabaseClient.rpc('igreja_cobrancas');
+            if (error) throw error;
+            const lista = data || [];
+            if (!lista.length) {
+               box.innerHTML = '<p style="font-size:0.85rem; color:#999; margin:0;">Nenhuma fatura registrada ainda.</p>';
+               return;
+            }
+            box.innerHTML = lista.map(c => {
+               const st = FATURA_STATUS_LABELS[c.status] || c.status;
+               const cor = (c.status === 'aprovado') ? '#166534' : ((c.status === 'recusado' || c.status === 'cancelado') ? '#b91c1c' : '#b45309');
+               const quando = c.data_pagamento ? formatarDataBR(c.data_pagamento) : (c.data_vencimento ? ('vence ' + formatarDataBR(c.data_vencimento)) : formatarDataBR(c.criado_em));
+               return '<div style="display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #eee; font-size:0.85rem;">'
+                  + '<div><div style="font-weight:600; color:#111;">' + (c.tipo === 'anual' ? 'Plano anual' : 'Mensalidade') + ' · ' + (METODO_LABELS[c.metodo] || '') + '</div>'
+                  + '<div style="color:#777;">' + quando + '</div></div>'
+                  + '<div style="text-align:right;"><div style="font-weight:600;">' + formatarValorPlano(c.valor) + '</div>'
+                  + '<div style="color:' + cor + '; font-weight:600;">' + st + '</div></div></div>';
+            }).join('');
+         } catch (e) {
+            box.innerHTML = '<p style="font-size:0.85rem; color:#b91c1c; margin:0;">Não foi possível carregar as faturas.</p>';
+         }
+      }
+
+      async function mensagemErroFuncao(error, fallback) {
+         try {
+            if (error && error.context && typeof error.context.json === 'function') {
+               const j = await error.context.json();
+               if (j && j.mensagem) return j.mensagem;
+               if (j && j.erro) return j.erro;
+            }
+         } catch (e) { /* ignora */ }
+         return (error && error.message) || fallback;
+      }
+
+      async function assinarCartao() {
+         const btn = document.getElementById('btnAssinarCartao');
+         const status = document.getElementById('assinaturaStatus');
+         if (btn) btn.disabled = true;
+         if (status) status.innerHTML = '<span style="color:#999;">Criando assinatura no Mercado Pago...</span>';
+         try {
+            const { data, error } = await supabaseClient.functions.invoke('mp-criar-assinatura', { body: {} });
+            if (error) throw new Error(await mensagemErroFuncao(error, 'Falha ao criar a assinatura.'));
+            if (!data || !data.init_point) throw new Error((data && data.mensagem) || 'Resposta inválida do servidor.');
+            window.location.href = data.init_point;
+         } catch (e) {
+            if (status) status.innerHTML = '<span style="color:#b91c1c;">' + (e.message || 'Falha ao criar a assinatura.') + '</span>';
+            UI.toast('Não foi possível iniciar a assinatura.', { tipo: 'erro' });
+         } finally {
+            if (btn) btn.disabled = false;
+         }
+      }
+
+      let pixPlanoAtual = null;
+
+      function abrirPixPlano(d) {
+         pixPlanoAtual = d;
+         const qr = document.getElementById('pixPlanoQr');
+         if (qr) {
+            qr.innerHTML = d.qr_code_base64
+               ? '<img alt="QR Code PIX" style="width:200px; height:200px;" src="data:image/png;base64,' + d.qr_code_base64 + '">'
+               : '<div style="font-size:0.8rem; color:#999;">QR Code indisponível, use o código abaixo.</div>';
+         }
+         const cod = document.getElementById('pixPlanoCodigo');
+         if (cod) cod.value = d.qr_code || '';
+         const link = document.getElementById('pixPlanoLink');
+         if (link) {
+            if (d.ticket_url) { link.href = d.ticket_url; link.style.display = ''; }
+            else { link.style.display = 'none'; }
+         }
+         const status = document.getElementById('pixPlanoStatus');
+         if (status) status.innerHTML = '<span style="color:#b45309;">Aguardando o pagamento...</span>';
+         document.getElementById('pixPlanoModal').classList.remove('hidden');
+      }
+
+      function fecharPixPlano() {
+         document.getElementById('pixPlanoModal').classList.add('hidden');
+      }
+
+      async function gerarPixAnual() {
+         const btn = document.getElementById('btnPagarPix');
+         const status = document.getElementById('assinaturaStatus');
+         if (btn) btn.disabled = true;
+         if (status) status.innerHTML = '<span style="color:#999;">Gerando o PIX...</span>';
+         try {
+            const { data, error } = await supabaseClient.functions.invoke('mp-criar-pix-anual', { body: {} });
+            if (error) throw new Error(await mensagemErroFuncao(error, 'Falha ao gerar o PIX.'));
+            if (!data || !data.qr_code) throw new Error((data && data.mensagem) || 'Resposta inválida do servidor.');
+            if (status) status.innerHTML = '';
+            abrirPixPlano(data);
+         } catch (e) {
+            if (status) status.innerHTML = '<span style="color:#b91c1c;">' + (e.message || 'Falha ao gerar o PIX.') + '</span>';
+            UI.toast('Não foi possível gerar o PIX.', { tipo: 'erro' });
+         } finally {
+            if (btn) btn.disabled = false;
+         }
+      }
+
+      async function copiarPixPlano() {
+         const cod = document.getElementById('pixPlanoCodigo');
+         if (!cod || !cod.value) return;
+         try {
+            await navigator.clipboard.writeText(cod.value);
+            UI.toast('Código PIX copiado!', { tipo: 'sucesso' });
+         } catch (e) {
+            cod.select();
+            document.execCommand('copy');
+            UI.toast('Código PIX copiado!', { tipo: 'sucesso' });
+         }
+      }
+
+      async function atualizarAssinatura() {
+         const status = document.getElementById('pixPlanoStatus');
+         if (status) status.innerHTML = '<span style="color:#999;">Verificando...</span>';
+         await carregarPlano();
+         await carregarFaturas();
+         if (status) status.innerHTML = '<span style="color:#555;">Se o pagamento foi aprovado, a situação já foi atualizada. Em alguns casos pode levar alguns minutos.</span>';
       }
 
       async function trocarSenha() {
@@ -1442,6 +1621,24 @@
       
       
     </script>
+
+    <div id="pixPlanoModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:14px; max-width:430px; width:100%; padding:22px; position:relative; max-height:92vh; overflow-y:auto;">
+        <button onclick="fecharPixPlano()" aria-label="Fechar" style="position:absolute; top:10px; right:12px; border:none; background:none; font-size:1.25rem; cursor:pointer; color:#555;"><i class="fas fa-xmark"></i></button>
+        <h4 style="margin:0 0 6px; color:#000;">Pagamento via PIX</h4>
+        <p style="font-size:0.85rem; color:#555; margin:0 0 14px;">Escaneie o QR Code ou copie o código e pague no app do seu banco. O acesso é liberado automaticamente após a confirmação.</p>
+        <div id="pixPlanoQr" style="display:flex; justify-content:center; margin-bottom:12px;"></div>
+        <input type="text" id="pixPlanoCodigo" readonly placeholder="Gerando código..."
+          style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:0.78rem; color:#333;">
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+          <button onclick="copiarPixPlano()" class="btn-save" style="flex:1 1 160px;"><i class="fas fa-copy"></i> Copiar código</button>
+          <a id="pixPlanoLink" href="#" target="_blank" rel="noopener" class="btn-save" style="flex:1 1 160px; text-align:center; text-decoration:none; background:#334155; box-sizing:border-box;">Abrir no banco</a>
+        </div>
+        <button onclick="atualizarAssinatura()" class="btn-save" style="width:100%; margin-top:10px; background:#0b5ed7;"><i class="fas fa-rotate"></i> Já paguei / atualizar</button>
+        <div id="pixPlanoStatus" style="font-size:0.85rem; margin-top:10px;"></div>
+      </div>
+    </div>
+
     <script src="js/pwa.js"></script>
   </body>
 </html>
