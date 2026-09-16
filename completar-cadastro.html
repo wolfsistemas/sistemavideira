@@ -98,9 +98,7 @@
     }
 
     const { data: pessoa, error } = await supabaseClient
-        .from('pessoas')
-        .select('id, usuario, categoria, superior_id, igreja_id')
-        .eq('token_convite', token)
+        .rpc('buscar_convite', { p_token: token })
         .maybeSingle();
 
     if (error || !pessoa) {
@@ -217,16 +215,14 @@
                     return;
                 }
         
-                // 2. Atualizar a tabela pessoas com o e‑mail, superior (preservado) e limpar token
+                // 2. Concluir o cadastro no banco (via RPC com token secreto)
                 const { error: updateError } = await supabaseClient
-                    .from('pessoas')
-                    .update({
-                        nome: nomeCompleto,
-                        email: email,
-                        superior_id: superiorId,
-                        token_convite: null
-                    })
-                    .eq('id', pessoaId);
+                    .rpc('concluir_cadastro_convite', {
+                        p_token: token,
+                        p_nome: nomeCompleto,
+                        p_email: email,
+                        p_superior_id: superiorId
+                    });
                 if (updateError) throw updateError;
         
                 // 3. Registrar log de conclusão de cadastro (usuário já está autenticado)
