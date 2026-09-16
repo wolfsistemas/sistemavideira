@@ -555,7 +555,9 @@
         }
 
         // ================= CONFIGURAÇÕES =================
-        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+            global: { headers: { 'x-igreja-id': (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '') } }
+        });
         if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
         let listaPalavras = [];

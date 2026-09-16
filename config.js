@@ -8,6 +8,10 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnystn3UqAKn
 
 const VAPID_PUBLIC_KEY = 'BAjU5rrZXkMzo8UroNbQVTgMi9ned0xxRLgjKbLArgCKR_AtezVW3YUBwFI486DBo-IQQ2IDg24wsRtDaRJfbiM';
 
+// Igreja deste deploy (multi-tenant). Usado pelas paginas publicas (sem login)
+// para que a RLS consiga isolar os dados por igreja via header x-igreja-id.
+const IGREJA_ID = 'b7e3f1a2-5c4d-4e6f-8a9b-1c2d3e4f5a6b';
+
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
 const supabseUrl = SUPABASE_URL;
