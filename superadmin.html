@@ -44,11 +44,94 @@
       .badge.off { background: #eee; color: #666; }
       .btn-acao { flex: 0 0 auto; background: #eef2ff; color: #1d4ed8; border: none; padding: 10px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; text-align: center; }
       .btn-acao:hover { background: #e0e7ff; }
+      .btn-acao.principal { background: #0f172a; color: #fff; }
       .carregando { text-align: center; color: #999; font-size: 0.9rem; }
       .rodape { text-align: center; color: #aaa; font-size: 0.75rem; margin: 25px 0 10px; }
+      .hidden { display: none !important; }
       @media (max-width: 480px) {
         .igreja-card { flex-direction: column; align-items: stretch; }
         .btn-acao { justify-content: center; }
+      }
+
+      /* ===== Modal por igreja ===== */
+      .pi-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 999999; display: flex; align-items: flex-start; justify-content: center; padding: 18px; overflow-y: auto; }
+      .pi-panel { background: #f4f5f7; width: 100%; max-width: 860px; border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,.35); overflow: hidden; margin: auto; }
+      .pi-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #0f172a; color: #fff; padding: 16px 18px; }
+      .pi-head h3 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+      .pi-sub { font-size: 0.76rem; color: #cbd5e1; overflow-wrap: anywhere; }
+      .pi-close { background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 2px 6px; }
+      .pi-tabs { display: flex; gap: 6px; background: #fff; padding: 10px 12px 0; border-bottom: 1px solid #e5e7eb; }
+      .pi-tab { flex: 1 1 0; border: none; background: #f4f5f7; color: #555; padding: 11px 8px; border-radius: 10px 10px 0 0; font-weight: 700; cursor: pointer; font-size: 0.84rem; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+      .pi-tab.active { background: #fff; color: #0f172a; box-shadow: 0 -2px 0 #0f172a inset; }
+      .pi-body { padding: 16px; max-height: 74vh; overflow-y: auto; }
+      .pi-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+      .pi-sec-head h4 { margin: 0; color: #555; font-size: 0.9rem; text-transform: uppercase; letter-spacing: .03em; }
+
+      .filter-bar { display: flex; gap: 10px; margin-bottom: 14px; }
+      .pi-panel .filter-bar input, .pi-panel .filter-bar select { margin-bottom: 0; }
+      .user-card { background: #fff; padding: 14px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid #eee; }
+      .user-info { flex: 1 1 auto; min-width: 0; }
+      .user-info h4 { margin: 0 0 4px; color: var(--text-main); font-size: 0.98rem; overflow-wrap: anywhere; }
+      .user-info p { margin: 0; font-size: 0.78rem; color: #777; overflow-wrap: anywhere; word-break: break-word; }
+      .badge-role { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: bold; background: #eee; color: #555; margin-top: 5px; }
+      .badge-role.Administrador { background: #000; color: #fff; }
+      .badge-role.Pastor { background: rgba(128,0,32,.1); color: #800020; }
+      .action-btns { display: flex; gap: 7px; flex: 0 0 auto; }
+      .btn-icon-action { width: 34px; height: 34px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; cursor: pointer; }
+      .btn-edit { background: #f0f4f8; color: #0056b3; }
+      .btn-del { background: #fdf5f6; color: var(--danger-text); }
+      .btn-key { background: #fef9e7; color: #b8860b; }
+      .log-card { background: #fff; padding: 12px 14px; border-radius: 8px; border-left: 3px solid #ccc; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.05); display: flex; justify-content: space-between; align-items: center; }
+      .log-card.Sucesso { border-left-color: var(--success-text); }
+      .log-date { font-size: 0.74rem; color: #999; margin-bottom: 3px; }
+      .log-text { font-size: 0.84rem; color: #333; margin: 0; line-height: 1.4; }
+      .log-text strong { color: var(--primary); }
+
+      .form-box { background: #fff; padding: 18px; border-radius: 12px; box-shadow: var(--shadow); }
+      .pi-panel label { display: block; margin-bottom: 5px; color: var(--text-light); font-weight: 600; font-size: 0.84rem; }
+      .pi-panel input, .pi-panel select { width: 100%; padding: 12px; background: var(--input-bg); margin-bottom: 14px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box; }
+      .btn-save { padding: 14px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+      .pi-btn-ghost { flex: 1; background: #eee; color: #555; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+      .switch-container { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; }
+      .switch-label { font-size: 0.84rem; color: #333; font-weight: 600; }
+      .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex: 0 0 auto; }
+      .switch input { opacity: 0; width: 0; height: 0; margin: 0; padding: 0; }
+      .slider { position: absolute; cursor: pointer; inset: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+      .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: #fff; transition: .4s; border-radius: 50%; }
+      .pi-panel input:checked + .slider { background-color: var(--success-text); }
+      .pi-panel input:checked + .slider:before { transform: translateX(22px); }
+      .copy-link-box { display: flex; gap: 10px; margin-top: 10px; }
+      .copy-link-box input { flex: 1; }
+      .btn-copy-link { background: var(--accent); color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+      .notif-head h4 { margin: 0 0 3px; color: var(--text-light); }
+      .notif-head p { font-size: 0.8rem; color: #777; margin: 0 0 15px; }
+      .notif-card { background: #fff; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid #eee; padding: 16px; margin-bottom: 16px; }
+      .notif-card-head { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; font-weight: 700; color: #222; margin-bottom: 14px; }
+      .notif-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: #f9f9f9; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; }
+      .notif-row:last-child { margin-bottom: 0; }
+      .notif-row .switch-label-text { font-size: 0.86rem; color: #333; font-weight: 600; }
+      .notif-hint { font-size: 0.78rem; color: #777; margin: 0 0 14px; line-height: 1.45; }
+      .notif-label { display: block; font-size: 0.72rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .4px; margin: 0 0 6px 2px; }
+      .notif-label span { font-weight: 500; text-transform: none; color: #999; letter-spacing: 0; }
+      .notif-input { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1px solid #ddd; border-radius: 10px; font-size: 0.9rem; font-family: inherit; background: #fff; margin: 0 0 14px; outline: none; }
+      .notif-input:focus { border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+      textarea.notif-input { resize: vertical; min-height: 76px; }
+      .notif-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .notif-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #333; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 999px; padding: 7px 13px; cursor: pointer; user-select: none; margin: 0; }
+      .notif-chip input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; padding: 0; }
+      .notif-chip.on { background: #000; border-color: #000; color: #fff; }
+      .notif-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+      .notif-btn { background: #000; color: #fff; border: none; border-radius: 10px; padding: 12px 22px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+      .notif-btn:disabled { opacity: .5; cursor: default; }
+      .notif-sim { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: #555; cursor: pointer; margin: 0; }
+      .pi-panel .notif-sim input { width: auto; margin: 0; padding: 0; }
+      .notif-status { font-size: 0.82rem; margin-top: 12px; min-height: 18px; line-height: 1.4; }
+
+      @media (max-width: 560px) {
+        .pi-panel { border-radius: 12px; }
+        .pi-tab span { display: none; }
+        .pi-body { max-height: 78vh; padding: 12px; }
       }
     </style>
   </head>
@@ -79,9 +162,148 @@
       </div>
     </div>
 
+    <div id="painelIgreja" class="pi-overlay hidden">
+      <div class="pi-panel">
+        <div class="pi-head">
+          <div style="min-width:0;">
+            <h3 id="piTitulo">Igreja</h3>
+            <span id="piSub" class="pi-sub"></span>
+          </div>
+          <button class="pi-close" onclick="fecharPainelIgreja()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+        </div>
+
+        <div class="pi-tabs">
+          <button id="pi-tab-usuarios" class="pi-tab active" onclick="piMudarAba('usuarios')"><i class="fas fa-users-cog"></i><span> Usuários</span></button>
+          <button id="pi-tab-logs" class="pi-tab" onclick="piMudarAba('logs')"><i class="fas fa-history"></i><span> Logs</span></button>
+          <button id="pi-tab-notificacoes" class="pi-tab" onclick="piMudarAba('notificacoes')"><i class="fas fa-bell"></i><span> Notificações</span></button>
+        </div>
+
+        <div class="pi-body">
+          <div id="pi-secao-usuarios">
+            <div class="pi-sec-head">
+              <h4>Usuários</h4>
+              <button onclick="piNovoUsuario()" class="btn-add"><i class="fas fa-plus"></i> Novo Cadastro</button>
+            </div>
+            <div class="filter-bar">
+              <input type="text" id="piFiltroNome" placeholder="Buscar por nome, usuário ou e-mail..." onkeyup="piFiltrarUsuarios()" style="flex:2;">
+              <select id="piFiltroCategoria" onchange="piFiltrarUsuarios()" style="flex:1;">
+                <option value="">Todos</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Pastor de Governo">Pastor de Governo</option>
+                <option value="Pastor de Rede">Pastor de Rede</option>
+                <option value="Discipulador">Discipulador</option>
+                <option value="Líder">Líder</option>
+                <option value="Tesoureiro">Tesoureiro</option>
+                <option value="Membro">Membro</option>
+              </select>
+            </div>
+            <div id="piListaUsuarios"><p class="carregando">Carregando...</p></div>
+          </div>
+
+          <div id="pi-secao-form" class="hidden">
+            <h3 id="piFormTitulo" style="margin-top:0; color:#000;">Novo Usuário</h3>
+            <div class="form-box">
+              <form id="piForm">
+                <input type="hidden" id="piUsuarioOriginal">
+                <label>Usuário (login) *</label>
+                <input type="text" id="piCadUsuario" required placeholder="Ex: pastor.joao" style="text-transform: lowercase;">
+                <label>Telefone (WhatsApp)</label>
+                <input type="tel" id="piCadTelefone" placeholder="(64) 99999-9999">
+                <label>Nível de Acesso (Categoria)</label>
+                <select id="piCadCategoria" required>
+                  <option value="Administrador">Administrador</option>
+                  <option value="Pastor de Governo">Pastor de Governo</option>
+                  <option value="Pastor de Rede">Pastor de Rede</option>
+                  <option value="Discipulador">Discipulador</option>
+                  <option value="Líder">Líder</option>
+                  <option value="Tesoureiro">Tesoureiro</option>
+                  <option value="Membro">Membro</option>
+                </select>
+                <label>Superior Hierárquico</label>
+                <select id="piCadSuperior"><option value="">Nenhum (Topo)</option></select>
+                <label>Célula (opcional)</label>
+                <select id="piCadCelula"><option value="">Nenhuma</option></select>
+                <div class="switch-container">
+                  <span class="switch-label">Usuário do sistema (pode fazer login)</span>
+                  <label class="switch"><input type="checkbox" id="piCadIsUser" checked><span class="slider"></span></label>
+                </div>
+                <div style="display:flex; gap:10px; margin-top: 15px;">
+                  <button type="button" onclick="piMudarAba('usuarios')" class="pi-btn-ghost">Cancelar</button>
+                  <button type="submit" id="piBtnSalvar" class="btn-save" style="flex:2;">Salvar Usuário</button>
+                </div>
+              </form>
+              <div id="piConviteBox" class="hidden" style="margin-top: 18px;">
+                <label style="color: var(--success-text); font-weight: bold;">Link de Convite</label>
+                <div class="copy-link-box">
+                  <input type="text" id="piLinkConvite" readonly>
+                  <button onclick="piCopiarLink()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
+                </div>
+                <button onclick="piVoltarLista()" class="btn-save" style="background:#555; margin-top:10px; width:100%;">Voltar para Lista de Usuários</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="pi-secao-logs" class="hidden">
+            <div class="pi-sec-head">
+              <h4>Últimas Ações</h4>
+              <button onclick="piLimparLogs()" class="btn-add" style="background:#fdf5f6; color:var(--danger-text); border:1px solid #fecdd3;"><i class="fas fa-trash-alt"></i> Limpar</button>
+            </div>
+            <div id="piListaLogs"><p class="carregando">Carregando...</p></div>
+          </div>
+
+          <div id="pi-secao-notificacoes" class="hidden">
+            <div class="notif-head">
+              <h4>Notificações Push</h4>
+              <p>Ligue ou desligue cada aviso enviado pelo sistema.</p>
+            </div>
+            <div class="notif-card">
+              <div class="notif-card-head"><i class="fas fa-sliders-h"></i> Avisos automáticos</div>
+              <div id="piListaNotif"><p class="carregando">Carregando...</p></div>
+            </div>
+            <div class="notif-card">
+              <div class="notif-card-head"><i class="fas fa-paper-plane"></i> Enviar notificação manual</div>
+              <p class="notif-hint">Escreva um aviso e escolha para quem enviar. Para testar sozinho, selecione apenas "Administrador".</p>
+              <label class="notif-label" for="piManualTitulo">Título <span>(opcional)</span></label>
+              <input id="piManualTitulo" type="text" class="notif-input" placeholder="Ex: Reunião de líderes" maxlength="60">
+              <label class="notif-label" for="piManualCorpo">Mensagem <span>(obrigatória)</span></label>
+              <textarea id="piManualCorpo" class="notif-input" rows="3" placeholder="Escreva a mensagem da notificação..." maxlength="240"></textarea>
+              <label class="notif-label">Destinatários</label>
+              <div id="piManualCategorias" class="notif-chips"><span style="font-size:0.8rem; color:#999;">Carregando...</span></div>
+              <label class="notif-label" for="piManualUrl">Link ao abrir <span>(opcional)</span></label>
+              <input id="piManualUrl" type="text" class="notif-input" placeholder="Ex: ./membro.html">
+              <div class="notif-actions">
+                <button id="piBtnEnviarManual" onclick="piEnviarPushManual()" class="notif-btn"><i class="fas fa-paper-plane"></i> Enviar</button>
+                <label class="notif-sim"><input type="checkbox" id="piManualSimular"> Simular (não envia)</label>
+              </div>
+              <div id="piManualStatus" class="notif-status"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <script>
       let sb = null;
       let IGREJAS = [];
+      let igrejaAtual = null;
+      let piUsuarios = [];
+      let piCelulas = [];
+      let piLogs = [];
+      let piConfig = [];
+
+      const NOTIF_LABELS = {
+        global: 'Notificações em geral',
+        palavra: 'Nova palavra publicada (todos)',
+        evento: 'Novo evento (todos)',
+        inscricao: 'Nova inscrição em evento (pastores e discipuladores)',
+        oracao: 'Pedido de oração (pastores)',
+        relatorio: 'Relatório de célula (discipulador e pastor)',
+        aniversario: 'Aniversariante do dia (líder da célula)',
+        agenda: 'Agenda do dia (todos)'
+      };
+      const NOTIF_ORDEM = ['global','palavra','evento','inscricao','oracao','relatorio','aniversario','agenda'];
+      const PUSH_TODOS = '__todos__';
 
       (async () => {
         sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -116,6 +338,11 @@
           .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
       }
 
+      function normalizarCategoria(cat) {
+        return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      }
+
+      /* ================= Igrejas ================= */
       async function carregarIgrejas() {
         const box = document.getElementById('listaIgrejas');
         const icone = document.getElementById('iconRefresh');
@@ -149,9 +376,12 @@
               <p>slug: ${esc(ig.slug)}</p>
               <span class="badge ${ig.ativa ? 'on' : 'off'}">${ig.ativa ? 'Ativa' : 'Inativa'}</span>
             </div>
-            <div>
-              <button class="btn-acao" onclick="gerarConvite('${ig.id}', '${esc(ig.nome)}')">
-                <i class="fas fa-user-plus"></i> Convite do 1º usuário
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-acao principal" onclick="abrirPainelIgreja('${ig.id}')">
+                <i class="fas fa-folder-open"></i> Gerenciar
+              </button>
+              <button class="btn-acao" onclick="gerarConvite('${ig.id}')">
+                <i class="fas fa-user-plus"></i> Convite
               </button>
             </div>
           </div>`).join('');
@@ -184,8 +414,11 @@
         carregarIgrejas();
       }
 
-      async function gerarConvite(igrejaId, igrejaNome) {
-        const usuario = await UI.prompt('Usuário de login do primeiro cadastro (sem espaços):', {
+      async function gerarConvite(igrejaId) {
+        const ig = IGREJAS.find(x => x.id === igrejaId);
+        const igrejaNome = ig ? ig.nome : 'Igreja';
+
+        const usuario = await UI.prompt('Usuário de login (sem espaços):', {
           titulo: 'Convite - ' + igrejaNome, placeholder: 'ex.: secretaria', textoOk: 'Continuar'
         });
         if (usuario === null) return;
@@ -193,20 +426,13 @@
         const u = usuario.trim().toLowerCase();
         if (!u || /\s/.test(u)) { UI.toast('Usuário inválido (use um login sem espaços).', { tipo: 'aviso' }); return; }
 
-        const cat = await UI.prompt('Categoria do primeiro usuário:', {
-          titulo: 'Categoria', valor: 'Administrador', placeholder: 'Administrador',
-          textoOk: 'Gerar convite'
+        const cat = await UI.prompt('Categoria do usuário:', {
+          titulo: 'Categoria', valor: 'Administrador', placeholder: 'Administrador', textoOk: 'Gerar convite'
         });
         if (cat === null) return;
         const categoria = (cat || '').trim() || 'Administrador';
 
-        const { data: existe, error: errChk } = await sb
-          .from('pessoas')
-          .select('id')
-          .ilike('usuario', u)
-          .limit(1);
-        if (errChk) { UI.toast('Falha ao validar o usuário.', { tipo: 'erro' }); console.error(errChk); return; }
-        if (existe && existe.length) { UI.toast('Já existe um usuário com esse login.', { tipo: 'erro' }); return; }
+        if (!(await piUsuarioDisponivel(u))) return;
 
         const token = crypto.randomUUID();
         const { error } = await sb.from('pessoas').insert([{
@@ -228,6 +454,467 @@
         });
       }
 
+      async function piUsuarioDisponivel(usuario) {
+        const { data, error } = await sb.from('pessoas').select('id').ilike('usuario', usuario).limit(1);
+        if (error) { UI.toast('Falha ao validar o usuário.', { tipo: 'erro' }); console.error(error); return false; }
+        if (data && data.length) { UI.toast('Já existe um usuário com esse login.', { tipo: 'erro' }); return false; }
+        return true;
+      }
+
+      /* ================= Modal da igreja ================= */
+      function abrirPainelIgreja(igrejaId) {
+        const ig = IGREJAS.find(x => x.id === igrejaId);
+        if (!ig) return;
+        igrejaAtual = ig;
+        document.getElementById('piTitulo').textContent = ig.nome;
+        document.getElementById('piSub').textContent = 'slug: ' + ig.slug;
+        document.getElementById('painelIgreja').classList.remove('hidden');
+        document.getElementById('piFiltroNome').value = '';
+        document.getElementById('piFiltroCategoria').value = '';
+        piMudarAba('usuarios');
+        piCarregarTudo();
+      }
+
+      function fecharPainelIgreja() {
+        document.getElementById('painelIgreja').classList.add('hidden');
+        igrejaAtual = null;
+      }
+
+      function piMudarAba(s) {
+        ['usuarios', 'form', 'logs', 'notificacoes'].forEach(k => {
+          const el = document.getElementById('pi-secao-' + k);
+          if (el) el.classList.add('hidden');
+        });
+        document.querySelectorAll('.pi-tab').forEach(b => b.classList.remove('active'));
+
+        const tab = (s === 'logs') ? 'logs' : (s === 'notificacoes') ? 'notificacoes' : 'usuarios';
+        const alvo = document.getElementById('pi-secao-' + s);
+        if (alvo) alvo.classList.remove('hidden');
+        const btn = document.getElementById('pi-tab-' + tab);
+        if (btn) btn.classList.add('active');
+      }
+
+      async function piCarregarTudo() {
+        if (!igrejaAtual) return;
+        const id = igrejaAtual.id;
+        const [u, c, l, cfg] = await Promise.all([
+          sb.from('pessoas').select('*').eq('igreja_id', id).order('nome', { ascending: true }),
+          sb.from('celulas').select('*').eq('igreja_id', id).order('nome', { ascending: true }),
+          sb.from('logs').select('*').eq('igreja_id', id).order('datahora', { ascending: false }).limit(100),
+          sb.from('push_config').select('chave, ativo').eq('igreja_id', id)
+        ]);
+        piUsuarios = u.data || [];
+        piCelulas = c.data || [];
+        piLogs = l.data || [];
+        piConfig = cfg.data || [];
+        piFiltrarUsuarios();
+        piRenderLogs(piLogs);
+        piRenderNotif(piConfig);
+      }
+
+      /* ---- Usuários ---- */
+      function piFiltrarUsuarios() {
+        const termo = (document.getElementById('piFiltroNome').value || '').toLowerCase();
+        const cat = (document.getElementById('piFiltroCategoria').value || '').toLowerCase();
+        const lista = piUsuarios.filter(u => {
+          const t = (u.nome && u.nome.toLowerCase().includes(termo)) ||
+                    (u.usuario && u.usuario.toLowerCase().includes(termo)) ||
+                    (u.email && u.email.toLowerCase().includes(termo));
+          const c = (cat === '') || (u.categoria && u.categoria.toLowerCase() === cat);
+          return t && c && u.is_user === true && u.super_admin !== true;
+        });
+        piRenderUsuarios(lista);
+      }
+
+      function piRenderUsuarios(lista) {
+        const div = document.getElementById('piListaUsuarios');
+        div.innerHTML = '';
+        if (!lista || !lista.length) {
+          div.innerHTML = '<p class="carregando">Nenhum usuário encontrado.</p>';
+          return;
+        }
+        lista.forEach(u => {
+          const nome = u.nome || u.usuario || 'Sem nome';
+          const usuario = u.usuario || '-';
+          const email = u.email || 'E-mail não cadastrado';
+          const cat = u.categoria || '';
+          const telefone = u.telefone || 'Sem telefone';
+          div.innerHTML += `
+            <div class="user-card">
+              <div class="user-info">
+                <h4>${esc(nome)}</h4>
+                <p><i class="fas fa-user-circle"></i> Login: <strong>${esc(usuario)}</strong></p>
+                <p><i class="fas fa-envelope"></i> ${esc(email)}</p>
+                <p><i class="fab fa-whatsapp"></i> ${esc(telefone)}</p>
+                <span class="badge-role ${esc(cat.replace(/\s/g, ''))}">${esc(cat)}</span>
+              </div>
+              <div class="action-btns">
+                <button onclick="piRedefinirSenha('${u.id}')" class="btn-icon-action btn-key" title="Redefinir Senha"><i class="fas fa-key"></i></button>
+                <button onclick="piEditarUsuario('${u.id}')" class="btn-icon-action btn-edit" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                <button onclick="piExcluirUsuario('${u.id}')" class="btn-icon-action btn-del" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+              </div>
+            </div>`;
+        });
+      }
+
+      async function piPreencherSelects(idSuperiorAtual) {
+        idSuperiorAtual = idSuperiorAtual || null;
+        const selSuperior = document.getElementById('piCadSuperior');
+        selSuperior.innerHTML = '<option value="">Nenhum (Topo)</option>';
+        const superiores = piUsuarios.filter(u =>
+          ['administrador', 'pastor de governo', 'pastor de rede', 'discipulador'].includes(normalizarCategoria(u.categoria))
+        );
+        if (idSuperiorAtual && !superiores.some(u => u.id === idSuperiorAtual)) {
+          const { data: sup } = await sb.from('pessoas').select('id, nome, categoria').eq('id', idSuperiorAtual).maybeSingle();
+          if (sup) superiores.push(sup);
+        }
+        superiores.forEach(u => {
+          const nomeExibido = u.nome || u.usuario || 'Sem nome';
+          const sel = (idSuperiorAtual && u.id === idSuperiorAtual) ? ' selected' : '';
+          selSuperior.innerHTML += `<option value="${u.id}"${sel}>${esc(nomeExibido)} (${esc(u.categoria)})</option>`;
+        });
+
+        const selCelula = document.getElementById('piCadCelula');
+        selCelula.innerHTML = '<option value="">Nenhuma</option>';
+        piCelulas.forEach(c => {
+          selCelula.innerHTML += `<option value="${c.id}">${esc(c.nome)}</option>`;
+        });
+      }
+
+      async function piNovoUsuario() {
+        document.getElementById('piForm').reset();
+        document.getElementById('piUsuarioOriginal').value = '';
+        document.getElementById('piFormTitulo').innerText = 'Novo Usuário';
+        document.getElementById('piConviteBox').classList.add('hidden');
+        await piPreencherSelects();
+        piMudarAba('form');
+      }
+
+      async function piEditarUsuario(id) {
+        const u = piUsuarios.find(x => x.id === id);
+        if (!u) return;
+        document.getElementById('piUsuarioOriginal').value = u.id;
+        document.getElementById('piCadUsuario').value = u.usuario || '';
+        document.getElementById('piCadTelefone').value = u.telefone || '';
+        document.getElementById('piCadCategoria').value = u.categoria || 'Membro';
+        document.getElementById('piCadIsUser').checked = u.is_user === true;
+        await piPreencherSelects(u.superior_id);
+        document.getElementById('piCadSuperior').value = u.superior_id || '';
+        document.getElementById('piCadCelula').value = u.celula_id || '';
+        document.getElementById('piFormTitulo').innerText = 'Editar Usuário';
+        document.getElementById('piConviteBox').classList.add('hidden');
+        piMudarAba('form');
+      }
+
+      function piVoltarLista() {
+        document.getElementById('piConviteBox').classList.add('hidden');
+        piMudarAba('usuarios');
+      }
+
+      document.getElementById('piForm').onsubmit = async function (e) {
+        e.preventDefault();
+        if (!igrejaAtual) return;
+        const btn = document.getElementById('piBtnSalvar');
+        btn.disabled = true;
+        btn.innerText = 'Salvando...';
+
+        const idUsuario = document.getElementById('piUsuarioOriginal').value;
+        const superiorId = document.getElementById('piCadSuperior').value;
+        const celulaId = document.getElementById('piCadCelula').value;
+        const usuario = document.getElementById('piCadUsuario').value.trim().toLowerCase();
+        const telefone = document.getElementById('piCadTelefone').value;
+        const categoria = document.getElementById('piCadCategoria').value;
+        const isUser = document.getElementById('piCadIsUser').checked;
+
+        const d = {
+          usuario: usuario,
+          nome: usuario,
+          telefone: telefone,
+          categoria: categoria,
+          superior_id: superiorId || null,
+          celula_id: celulaId || null,
+          is_user: isUser
+        };
+
+        try {
+          if (idUsuario) {
+            const pessoaAtual = piUsuarios.find(x => x.id === idUsuario);
+            if (pessoaAtual && pessoaAtual.nome && pessoaAtual.nome !== pessoaAtual.usuario) d.nome = pessoaAtual.nome;
+
+            const resultado = await sb.from('pessoas').update(d).eq('id', idUsuario);
+            if (resultado.error) throw resultado.error;
+
+            const cn = normalizarCategoria(d.categoria);
+            if (cn === 'lider' && pessoaAtual && pessoaAtual.superior_id !== d.superior_id) {
+              const { data: celulasDoLider, error: celError } = await sb.from('celulas').select('id').eq('lider_user_id', idUsuario);
+              if (!celError && celulasDoLider && celulasDoLider.length) {
+                await sb.from('celulas').update({ supervisor_user_id: d.superior_id || null }).in('id', celulasDoLider.map(c => c.id));
+              }
+            }
+            piRegistrarLogAcao(`Editou o usuário: ${d.usuario}`);
+            UI.toast('Usuário atualizado com sucesso!', { tipo: 'sucesso' });
+            await piCarregarTudo();
+            piMudarAba('usuarios');
+          } else {
+            if (!(await piUsuarioDisponivel(usuario))) { btn.disabled = false; btn.innerText = 'Salvar Usuário'; return; }
+            d.igreja_id = igrejaAtual.id;
+            d.token_convite = crypto.randomUUID();
+            const resultado = await sb.from('pessoas').insert([d]).select();
+            if (resultado.error) throw resultado.error;
+            piRegistrarLogAcao(`Criou novo usuário: ${d.usuario}`);
+
+            document.getElementById('piForm').style.display = 'none';
+            document.getElementById('piFormTitulo').innerText = 'Usuário criado!';
+            const pessoa = resultado.data[0];
+            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            document.getElementById('piLinkConvite').value = base + 'completar-cadastro.html?token=' + pessoa.token_convite;
+            document.getElementById('piConviteBox').classList.remove('hidden');
+            await piCarregarTudo();
+          }
+        } catch (error) {
+          console.error('Erro ao salvar:', error);
+          UI.toast('Erro ao salvar. Detalhes: ' + error.message, { tipo: 'erro' });
+        } finally {
+          btn.disabled = false;
+          btn.innerText = 'Salvar Usuário';
+          if (document.getElementById('piConviteBox').classList.contains('hidden')) {
+            document.getElementById('piForm').style.display = 'block';
+          }
+        }
+      };
+
+      async function piExcluirUsuario(id) {
+        const u = piUsuarios.find(x => x.id === id);
+        const nome = u ? (u.nome || u.usuario || 'usuário') : 'usuário';
+        if (!(await UI.confirmar(`Tem certeza que deseja EXCLUIR o usuário '${nome}'?`, { titulo: 'Excluir usuário', textoOk: 'Excluir', perigo: true }))) return;
+        try {
+          const { error } = await sb.from('pessoas').delete().eq('id', id);
+          if (error) throw error;
+          piRegistrarLogAcao(`Excluiu o usuário: ${nome}`);
+          UI.toast('Usuário excluído com sucesso!', { tipo: 'sucesso' });
+          await piCarregarTudo();
+        } catch (e) {
+          console.error('Erro ao excluir:', e);
+          UI.toast('Erro ao excluir usuário. Detalhes: ' + e.message, { tipo: 'erro' });
+        }
+      }
+
+      async function piRedefinirSenha(id) {
+        const u = piUsuarios.find(x => x.id === id);
+        const email = u ? u.email : '';
+        if (!email) { UI.toast('Este usuário não possui e-mail cadastrado.', { tipo: 'erro' }); return; }
+        if (!(await UI.confirmar(`Deseja enviar um link de redefinição de senha para ${email}?`, { titulo: 'Redefinir senha', textoOk: 'Enviar link' }))) return;
+        try {
+          const { error } = await sb.auth.resetPasswordForEmail(email, {
+            redirectTo: new URL('nova-senha.html', window.location.href).href
+          });
+          if (error) throw error;
+          piRegistrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
+          UI.toast('Link de redefinição enviado com sucesso!', { tipo: 'sucesso' });
+        } catch (e) {
+          console.error('Erro ao enviar link:', e);
+          UI.toast('Erro ao enviar link: ' + e.message, { tipo: 'erro' });
+        }
+      }
+
+      function piCopiarLink() {
+        const input = document.getElementById('piLinkConvite');
+        input.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).catch(() => {});
+        UI.toast('Link copiado! Cole no WhatsApp do usuário.', { tipo: 'sucesso' });
+      }
+
+      /* ---- Logs ---- */
+      function piRenderLogs(lista) {
+        const div = document.getElementById('piListaLogs');
+        div.innerHTML = '';
+        if (!lista || !lista.length) {
+          div.innerHTML = '<p class="carregando">Nenhum registro encontrado.</p>';
+          return;
+        }
+        lista.slice().sort((a, b) => new Date(b.datahora) - new Date(a.datahora)).forEach(l => {
+          let dataF = l.datahora;
+          try {
+            const d = new Date(l.datahora);
+            if (!isNaN(d)) dataF = d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          } catch (e) {}
+          const login = l.usuario || 'Sistema';
+          const nome = l.nomelider || 'Desconhecido';
+          const acao = l.acao || '';
+          const cls = acao.includes('Sucesso') ? 'Sucesso' : '';
+          div.innerHTML += `
+            <div class="log-card ${cls}">
+              <div style="flex:1; min-width:0;">
+                <div class="log-date"><i class="far fa-clock"></i> ${esc(dataF)}</div>
+                <p class="log-text"><strong>${esc(nome)}</strong> (${esc(login)})<br>${esc(acao)}</p>
+              </div>
+              <button onclick="piExcluirLog('${l.id}')" class="btn-icon-action btn-del" title="Excluir este log" style="flex-shrink:0; margin-left:8px;"><i class="fas fa-trash-alt"></i></button>
+            </div>`;
+        });
+      }
+
+      async function piExcluirLog(id) {
+        if (!(await UI.confirmar('Excluir este log individualmente?', { titulo: 'Excluir log', textoOk: 'Excluir', perigo: true }))) return;
+        try {
+          const { error } = await sb.from('logs').delete().eq('id', id);
+          if (error) throw error;
+          piLogs = piLogs.filter(l => l.id !== id);
+          piRenderLogs(piLogs);
+          UI.toast('Log excluído com sucesso.', { tipo: 'sucesso' });
+        } catch (e) {
+          UI.toast('Erro ao excluir: ' + e.message, { tipo: 'erro' });
+        }
+      }
+
+      async function piLimparLogs() {
+        if (!igrejaAtual) return;
+        if (!(await UI.confirmar('ATENÇÃO: apagar todo o histórico de logs desta igreja? Esta ação não pode ser desfeita.', { titulo: 'Limpar histórico', textoOk: 'Apagar tudo', perigo: true }))) return;
+        try {
+          const { error } = await sb.from('logs').delete().eq('igreja_id', igrejaAtual.id);
+          if (error) throw error;
+          UI.toast('Logs apagados com sucesso!', { tipo: 'sucesso' });
+          await piCarregarTudo();
+        } catch (e) {
+          UI.toast('Erro ao limpar os logs. Detalhes: ' + e.message, { tipo: 'erro' });
+        }
+      }
+
+      async function piRegistrarLogAcao(acao) {
+        if (!igrejaAtual) return;
+        const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
+        const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+        try {
+          await sb.from('logs').insert([{
+            datahora: new Date().toISOString(),
+            usuario: userEmail,
+            nomelider: nomeReal,
+            acao: acao,
+            igreja_id: igrejaAtual.id
+          }]);
+        } catch (e) { console.error('Erro ao registrar log:', e); }
+      }
+
+      /* ---- Notificações ---- */
+      function piRenderNotif(lista) {
+        const div = document.getElementById('piListaNotif');
+        const mapa = {};
+        (lista || []).forEach(c => { mapa[c.chave] = c.ativo === true; });
+        div.innerHTML = '';
+        let achou = false;
+        NOTIF_ORDEM.forEach(chave => {
+          if (!(chave in mapa)) return;
+          achou = true;
+          div.innerHTML += `
+            <div class="notif-row">
+              <span class="switch-label-text">${esc(NOTIF_LABELS[chave] || chave)}</span>
+              <label class="switch"><input type="checkbox" ${mapa[chave] ? 'checked' : ''} onchange="piToggleNotificacao('${chave}', this.checked)"><span class="slider"></span></label>
+            </div>`;
+        });
+        if (!achou) div.innerHTML = '<p class="carregando">Nenhuma configuração encontrada.</p>';
+        piRenderCategorias();
+      }
+
+      function piRenderCategorias() {
+        const div = document.getElementById('piManualCategorias');
+        const grupo = new Set();
+        (piUsuarios || []).forEach(u => {
+          if (u.is_user === false || u.super_admin === true) return;
+          const c = (u.categoria || '').trim();
+          if (c) grupo.add(c);
+        });
+        const categorias = [...grupo].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        if (!categorias.length) {
+          div.innerHTML = '<span style="font-size:0.8rem; color:#999;">Nenhuma categoria encontrada.</span>';
+          return;
+        }
+        const opcoes = [{ valor: PUSH_TODOS, label: 'Todos os usuários' }, ...categorias.map(c => ({ valor: c, label: c }))];
+        div.innerHTML = opcoes.map(o => `
+          <label class="notif-chip">
+            <input type="checkbox" value="${esc(o.valor)}" onchange="piToggleCategoria(this)"> <span>${esc(o.label)}</span>
+          </label>`).join('');
+      }
+
+      function piToggleCategoria(el) {
+        const boxes = document.querySelectorAll('#piManualCategorias input[type=checkbox]');
+        if (el.value === PUSH_TODOS && el.checked) {
+          boxes.forEach(b => { if (b !== el) b.checked = false; });
+        } else if (el.checked) {
+          const todos = document.querySelector(`#piManualCategorias input[value="${PUSH_TODOS}"]`);
+          if (todos) todos.checked = false;
+        }
+        document.querySelectorAll('#piManualCategorias .notif-chip').forEach(label => {
+          const cb = label.querySelector('input[type=checkbox]');
+          label.classList.toggle('on', !!(cb && cb.checked));
+        });
+      }
+
+      function piCategoriasSelecionadas() {
+        const vals = [...document.querySelectorAll('#piManualCategorias input[type=checkbox]:checked')].map(b => b.value);
+        if (vals.includes(PUSH_TODOS)) return null;
+        return vals;
+      }
+
+      async function piToggleNotificacao(chave, ativo) {
+        if (!igrejaAtual) return;
+        try {
+          const { error } = await sb.from('push_config')
+            .update({ ativo: ativo, atualizado_em: new Date().toISOString() })
+            .eq('chave', chave)
+            .eq('igreja_id', igrejaAtual.id);
+          if (error) throw error;
+          piRegistrarLogAcao(`${ativo ? 'Ativou' : 'Desativou'} a notificação: ${NOTIF_LABELS[chave] || chave}`);
+        } catch (e) {
+          console.error('Erro ao salvar notificação:', e);
+          UI.toast('Erro ao salvar a notificação. Detalhes: ' + e.message, { tipo: 'erro' });
+          piCarregarTudo();
+        }
+      }
+
+      async function piEnviarPushManual() {
+        if (!igrejaAtual) return;
+        const btn = document.getElementById('piBtnEnviarManual');
+        const status = document.getElementById('piManualStatus');
+        const titulo = (document.getElementById('piManualTitulo').value || '').trim();
+        const corpo = (document.getElementById('piManualCorpo').value || '').trim();
+        const url = (document.getElementById('piManualUrl').value || '').trim();
+        const simular = document.getElementById('piManualSimular').checked === true;
+        const categorias = piCategoriasSelecionadas();
+
+        if (!corpo) { UI.toast('Digite a mensagem da notificação.', { tipo: 'aviso' }); return; }
+        if (categorias && !categorias.length) { UI.toast('Selecione pelo menos um destinatário.', { tipo: 'aviso' }); return; }
+
+        const alvoTxt = categorias ? categorias.join(', ') : 'Todos os usuários';
+        if (!simular && !(await UI.confirmar(`Enviar esta notificação para a igreja ${igrejaAtual.nome} (${alvoTxt})?`, { titulo: 'Enviar notificação', textoOk: 'Enviar' }))) return;
+
+        btn.disabled = true;
+        status.textContent = 'Enviando...';
+        status.style.color = '#777';
+        try {
+          const { data, error } = await sb.functions.invoke('enviar-manual', {
+            body: { titulo, corpo, url, categorias, igreja_id: igrejaAtual.id, dry_run: simular }
+          });
+          if (error) throw error;
+          const r = data || {};
+          if (r.error) throw new Error(r.error);
+          if (simular) {
+            status.textContent = `Simulação: ${r.alvo ?? 0} dispositivo(s) de ${(r.pessoaIds || []).length} pessoa(s) receberiam.`;
+          } else {
+            status.textContent = `Enviado para ${r.enviados ?? 0} dispositivo(s) (${r.alvo ?? 0} no total).`;
+          }
+          status.style.color = '#0a7a34';
+          piRegistrarLogAcao(`${simular ? 'Simulou' : 'Enviou'} notificação manual para: ${alvoTxt}`);
+          document.getElementById('piManualCorpo').value = '';
+        } catch (e) {
+          console.error('Erro ao enviar notificação manual:', e);
+          status.textContent = 'Erro: ' + (e.message || e);
+          status.style.color = '#b00020';
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      /* ---- Sair ---- */
       async function sair() {
         if (await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) {
           try { await sb.auth.signOut(); } catch (e) {}
@@ -235,6 +922,12 @@
           window.location.href = "index.html?t=" + Date.now();
         }
       }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !document.getElementById('painelIgreja').classList.contains('hidden')) {
+          fecharPainelIgreja();
+        }
+      });
     </script>
   </body>
 </html>

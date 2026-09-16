@@ -516,7 +516,7 @@
                                    (u.usuario && u.usuario.toLowerCase().includes(termoDigitado)) ||
                                    (u.email && u.email.toLowerCase().includes(termoDigitado));
               const categoriaCombina = (categoriaSelecionada === "") || (u.categoria && u.categoria.toLowerCase() === categoriaSelecionada);
-              return textoCombina && categoriaCombina && u.is_user === true;
+              return textoCombina && categoriaCombina && u.is_user === true && u.super_admin !== true;
           });
 
           renderizarUsuarios(dadosExibidos);

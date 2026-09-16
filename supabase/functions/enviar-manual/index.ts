@@ -44,14 +44,16 @@ type ManualBody = {
   corpo?: string;
   url?: string;
   categorias?: string[];
+  igreja_id?: string;
   dry_run?: boolean;
 };
 
-async function idsPorCategorias(sb: SupabaseClient, categorias: string[]): Promise<string[]> {
+async function idsPorCategorias(sb: SupabaseClient, categorias: string[], igrejaId: string): Promise<string[]> {
   const { data, error } = await sb
     .from("pessoas")
     .select("id, categoria")
-    .eq("is_user", true);
+    .eq("is_user", true)
+    .eq("igreja_id", igrejaId);
   if (error) throw new Error(error.message);
 
   const alvos = categorias.map(normalizar).filter(Boolean);
@@ -94,7 +96,7 @@ serve(async (req) => {
 
   const { data: pessoa, error: pessoaError } = await sb
     .from("pessoas")
-    .select("id, categoria")
+    .select("id, categoria, igreja_id, super_admin")
     .ilike("email", email)
     .maybeSingle();
   if (pessoaError) return json(500, { error: pessoaError.message });
@@ -115,6 +117,16 @@ serve(async (req) => {
   const destino = (body.url || "").trim() || "./index.html";
   const categorias = (body.categorias || []).map((c) => String(c)).filter(Boolean);
 
+  // Escopo por igreja. Super admin do fornecedor pode escolher a igreja;
+  // os demais so podem enviar para a propria igreja.
+  const igrejaBody = (body.igreja_id || "").trim();
+  const souSuper = pessoa?.super_admin === true;
+  if (igrejaBody && !souSuper && igrejaBody !== pessoa?.igreja_id) {
+    return json(403, { error: "igreja_nao_permitida" });
+  }
+  const igrejaId = (souSuper && igrejaBody) ? igrejaBody : (pessoa?.igreja_id || "");
+  if (!igrejaId) return json(400, { error: "igreja_indefinida" });
+
   try {
     configurarVapid();
   } catch (e) {
@@ -122,14 +134,15 @@ serve(async (req) => {
   }
 
   try {
-    const ids = categorias.length ? await idsPorCategorias(sb, categorias) : null;
+    const ids = categorias.length ? await idsPorCategorias(sb, categorias, igrejaId) : null;
     if (ids && !ids.length) {
       return json(200, { ok: true, alvo: 0, enviados: 0, removidos: 0 });
     }
 
     let query = sb
       .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth, pessoas!inner(id, is_user)");
+      .select("id, endpoint, p256dh, auth, pessoas!inner(id, is_user)")
+      .eq("igreja_id", igrejaId);
     if (ids) {
       query = query.in("pessoa_id", ids);
     } else {
