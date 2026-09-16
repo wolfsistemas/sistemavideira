@@ -2,3 +2,6 @@ project_id = "ctobdkstnrhepixyujms"
 
 [functions.enviar-manual]
 verify_jwt = false
+
+[functions.mp-webhook]
+verify_jwt = false
