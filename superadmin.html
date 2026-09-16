@@ -395,6 +395,9 @@
               <button class="btn-acao" onclick="gerarConvite('${ig.id}')">
                 <i class="fas fa-user-plus"></i> Convite
               </button>
+              <button class="btn-acao" onclick="gerenciarPlano('${ig.id}')">
+                <i class="fas fa-file-invoice-dollar"></i> Plano
+              </button>
             </div>
           </div>`).join('');
       }
@@ -464,6 +467,54 @@
         UI.prompt('Envie este link para a pessoa concluir o cadastro:', {
           titulo: 'Link de convite', valor: link, somenteLeitura: true, textoOk: 'Fechar'
         });
+      }
+
+      async function gerenciarPlano(igrejaId) {
+        const ig = IGREJAS.find(x => x.id === igrejaId);
+        const igrejaNome = ig ? ig.nome : 'Igreja';
+
+        const { data: atual, error: erroAtual } = await sb.rpc('igreja_plano', { p_igreja_id: igrejaId });
+        if (erroAtual) { UI.toast('Falha ao ler o plano: ' + erroAtual.message, { tipo: 'erro' }); return; }
+        const p = atual || {};
+
+        const nome = await UI.prompt('Nome do plano:', {
+          titulo: 'Plano - ' + igrejaNome, valor: p.plano || '', placeholder: 'Ex: Essencial', textoOk: 'Continuar'
+        });
+        if (nome === null) return;
+
+        const valor = await UI.prompt('Valor mensal (ex: 199.90). Vazio = não definir:', {
+          titulo: 'Plano - valor', valor: p.valor != null ? String(p.valor) : '', placeholder: '199.90', textoOk: 'Continuar'
+        });
+        if (valor === null) return;
+
+        const dia = await UI.prompt('Dia do vencimento (1 a 31):', {
+          titulo: 'Plano - vencimento', valor: p.dia_vencimento != null ? String(p.dia_vencimento) : '', placeholder: '10', textoOk: 'Continuar'
+        });
+        if (dia === null) return;
+
+        const status = await UI.prompt('Situação: trial, ativo, isento, inadimplente ou cancelado:', {
+          titulo: 'Plano - situação', valor: p.status || 'ativo', placeholder: 'ativo', textoOk: 'Continuar'
+        });
+        if (status === null) return;
+
+        const obs = await UI.prompt('Observação (opcional):', {
+          titulo: 'Plano - observação', valor: p.observacao || '', textoOk: 'Salvar'
+        });
+        if (obs === null) return;
+
+        const payload = {
+          plano: (nome || '').trim(),
+          valor: (valor || '').trim(),
+          dia_vencimento: (dia || '').trim(),
+          status: (status || '').trim(),
+          observacao: (obs || '').trim(),
+          inicio: p.inicio || '',
+          trial_fim: p.trial_fim || ''
+        };
+
+        const { error } = await sb.rpc('definir_igreja_plano', { p_plano: payload, p_igreja_id: igrejaId });
+        if (error) { UI.toast('Falha ao salvar o plano: ' + error.message, { tipo: 'erro' }); return; }
+        UI.toast('Plano atualizado!', { tipo: 'sucesso' });
       }
 
       async function piUsuarioDisponivel(usuario) {

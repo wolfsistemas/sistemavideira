@@ -287,6 +287,7 @@
           <button class="subnav-btn" id="subbtn-notificacoes" onclick="mudarSubConfig('notificacoes')"><i class="fas fa-bell"></i> Notificações</button>
           <button class="subnav-btn" id="subbtn-oferta" onclick="mudarSubConfig('oferta')"><i class="fa-brands fa-pix"></i> Oferta</button>
           <button class="subnav-btn" id="subbtn-assinatura" onclick="mudarSubConfig('assinatura')"><i class="fas fa-file-invoice-dollar"></i> Assinatura</button>
+          <button class="subnav-btn" id="subbtn-seguranca" onclick="mudarSubConfig('seguranca')"><i class="fas fa-shield-halved"></i> Segurança</button>
         </div>
 
         <div id="subcfg-igreja">
@@ -298,16 +299,58 @@
             <div class="cfg-row">
               <div>
                 <label>CNPJ</label>
-                <input type="text" id="igCnpj" maxlength="20" placeholder="00.000.000/0000-00" autocomplete="off">
+                <input type="text" id="igCnpj" maxlength="20" placeholder="00.000.000/0000-00" autocomplete="off" oninput="this.value = mascaraCnpj(this.value)">
               </div>
               <div>
                 <label>Telefone do Pastor</label>
-                <input type="tel" id="igTelefonePastor" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off">
+                <input type="tel" id="igTelefonePastor" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off" oninput="this.value = mascaraTelefone(this.value)">
               </div>
             </div>
 
-            <label>Endereço</label>
-            <input type="text" id="igEndereco" maxlength="300" placeholder="Rua, número, bairro, cidade - UF" autocomplete="off">
+            <div class="cfg-row">
+              <div>
+                <label>E-mail da Secretaria</label>
+                <input type="email" id="igEmailSecretaria" maxlength="200" placeholder="secretaria@igreja.com" autocomplete="off">
+              </div>
+              <div>
+                <label>Horários de culto</label>
+                <input type="text" id="igHorariosCulto" maxlength="300" placeholder="Dom 19h · Qua 20h" autocomplete="off">
+              </div>
+            </div>
+
+            <h4 class="cfg-title">Endereço</h4>
+            <div class="cfg-row">
+              <div>
+                <label>CEP</label>
+                <input type="text" id="igCep" maxlength="9" placeholder="00000-000" autocomplete="off" oninput="this.value = mascaraCep(this.value); if (this.value.length === 9) buscarCep()">
+              </div>
+              <div>
+                <label>Endereço</label>
+                <input type="text" id="igLogradouro" maxlength="200" placeholder="Rua / Avenida" autocomplete="off">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div>
+                <label>Número</label>
+                <input type="text" id="igNumero" maxlength="20" placeholder="123" autocomplete="off">
+              </div>
+              <div>
+                <label>Bairro</label>
+                <input type="text" id="igBairro" maxlength="120" placeholder="Centro" autocomplete="off">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div>
+                <label>Cidade</label>
+                <input type="text" id="igCidade" maxlength="120" placeholder="Jatai" autocomplete="off">
+              </div>
+              <div>
+                <label>UF</label>
+                <input type="text" id="igUf" maxlength="2" placeholder="GO" autocomplete="off" style="text-transform: uppercase;">
+              </div>
+            </div>
+            <label>Complemento</label>
+            <input type="text" id="igComplemento" maxlength="120" placeholder="Sala, bloco..." autocomplete="off">
 
             <h4 class="cfg-title">Pastores</h4>
             <div class="cfg-row">
@@ -339,7 +382,7 @@
               </div>
               <div>
                 <label>WhatsApp da Secretaria</label>
-                <input type="tel" id="igWhatsappSecretaria" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off">
+                <input type="tel" id="igWhatsappSecretaria" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off" oninput="this.value = mascaraTelefone(this.value)">
               </div>
             </div>
 
@@ -445,17 +488,51 @@
       <div id="subcfg-assinatura" class="hidden">
         <div class="form-box">
           <h4 class="cfg-title">Plano contratado</h4>
-          <p style="font-size:0.85rem; color:#777; margin-top:0;">Área reservada para a assinatura/pagamento do plano. As funções de valores serão implementadas depois.</p>
+          <p style="font-size:0.85rem; color:#777; margin-top:0;">Plano gerenciado pelo fornecedor do sistema. Para alterar, fale com o suporte.</p>
           <div class="cfg-row">
-            <div><label>Plano</label><input type="text" id="planoNome" placeholder="Em breve" disabled></div>
-            <div><label>Situação</label><input type="text" id="planoStatus" placeholder="Em breve" disabled></div>
+            <div><label>Plano</label><input type="text" id="planoNome" placeholder="Não definido" disabled></div>
+            <div><label>Situação</label><input type="text" id="planoStatus" placeholder="Não definido" disabled></div>
           </div>
           <div class="cfg-row">
-            <div><label>Valor mensal</label><input type="text" id="planoValor" placeholder="R$ --" disabled></div>
-            <div><label>Vencimento</label><input type="text" id="planoVencimento" placeholder="Dia --" disabled></div>
+            <div><label>Valor mensal</label><input type="text" id="planoValor" placeholder="--" disabled></div>
+            <div><label>Vencimento</label><input type="text" id="planoVencimento" placeholder="--" disabled></div>
           </div>
+          <div class="cfg-row">
+            <div><label>Início</label><input type="text" id="planoInicio" placeholder="--" disabled></div>
+            <div><label>Fim do teste (trial)</label><input type="text" id="planoTrial" placeholder="--" disabled></div>
+          </div>
+          <label>Observação</label>
+          <input type="text" id="planoObs" placeholder="--" disabled>
           <div style="font-size:0.82rem; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px; margin-top:10px;">
-            <i class="fas fa-lock"></i> Em breve: gestão de plano, cobrança e histórico de pagamentos.
+            <i class="fas fa-lock"></i> Em breve: cobrança, histórico de pagamentos e aviso de vencimento.
+          </div>
+        </div>
+      </div>
+
+      <div id="subcfg-seguranca" class="hidden">
+        <div class="form-box" style="margin-bottom:15px;">
+          <h4 class="cfg-title">Trocar minha senha</h4>
+          <div class="cfg-row">
+            <div>
+              <label>Nova senha</label>
+              <input type="password" id="segNovaSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+            </div>
+            <div>
+              <label>Confirmar nova senha</label>
+              <input type="password" id="segConfirmarSenha" placeholder="Repita a senha" autocomplete="new-password">
+            </div>
+          </div>
+          <button type="button" id="btnTrocarSenha" class="btn-save" onclick="trocarSenha()" style="margin-top:5px;">Alterar senha</button>
+          <div id="segStatus" style="font-size:0.85rem; margin-top:10px;"></div>
+        </div>
+
+        <div class="form-box">
+          <h4 class="cfg-title">Exportar dados</h4>
+          <p style="font-size:0.85rem; color:#777; margin-top:0;">Baixe uma cópia dos dados da sua igreja. Útil para backup e conferência.</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <button type="button" class="btn-save" style="background:#334155;" onclick="exportarUsuariosCsv()"><i class="fas fa-file-csv"></i> Usuários (CSV)</button>
+            <button type="button" class="btn-save" style="background:#334155;" onclick="exportarLogsCsv()"><i class="fas fa-file-csv"></i> Auditoria (CSV)</button>
+            <button type="button" class="btn-save" style="background:#334155;" onclick="exportarConfigJson()"><i class="fas fa-file-code"></i> Dados da igreja (JSON)</button>
           </div>
         </div>
       </div>
@@ -472,6 +549,7 @@
       
       let dadosUsuarios = []; 
       let dadosCelulas = [];
+      let dadosLogs = [];
 
       window.onload = carregarTudo;
 
@@ -487,7 +565,7 @@
       }
 
       function mudarSubConfig(sub) {
-         ['igreja','notificacoes','oferta','assinatura'].forEach(id => {
+         ['igreja','notificacoes','oferta','assinatura','seguranca'].forEach(id => {
             const el = document.getElementById('subcfg-'+id);
             if (el) el.classList.add('hidden');
          });
@@ -498,10 +576,14 @@
          if (btn) btn.classList.add('active');
          if (sub === 'igreja') carregarIgrejaInfo();
          if (sub === 'oferta') carregarPix();
+         if (sub === 'assinatura') carregarPlano();
       }
 
       const IGREJA_CAMPOS = {
-         razao_social: 'igRazaoSocial', cnpj: 'igCnpj', endereco: 'igEndereco',
+         razao_social: 'igRazaoSocial', cnpj: 'igCnpj',
+         cep: 'igCep', logradouro: 'igLogradouro', numero: 'igNumero', bairro: 'igBairro',
+         cidade: 'igCidade', uf: 'igUf', complemento: 'igComplemento',
+         email_secretaria: 'igEmailSecretaria', horarios_culto: 'igHorariosCulto',
          telefone_pastor: 'igTelefonePastor', pastor_governo: 'igPastorGoverno',
          pastor_supervisao: 'igPastorSupervisao', instagram: 'igInstagram',
          facebook: 'igFacebook', site: 'igSite', whatsapp_secretaria: 'igWhatsappSecretaria',
@@ -509,14 +591,66 @@
          tipo_conta: 'igTipoConta', favorecido: 'igFavorecido'
       };
 
+      const IGREJA_LABELS = {
+         razao_social: 'Razão Social', cnpj: 'CNPJ', cep: 'CEP', logradouro: 'Endereço',
+         numero: 'Número', bairro: 'Bairro', cidade: 'Cidade', uf: 'UF', complemento: 'Complemento',
+         email_secretaria: 'E-mail da secretaria', horarios_culto: 'Horários de culto',
+         telefone_pastor: 'Telefone do pastor', pastor_governo: 'Pastor de governo',
+         pastor_supervisao: 'Pastor da supervisão', instagram: 'Instagram', facebook: 'Facebook',
+         site: 'Site', whatsapp_secretaria: 'WhatsApp da secretaria', banco: 'Banco',
+         agencia: 'Agência', conta: 'Conta', tipo_conta: 'Tipo de conta', favorecido: 'Favorecido'
+      };
+
+      let igrejasInfoOriginal = {};
+
+      function soDigitos(v) { return String(v || '').replace(/\D/g, ''); }
+      function mascaraCnpj(v) {
+         const n = soDigitos(v).slice(0, 14);
+         return n
+            .replace(/^(\d{2})(\d)/, '$1.$2')
+            .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+            .replace(/\.(\d{3})(\d)/, '.$1/$2')
+            .replace(/(\d{4})(\d)/, '$1-$2');
+      }
+      function mascaraCep(v) {
+         const n = soDigitos(v).slice(0, 8);
+         return n.replace(/^(\d{5})(\d)/, '$1-$2');
+      }
+      function mascaraTelefone(v) {
+         const n = soDigitos(v).slice(0, 11);
+         if (n.length <= 10) return n.replace(/^(\d{2})(\d{4})(\d)/, '($1) $2-$3');
+         return n.replace(/^(\d{2})(\d{5})(\d)/, '($1) $2-$3');
+      }
+
+      async function buscarCep() {
+         const campo = document.getElementById('igCep');
+         const cep = soDigitos(campo && campo.value);
+         if (cep.length !== 8) return;
+         try {
+            const resp = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+            const dados = await resp.json();
+            if (!dados || dados.erro) return;
+            const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+            set('igLogradouro', dados.logradouro);
+            set('igBairro', dados.bairro);
+            set('igCidade', dados.localidade);
+            set('igUf', dados.uf);
+            const numero = document.getElementById('igNumero');
+            if (numero) numero.focus();
+         } catch (e) { /* ignora falha de rede */ }
+      }
+
       async function carregarIgrejaInfo() {
          const status = document.getElementById('igStatus');
          try {
             const { data, error } = await supabaseClient.rpc('igreja_info');
             if (error) throw error;
+            igrejasInfoOriginal = {};
             Object.keys(IGREJA_CAMPOS).forEach(k => {
                const el = document.getElementById(IGREJA_CAMPOS[k]);
-               if (el) el.value = (data && data[k]) || '';
+               const valor = (data && data[k]) || '';
+               if (el) el.value = valor;
+               igrejasInfoOriginal[k] = valor;
             });
             if (status) status.innerHTML = '';
          } catch (e) {
@@ -536,14 +670,120 @@
          try {
             const { error } = await supabaseClient.rpc('definir_igreja_info', { p_info: info });
             if (error) throw error;
+            const alterados = Object.keys(info).filter(k => (info[k] || '') !== (igrejasInfoOriginal[k] || ''));
             if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Dados salvos com sucesso.</span>';
             UI.toast('Dados da igreja salvos!', { tipo: 'sucesso' });
-            registrarLogAcao('Atualizou os dados da igreja');
+            igrejasInfoOriginal = Object.assign({}, info);
+            const resumo = alterados.map(k => IGREJA_LABELS[k] || k).slice(0, 6).join(', ');
+            registrarLogAcao('Atualizou os dados da igreja' + (resumo ? ': ' + resumo : ''));
          } catch (e) {
             if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar os dados da igreja.</span>';
             UI.toast('Erro ao salvar os dados da igreja.', { tipo: 'erro' });
          } finally {
             btn.disabled = false;
+         }
+      }
+
+      const PLANO_STATUS_LABELS = {
+         trial: 'Em teste (trial)', ativo: 'Ativo', isento: 'Isento',
+         inadimplente: 'Inadimplente', cancelado: 'Cancelado'
+      };
+
+      function formatarValorPlano(v) {
+         if (v === null || v === undefined || v === '') return '';
+         const n = Number(v);
+         return isNaN(n) ? String(v) : 'R$ ' + n.toFixed(2).replace('.', ',');
+      }
+
+      async function carregarPlano() {
+         try {
+            const { data, error } = await supabaseClient.rpc('igreja_plano');
+            if (error) throw error;
+            const p = data || {};
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+            set('planoNome', p.plano || '');
+            set('planoStatus', PLANO_STATUS_LABELS[p.status] || (p.status || ''));
+            set('planoValor', formatarValorPlano(p.valor));
+            set('planoVencimento', p.dia_vencimento ? ('Dia ' + p.dia_vencimento) : '');
+            set('planoInicio', formatarDataBR(p.inicio));
+            set('planoTrial', formatarDataBR(p.trial_fim));
+            set('planoObs', p.observacao || '');
+         } catch (e) { /* silencioso */ }
+      }
+
+      async function trocarSenha() {
+         const s1 = document.getElementById('segNovaSenha').value;
+         const s2 = document.getElementById('segConfirmarSenha').value;
+         const status = document.getElementById('segStatus');
+         if (!s1 || s1.length < 6) { UI.toast('A senha deve ter ao menos 6 caracteres.', { tipo: 'aviso' }); return; }
+         if (s1 !== s2) { UI.toast('As senhas não coincidem.', { tipo: 'aviso' }); return; }
+         const btn = document.getElementById('btnTrocarSenha');
+         btn.disabled = true;
+         try {
+            const { error } = await supabaseClient.auth.updateUser({ password: s1 });
+            if (error) throw error;
+            document.getElementById('segNovaSenha').value = '';
+            document.getElementById('segConfirmarSenha').value = '';
+            if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Senha alterada com sucesso.</span>';
+            UI.toast('Senha alterada!', { tipo: 'sucesso' });
+            registrarLogAcao('Alterou a própria senha');
+         } catch (e) {
+            if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao alterar a senha.</span>';
+            UI.toast('Erro ao alterar a senha.', { tipo: 'erro' });
+         } finally {
+            btn.disabled = false;
+         }
+      }
+
+      function dataArquivo() {
+         const d = new Date();
+         return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+      }
+      function baixarArquivo(nome, conteudo, tipo) {
+         const blob = new Blob([conteudo], { type: tipo || 'text/csv;charset=utf-8;' });
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = nome;
+         document.body.appendChild(a);
+         a.click();
+         a.remove();
+         setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+      function csvLinha(campos) {
+         return campos.map(v => {
+            const s = String(v == null ? '' : v);
+            return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+         }).join(';');
+      }
+      function exportarUsuariosCsv() {
+         const linhas = [['Nome', 'Usuario', 'Email', 'Telefone', 'Categoria']];
+         (dadosUsuarios || []).filter(u => u.is_user === true).forEach(u => {
+            linhas.push([u.nome || '', u.usuario || '', u.email || '', u.telefone || '', u.categoria || '']);
+         });
+         baixarArquivo('usuarios_' + dataArquivo() + '.csv', '\uFEFF' + linhas.map(csvLinha).join('\r\n'));
+      }
+      function exportarLogsCsv() {
+         const linhas = [['DataHora', 'Usuario', 'Nome', 'Acao']];
+         (dadosLogs || []).forEach(l => {
+            linhas.push([l.datahora || '', l.usuario || '', l.nomelider || '', l.acao || '']);
+         });
+         baixarArquivo('auditoria_' + dataArquivo() + '.csv', '\uFEFF' + linhas.map(csvLinha).join('\r\n'));
+      }
+      async function exportarConfigJson() {
+         try {
+            const [info, pix, plano] = await Promise.all([
+               supabaseClient.rpc('igreja_info'),
+               supabaseClient.rpc('pix_igreja'),
+               supabaseClient.rpc('igreja_plano')
+            ]);
+            const pacote = {
+               exportado_em: new Date().toISOString(),
+               igreja: { info: info.data || {}, pix: pix.data || {}, plano: plano.data || {} }
+            };
+            baixarArquivo('dados_igreja_' + dataArquivo() + '.json', JSON.stringify(pacote, null, 2), 'application/json');
+         } catch (e) {
+            UI.toast('Erro ao exportar os dados.', { tipo: 'erro' });
          }
       }
 
@@ -758,6 +998,7 @@
 
              dadosUsuarios = users || [];
              dadosCelulas = celulas || [];
+             dadosLogs = logs || [];
              filtrarUsuarios();
              renderizarLogs(logs || []);
              renderizarNotificacoes(config || []);
