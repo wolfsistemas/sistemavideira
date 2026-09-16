@@ -2122,30 +2122,63 @@
                 letter-spacing: 1px;
                 margin: 0;
             }
+            .info-titulo {
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #6A1B9A;
+                border-left: 4px solid #6A1B9A;
+                padding-left: 8px;
+                margin-bottom: 10px;
+            }
             .info-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 12px 20px;
-                margin-bottom: 25px;
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 8px;
+                gap: 8px 12px;
+                margin-bottom: 22px;
             }
-            .info-item { font-size: 14px; }
-            .info-item strong {
-                display: inline-block;
-                width: 160px;
-                color: #555;
+            .info-item {
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-left: 3px solid #1565C0;
+                border-radius: 6px;
+                padding: 7px 12px;
+                min-width: 0;
+            }
+            .info-item.full { grid-column: 1 / -1; }
+            .info-item.destaque {
+                background: #EDE7F6;
+                border-left-color: #6A1B9A;
+            }
+            .info-item .rotulo {
+                display: block;
+                font-size: 9.5px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: .6px;
+                color: #6A1B9A;
+                margin-bottom: 1px;
             }
             .info-item .valor {
+                display: block;
+                font-size: 13.5px;
                 font-weight: 600;
                 color: #1e293b;
+                line-height: 1.35;
+                word-break: break-word;
             }
-            .info-item .linha {
-                display: inline-block;
-                border-bottom: 1px solid #333;
-                width: 200px;
-                margin-left: 5px;
+            .info-item.destaque .valor-nome {
+                font-size: 17px;
+                font-weight: 800;
+                color: #4A148C;
+            }
+            .info-item.destaque .valor-horario {
+                display: block;
+                font-size: 12.5px;
+                font-weight: 700;
+                color: #1565C0;
+                margin-top: 2px;
             }
             table {
                 width: 100%;
@@ -2226,14 +2259,35 @@
                 <h1>Ficha da Célula</h1>
             </div>
 
-            <div class="info-grid">
-                <div class="info-item"><strong>Nome da Célula:</strong> <span class="valor">${nome}</span></div>
-                <div class="info-item"><strong>Horário:</strong> <span class="valor">${horario}</span></div>
-                <div class="info-item"><strong>Discipulador:</strong> <span class="valor">${nomeSupervisor}</span></div>
-                <div class="info-item"><strong>Líder:</strong> <span class="valor">${nomeLider}</span></div>
-                <div class="info-item"><strong>Líder em Treinamento:</strong> <span class="valor">${nomeColider || '__________________'}</span></div>                
-                <div class="info-item"><strong>Anfitrião:</strong> <span class="valor">${nomeAnfitriao}</span></div>
-                <div class="info-item" style="grid-column: span 2;"><strong>Endereço:</strong> <span class="valor">${endereco}</span></div>
+            <div class="celula-info">
+                <div class="info-titulo">Dados da Célula</div>
+                <div class="info-grid">
+                    <div class="info-item destaque full">
+                        <span class="rotulo">Célula</span>
+                        <span class="valor valor-nome">${nome}</span>
+                        <span class="valor-horario">Horário: ${horario}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="rotulo">Líder</span>
+                        <span class="valor">${nomeLider}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="rotulo">Líder em Treinamento</span>
+                        <span class="valor">${nomeColider || '__________________'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="rotulo">Discipulador</span>
+                        <span class="valor">${nomeSupervisor}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="rotulo">Anfitrião</span>
+                        <span class="valor">${nomeAnfitriao}</span>
+                    </div>
+                    <div class="info-item full">
+                        <span class="rotulo">Endereço</span>
+                        <span class="valor">${endereco}</span>
+                    </div>
+                </div>
             </div>
 
             <h3 style="margin: 15px 0 10px; color: #6A1B9A;">Lista de Membros (${membros.length})</h3>
