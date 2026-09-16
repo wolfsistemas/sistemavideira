@@ -368,6 +368,7 @@
     let celulasDoLider = [];
     let celulaAtiva = null;
     let membrosDaCelulaAtiva = [];
+    let mostrarArquivadosCelula = false;
     let listaPalavras = [];
     let listaAgenda = [];
     let palavraAtual = null;
@@ -559,6 +560,9 @@
         document.getElementById('modalCelulaTitulo').innerText = cel.nome;
         document.getElementById('modalCelula').classList.remove('hidden');
         document.getElementById('cadastroModalCelulaHidden').value = cel.id;
+        mostrarArquivadosCelula = false;
+        const chkArq = document.getElementById('chkMembrosArquivados');
+        if (chkArq) chkArq.checked = false;
         await carregarMembrosDaCelula(cel.id);
         renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
         atualizarColiderInfo();   // <-- adicione esta linha
@@ -646,19 +650,42 @@
     
 
     async function carregarMembrosDaCelula(celulaId) {
-    const meuId = sessionStorage.getItem('liderId');
     try {
-        const { data, error } = await supabaseClient
+        let consulta = supabaseClient
             .from('pessoas')
             .select('*')
-            .eq('celula_id', celulaId)
-            .eq('arquivado', false)
-            .order('nome', { ascending: true });
+            .eq('celula_id', celulaId);
+        // Por padrão mostra só ativos; o líder liga o filtro para ver os arquivados.
+        if (!mostrarArquivadosCelula) consulta = consulta.eq('arquivado', false);
+        const { data, error } = await consulta.order('nome', { ascending: true });
         if (error) throw error;
         // Não filtramos mais o líder, pois ele agora é membro da própria célula
         membrosDaCelulaAtiva = data || [];
     } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
 }
+
+    function ehArquivadoMembro(p) {
+        return !!(p && (p.arquivado === true || String(p.arquivado).toLowerCase() === 'sim'));
+    }
+
+    async function alternarMembrosArquivados() {
+        const chk = document.getElementById('chkMembrosArquivados');
+        mostrarArquivadosCelula = !!(chk && chk.checked);
+        if (!celulaAtiva) return;
+        await carregarMembrosDaCelula(celulaAtiva.id);
+        renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+    }
+
+    async function reativarMembro(id) {
+        if (!(await UI.confirmar("Reativar este membro?", { titulo: 'Reativar membro', textoOk: 'Reativar' }))) return;
+        await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id);
+        registrarLogAcao(`Reativou membro ID ${id}`);
+        carregarTudo();
+        if (celulaAtiva) {
+            await carregarMembrosDaCelula(celulaAtiva.id);
+            renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+        }
+    }
 
     function renderizarMembrosCelulaModal(lista) {
         const grid = document.getElementById('gridMembrosCelulaModal');
@@ -670,6 +697,7 @@
         const check = val => (String(val).toLowerCase() === 'sim' || val === true) ? 'active' : '';
         const formatData = d => { if(!d)return''; if(d.includes('/')) return d; const p=d.split('-'); return p.length===3 ? `${p[2]}/${p[1]}` : d; };
         lista.forEach(p => {
+            const arquivado = ehArquivadoMembro(p);
             let nome = p.nome || 'Sem nome';
             let categoria = p.categoria || 'Membro';
             let tel = String(p.telefone || '');
@@ -677,13 +705,16 @@
             let btnZap = telClean.length > 8 ? `<a href="https://wa.me/55${telClean}" target="_blank" class="btn-zap-icon"><i class="fab fa-whatsapp"></i></a>` : '';
             let nasc = p.nascimento ? `<span style="font-size:0.7rem;"><i class="fas fa-birthday-cake"></i> ${formatData(p.nascimento)}</span>` : '';
             let nomeCelula = celulaAtiva ? celulaAtiva.nome : '';
+            const btnAcaoArquivo = arquivado
+                ? `<button onclick="reativarMembro('${p.id}')" class="btn-action" style="background:#dcfce7; color:#166534;" title="Reativar membro"><i class="fas fa-rotate-left"></i></button>`
+                : `<button onclick="arquivarMembro('${p.id}')" class="btn-action btn-archive" title="Arquivar membro"><i class="fas fa-archive"></i></button>`;
             grid.innerHTML += `
-                <div class="member-card">
+                <div class="member-card"${arquivado ? ' style="opacity:0.65; border:1px dashed #f59e0b;"' : ''}>
                     <div class="card-header">
-                        <div><h4 class="card-name">${nome}</h4><span class="cat-badge">${categoria}</span></div>
+                        <div><h4 class="card-name">${nome}</h4><span class="cat-badge">${categoria}</span>${arquivado ? ' <span class="cat-badge" style="background:#fef3c7; color:#92400e;">Arquivado</span>' : ''}</div>
                         <div class="card-actions">
                             <button onclick="abrirEditarMembro('${p.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i></button>
-                            <button onclick="arquivarMembro('${p.id}')" class="btn-action btn-archive"><i class="fas fa-archive"></i></button>
+                            ${btnAcaoArquivo}
                             ${btnZap}
                         </div>
                     </div>
@@ -784,12 +815,13 @@
         
         const container = document.getElementById('checklistMembrosModal');
         container.innerHTML = '';
-        if (!membrosDaCelulaAtiva.length) {
+        const listaAtivos = membrosDaCelulaAtiva.filter(p => !ehArquivadoMembro(p));
+        if (!listaAtivos.length) {
             container.innerHTML = '<p style="color:#999;">Nenhum membro cadastrado.</p>';
             return;
         }
-        membrosDaCelulaAtiva.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-        membrosDaCelulaAtiva.forEach(p => {
+        listaAtivos.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+        listaAtivos.forEach(p => {
             const div = document.createElement('div');
             div.style.marginBottom = '8px';
             div.innerHTML = `<label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
@@ -824,7 +856,7 @@
         
         const checkboxes = document.querySelectorAll('#checklistMembrosModal input[name="presentes"]:checked');
         const presentesIds = Array.from(checkboxes).map(cb => cb.value);
-        const presencas = membrosDaCelulaAtiva.map(p => ({
+        const presencas = membrosDaCelulaAtiva.filter(p => !ehArquivadoMembro(p)).map(p => ({
             relatorio_id: relatorioId,
             membro_id: p.id,
             presente: presentesIds.includes(p.id)
@@ -1051,6 +1083,7 @@
         if (!p.presente) faltasMap[p.membro_id] = (faltasMap[p.membro_id] || 0) + 1;
     });
     return membrosDaCelulaAtiva
+        .filter(p => !ehArquivadoMembro(p))
         .filter(p => faltasMap[p.id] > 0)
         .map(p => ({ ...p, faltas: faltasMap[p.id] }));
 }
@@ -2304,6 +2337,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <button class="btn-action" style="background:var(--success-text); color:white;" onclick="abrirModalCadastroMembro()"><i class="fas fa-plus"></i> Novo Membro</button>
         <button class="btn-action" style="background:#fef3c7; color:#92400e;" onclick="abrirApascentar()"><i class="fas fa-hands-praying"></i> Apascentar</button>
         <button class="btn-action" style="background:#e0e7ff; color:#1e40af;" onclick="abrirModalRelatorio()"><i class="fas fa-clipboard-list"></i> Lançar Relatório</button>
+        <label style="display:flex; align-items:center; gap:8px; margin-left:auto; font-size:0.85rem; color:#555; cursor:pointer; user-select:none;">
+            <input type="checkbox" id="chkMembrosArquivados" onchange="alternarMembrosArquivados()" style="width:auto; margin:0;">
+            Mostrar arquivados
+        </label>
         <div id="coliderInfo" style="margin-bottom:15px; padding:8px 15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; display:none;"></div>
     </div>
     <div id="gridMembrosCelulaModal" class="member-grid"></div>
