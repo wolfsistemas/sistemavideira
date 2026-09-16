@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/legal.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -31,6 +32,10 @@
         button:disabled { background-color: #a0aec0; }
         .mensagem-erro { color: #e53e3e; font-size: 13px; margin-top: 15px; display: none; background: #fff5f5; padding: 10px; border-radius: 8px; }
         .sucesso-msg { color: #0f5132; font-size: 13px; margin-top: 15px; display: none; background: #d1e7dd; padding: 10px; border-radius: 8px; }
+        .termos-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 6px; }
+        .termos-box label { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: #4a5568; font-weight: 500; cursor: pointer; }
+        .termos-box input[type="checkbox"] { width: 16px; height: 16px; margin: 2px 0 0; flex: 0 0 auto; padding: 0; }
+        .termos-box a { color: #600018; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -65,6 +70,13 @@
                     <select id="superior_id">
                         <option value="">Selecione...</option>
                     </select>
+                </div>
+
+                <div class="termos-box">
+                    <label>
+                        <input type="checkbox" id="chkTermos">
+                        <span>Li e concordo com os <a href="termos.html" target="_blank" rel="noopener">Termos de Uso</a> e com a <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>. *</span>
+                    </label>
                 </div>
 
                 <button id="btn-salvar" onclick="finalizarCadastro()">Salvar e Acessar o Sistema</button>
@@ -159,10 +171,22 @@
                     datahora: new Date().toISOString(),    // formato ISO padronizado
                     usuario: email,
                     nomelider: nome,
-                    acao: 'Completou o cadastro no sistema'
+                    acao: 'Completou o cadastro e aceitou os Termos de Uso e a Politica de Privacidade (versao ' + versaoLegal() + ')'
                 }]);
             } catch (e) {
                 console.error("Erro ao registrar log de cadastro:", e);
+            }
+        }
+
+        function versaoLegal() {
+            return (window.VideiraLegal && window.VideiraLegal.versao) || 'sem-versao';
+        }
+
+        async function registrarAceiteTermos() {
+            try {
+                await supabaseClient.rpc('registrar_aceite_termos', { p_versao: versaoLegal() });
+            } catch (e) {
+                console.warn("Nao foi possivel registrar o aceite dos termos:", e);
             }
         }
 
@@ -174,6 +198,7 @@
             const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
             const email = document.getElementById('email').value.trim();
             const senha = document.getElementById('senha').value.trim();
+            const aceitouTermos = document.getElementById('chkTermos').checked;
             const erro = document.getElementById('mensagem-erro');
             const btn = document.getElementById('btn-salvar');
             const grupoSuperior = document.getElementById('grupo-superior');
@@ -188,6 +213,11 @@
         
             if (!nomeCompleto || !email || !senha) {
                 erro.innerText = 'Todos os campos com * são obrigatórios.';
+                erro.style.display = 'block';
+                return;
+            }
+            if (!aceitouTermos) {
+                erro.innerText = 'É necessário ler e aceitar os Termos de Uso e a Política de Privacidade.';
                 erro.style.display = 'block';
                 return;
             }
@@ -225,7 +255,10 @@
                     });
                 if (updateError) throw updateError;
         
-                // 3. Registrar log de conclusão de cadastro (usuário já está autenticado)
+                // 3. Registra o aceite dos documentos legais (versao vigente)
+                await registrarAceiteTermos();
+
+                // 4. Registrar log de conclusão de cadastro (usuário já está autenticado)
                 await registrarLogCompletarCadastro(nomeCompleto, email);
         
                 // Sucesso
