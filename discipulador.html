@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/acesso.js"></script>
     <script src="js/push.js"></script>
     <script src="js/biblia.js"></script>
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -343,6 +344,7 @@
         UI.restrito("Acesso restrito.", "index.html");
         return;
     }
+    if (window.Acesso && await Acesso.proteger(supabaseClient)) return;
     sessionStorage.setItem('discipuladorId', pessoa.id);
     sessionStorage.setItem('discipuladorSuperiorId', pessoa.superior_id);
     sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);

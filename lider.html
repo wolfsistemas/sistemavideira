@@ -11,6 +11,7 @@
     <script src="config.js"></script>
     <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/acesso.js"></script>
     <script src="js/push.js"></script>
     <!-- Módulo unificado da Bíblia -->
     <script src="js/biblia.js"></script>
@@ -396,6 +397,7 @@
                 UI.restrito("Acesso restrito.", "index.html");
                 return;
             }
+        if (window.Acesso && await Acesso.proteger(supabaseClient)) return;
         sessionStorage.setItem('liderId', pessoa.id);
         sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);

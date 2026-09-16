@@ -8,6 +8,7 @@
     <script src="config.js"></script>
     <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/acesso.js"></script>
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -151,6 +152,13 @@
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
     sessionStorage.setItem('loginDigitado', user.email);
     if (window.VideiraPush) VideiraPush.ativar(supabaseTemp);
+    if (window.Acesso) {
+        await Acesso.carregar(supabaseTemp);
+        if (Acesso.bloqueado()) {
+            window.__acessoBloqueado = true;
+            document.documentElement.classList.add('admin-bloqueado');
+        }
+    }
     if (new URLSearchParams(location.search).get('assinatura')) {
         window.addEventListener('load', () => {
             try { mudarSecao('config'); mudarSubConfig('assinatura'); } catch (e) { /* ignora */ }
@@ -576,14 +584,16 @@
       
 
       function mudarSecao(s) {
+         if (window.__acessoBloqueado && s !== 'config') s = 'config';
          ['usuarios','form-usuario','logs','config'].forEach(id => document.getElementById('secao-'+id).classList.add('hidden'));
          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
          document.getElementById('secao-'+s).classList.remove('hidden');
          if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
-         if (s === 'config') mudarSubConfig('igreja');
+         if (s === 'config') mudarSubConfig(window.__acessoBloqueado ? 'assinatura' : 'igreja');
       }
 
       function mudarSubConfig(sub) {
+         if (window.__acessoBloqueado && sub !== 'assinatura') sub = 'assinatura';
          ['igreja','notificacoes','oferta','assinatura','seguranca'].forEach(id => {
             const el = document.getElementById('subcfg-'+id);
             if (el) el.classList.add('hidden');
@@ -597,6 +607,37 @@
          if (sub === 'oferta') carregarPix();
          if (sub === 'assinatura') { carregarPlano(); carregarFaturas(); }
       }
+
+      function aplicarModoBloqueado() {
+         if (!window.__acessoBloqueado) return;
+         ['usuarios','logs'].forEach(function(id) {
+            var b = document.getElementById('btn-' + id);
+            if (b) { b.disabled = true; b.style.opacity = '0.4'; b.style.cursor = 'not-allowed'; }
+         });
+         ['igreja','notificacoes','oferta','seguranca'].forEach(function(id) {
+            var b = document.getElementById('subbtn-' + id);
+            if (b) { b.disabled = true; b.style.opacity = '0.4'; b.style.cursor = 'not-allowed'; }
+         });
+         if (document.getElementById('avisoBloqueio')) return;
+         var aviso = document.createElement('div');
+         aviso.id = 'avisoBloqueio';
+         aviso.setAttribute('style',
+            'background:#b91c1c;color:#fff;padding:12px 16px;border-radius:8px;margin:0 0 14px;' +
+            'display:flex;align-items:center;gap:10px;font-weight:600;font-size:0.92rem;');
+         aviso.innerHTML = '<i class="fas fa-lock"></i>' +
+            '<span style="flex:1;">Assinatura pendente. Somente a aba <b>Assinatura</b> esta disponivel ' +
+            'ate a regularizacao do pagamento.</span>';
+         var cont = document.querySelector('.container');
+         if (cont && cont.firstChild) cont.insertBefore(aviso, cont.firstChild);
+         else document.body.insertBefore(aviso, document.body.firstChild);
+      }
+
+      window.addEventListener('load', function () {
+         if (window.__acessoBloqueado) {
+            aplicarModoBloqueado();
+            try { mudarSecao('config'); mudarSubConfig('assinatura'); } catch (e) { /* ignora */ }
+         }
+      });
 
       const IGREJA_CAMPOS = {
          razao_social: 'igRazaoSocial', cnpj: 'igCnpj',
