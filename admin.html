@@ -38,6 +38,13 @@
       .nav-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
       .nav-btn.active { background: #000; color: white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
       @media (max-width: 380px) { .nav-btn { font-size: 0.7rem; padding: 10px 4px; } .nav-btn i { font-size: 1.05rem; } }
+      .subnav { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+      .subnav-btn { flex: 1 1 auto; min-width: 100px; padding: 10px 12px; border: none; border-radius: 8px; background: white; color: var(--text-light); font-weight: 600; font-size: 0.82rem; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+      .subnav-btn.active { background: #000; color: #fff; }
+      .cfg-title { margin: 18px 0 10px; color: #000; font-size: 0.95rem; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+      .cfg-title:first-child { margin-top: 0; }
+      .cfg-row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .cfg-row > div { flex: 1 1 160px; }
       .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; }
       .filter-bar input, .filter-bar select { margin-bottom: 0; padding: 10px; font-size: 0.9rem; border-color: #ddd; }
       .user-card { background: white; padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid #eee; }
@@ -181,8 +188,7 @@
       <div class="nav-menu">
         <button onclick="mudarSecao('usuarios')" class="nav-btn active" id="btn-usuarios"><i class="fas fa-users-cog"></i><span>Usuários</span></button>
         <button onclick="mudarSecao('logs')" class="nav-btn" id="btn-logs"><i class="fas fa-history"></i><span>Auditoria</span></button>
-        <button onclick="mudarSecao('notificacoes')" class="nav-btn" id="btn-notificacoes"><i class="fas fa-bell"></i><span>Notificações</span></button>
-        <button onclick="mudarSecao('oferta')" class="nav-btn" id="btn-oferta"><i class="fa-brands fa-pix"></i><span>Oferta</span></button>
+        <button onclick="mudarSecao('config')" class="nav-btn" id="btn-config"><i class="fas fa-gear"></i><span>Configurações</span></button>
       </div>
 
       <div id="secao-usuarios">
@@ -275,7 +281,98 @@
         </div>
       </div>
 
-      <div id="secao-notificacoes" class="hidden">
+      <div id="secao-config" class="hidden">
+        <div class="subnav">
+          <button class="subnav-btn active" id="subbtn-igreja" onclick="mudarSubConfig('igreja')"><i class="fas fa-church"></i> Igreja</button>
+          <button class="subnav-btn" id="subbtn-notificacoes" onclick="mudarSubConfig('notificacoes')"><i class="fas fa-bell"></i> Notificações</button>
+          <button class="subnav-btn" id="subbtn-oferta" onclick="mudarSubConfig('oferta')"><i class="fa-brands fa-pix"></i> Oferta</button>
+          <button class="subnav-btn" id="subbtn-assinatura" onclick="mudarSubConfig('assinatura')"><i class="fas fa-file-invoice-dollar"></i> Assinatura</button>
+        </div>
+
+        <div id="subcfg-igreja">
+          <div class="form-box">
+            <h4 class="cfg-title">Identificação</h4>
+            <label>Razão Social</label>
+            <input type="text" id="igRazaoSocial" maxlength="200" placeholder="Ex: Igreja Videira em Jatai" autocomplete="off">
+
+            <div class="cfg-row">
+              <div>
+                <label>CNPJ</label>
+                <input type="text" id="igCnpj" maxlength="20" placeholder="00.000.000/0000-00" autocomplete="off">
+              </div>
+              <div>
+                <label>Telefone do Pastor</label>
+                <input type="tel" id="igTelefonePastor" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off">
+              </div>
+            </div>
+
+            <label>Endereço</label>
+            <input type="text" id="igEndereco" maxlength="300" placeholder="Rua, número, bairro, cidade - UF" autocomplete="off">
+
+            <h4 class="cfg-title">Pastores</h4>
+            <div class="cfg-row">
+              <div>
+                <label>Pastor de Governo</label>
+                <input type="text" id="igPastorGoverno" maxlength="120" placeholder="Nome" autocomplete="off">
+              </div>
+              <div>
+                <label>Pastor da Supervisão</label>
+                <input type="text" id="igPastorSupervisao" maxlength="120" placeholder="Nome" autocomplete="off">
+              </div>
+            </div>
+
+            <h4 class="cfg-title">Redes sociais</h4>
+            <div class="cfg-row">
+              <div>
+                <label>Instagram</label>
+                <input type="text" id="igInstagram" maxlength="120" placeholder="@igreja" autocomplete="off">
+              </div>
+              <div>
+                <label>Facebook</label>
+                <input type="text" id="igFacebook" maxlength="120" placeholder="facebook.com/..." autocomplete="off">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div>
+                <label>Site</label>
+                <input type="text" id="igSite" maxlength="200" placeholder="https://..." autocomplete="off">
+              </div>
+              <div>
+                <label>WhatsApp da Secretaria</label>
+                <input type="tel" id="igWhatsappSecretaria" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off">
+              </div>
+            </div>
+
+            <h4 class="cfg-title">Dados bancários</h4>
+            <div class="cfg-row">
+              <div>
+                <label>Banco</label>
+                <input type="text" id="igBanco" maxlength="120" placeholder="Ex: Banco do Brasil" autocomplete="off">
+              </div>
+              <div>
+                <label>Agência</label>
+                <input type="text" id="igAgencia" maxlength="30" placeholder="0000-0" autocomplete="off">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div>
+                <label>Conta</label>
+                <input type="text" id="igConta" maxlength="40" placeholder="00000-0" autocomplete="off">
+              </div>
+              <div>
+                <label>Tipo de conta</label>
+                <input type="text" id="igTipoConta" maxlength="40" placeholder="Corrente / Poupança" autocomplete="off">
+              </div>
+            </div>
+            <label>Favorecido</label>
+            <input type="text" id="igFavorecido" maxlength="200" placeholder="Nome do titular da conta" autocomplete="off">
+
+            <button type="button" id="btnSalvarIgreja" class="btn-save" onclick="salvarIgrejaInfo()" style="margin-top:5px;">Salvar dados da igreja</button>
+            <div id="igStatus" style="font-size:0.85rem; margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <div id="subcfg-notificacoes" class="hidden">
         <div class="notif-head">
            <h4>Notificações Push</h4>
            <p>Ligue ou desligue cada aviso enviado pelo sistema.</p>
@@ -318,7 +415,7 @@
          </div>
       </div>
 
-      <div id="secao-oferta" class="hidden">
+      <div id="subcfg-oferta" class="hidden">
         <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
            <h4 style="margin:0; color: var(--text-light);">Chave PIX (Oferta)</h4>
         </div>
@@ -340,9 +437,28 @@
               <div style="flex:1; min-width:180px;">
                  <button type="button" id="btnSalvarPix" class="btn-save" onclick="salvarPix()" style="width:100%;">Salvar Chave PIX</button>
                  <div id="pixStatus" style="font-size:0.85rem; margin-top:10px;"></div>
-              </div>
-           </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div id="subcfg-assinatura" class="hidden">
+        <div class="form-box">
+          <h4 class="cfg-title">Plano contratado</h4>
+          <p style="font-size:0.85rem; color:#777; margin-top:0;">Área reservada para a assinatura/pagamento do plano. As funções de valores serão implementadas depois.</p>
+          <div class="cfg-row">
+            <div><label>Plano</label><input type="text" id="planoNome" placeholder="Em breve" disabled></div>
+            <div><label>Situação</label><input type="text" id="planoStatus" placeholder="Em breve" disabled></div>
+          </div>
+          <div class="cfg-row">
+            <div><label>Valor mensal</label><input type="text" id="planoValor" placeholder="R$ --" disabled></div>
+            <div><label>Vencimento</label><input type="text" id="planoVencimento" placeholder="Dia --" disabled></div>
+          </div>
+          <div style="font-size:0.82rem; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px; margin-top:10px;">
+            <i class="fas fa-lock"></i> Em breve: gestão de plano, cobrança e histórico de pagamentos.
+          </div>
         </div>
+      </div>
       </div>
 
     </div>
@@ -363,11 +479,72 @@
       
 
       function mudarSecao(s) {
-         ['usuarios','form-usuario','logs','notificacoes','oferta'].forEach(id => document.getElementById('secao-'+id).classList.add('hidden'));
+         ['usuarios','form-usuario','logs','config'].forEach(id => document.getElementById('secao-'+id).classList.add('hidden'));
          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
          document.getElementById('secao-'+s).classList.remove('hidden');
          if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
-         if (s === 'oferta') carregarPix();
+         if (s === 'config') mudarSubConfig('igreja');
+      }
+
+      function mudarSubConfig(sub) {
+         ['igreja','notificacoes','oferta','assinatura'].forEach(id => {
+            const el = document.getElementById('subcfg-'+id);
+            if (el) el.classList.add('hidden');
+         });
+         document.querySelectorAll('.subnav-btn').forEach(b => b.classList.remove('active'));
+         const alvo = document.getElementById('subcfg-'+sub);
+         if (alvo) alvo.classList.remove('hidden');
+         const btn = document.getElementById('subbtn-'+sub);
+         if (btn) btn.classList.add('active');
+         if (sub === 'igreja') carregarIgrejaInfo();
+         if (sub === 'oferta') carregarPix();
+      }
+
+      const IGREJA_CAMPOS = {
+         razao_social: 'igRazaoSocial', cnpj: 'igCnpj', endereco: 'igEndereco',
+         telefone_pastor: 'igTelefonePastor', pastor_governo: 'igPastorGoverno',
+         pastor_supervisao: 'igPastorSupervisao', instagram: 'igInstagram',
+         facebook: 'igFacebook', site: 'igSite', whatsapp_secretaria: 'igWhatsappSecretaria',
+         banco: 'igBanco', agencia: 'igAgencia', conta: 'igConta',
+         tipo_conta: 'igTipoConta', favorecido: 'igFavorecido'
+      };
+
+      async function carregarIgrejaInfo() {
+         const status = document.getElementById('igStatus');
+         try {
+            const { data, error } = await supabaseClient.rpc('igreja_info');
+            if (error) throw error;
+            Object.keys(IGREJA_CAMPOS).forEach(k => {
+               const el = document.getElementById(IGREJA_CAMPOS[k]);
+               if (el) el.value = (data && data[k]) || '';
+            });
+            if (status) status.innerHTML = '';
+         } catch (e) {
+            if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar os dados da igreja.</span>';
+         }
+      }
+
+      async function salvarIgrejaInfo() {
+         const btn = document.getElementById('btnSalvarIgreja');
+         const status = document.getElementById('igStatus');
+         const info = {};
+         Object.keys(IGREJA_CAMPOS).forEach(k => {
+            const el = document.getElementById(IGREJA_CAMPOS[k]);
+            if (el) info[k] = el.value.trim();
+         });
+         btn.disabled = true;
+         try {
+            const { error } = await supabaseClient.rpc('definir_igreja_info', { p_info: info });
+            if (error) throw error;
+            if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Dados salvos com sucesso.</span>';
+            UI.toast('Dados da igreja salvos!', { tipo: 'sucesso' });
+            registrarLogAcao('Atualizou os dados da igreja');
+         } catch (e) {
+            if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar os dados da igreja.</span>';
+            UI.toast('Erro ao salvar os dados da igreja.', { tipo: 'erro' });
+         } finally {
+            btn.disabled = false;
+         }
       }
 
       async function carregarPix() {
