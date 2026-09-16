@@ -1167,7 +1167,9 @@
     }
     function linkInscricao(eventoId) {
         const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-        return `${base}inscricao-evento.html?evento=${encodeURIComponent(eventoId)}`;
+        const ev = (typeof listaEventos !== 'undefined' ? listaEventos : []).find(e => e.id === eventoId);
+        const igreja = (ev && ev.igreja_id) ? `&igreja=${encodeURIComponent(ev.igreja_id)}` : '';
+        return `${base}inscricao-evento.html?evento=${encodeURIComponent(eventoId)}${igreja}`;
     }
 
     async function carregarEventos() {

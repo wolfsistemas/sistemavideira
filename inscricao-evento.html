@@ -308,8 +308,16 @@
 
 <script>
     // ========== CONFIG ==========
+    // A igreja vem no link (?igreja=<uuid>), gerado pelo painel pastoral do
+    // evento. Assim a RLS libera a leitura/gravação na igreja certa (o header
+    // x-igreja-id define a igreja da requisicao anonima). Fallback: IGREJA_ID
+    // do config.js (comportamento antigo, Jatai).
+    const IGREJA_URL = (new URLSearchParams(window.location.search).get('igreja') || '').trim();
+    const IGREJA_PAGINA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(IGREJA_URL)
+        ? IGREJA_URL
+        : (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '');
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
-        global: { headers: { 'x-igreja-id': (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '') } }
+        global: { headers: { 'x-igreja-id': IGREJA_PAGINA } }
     });
     let eventoAtual = null;
 
@@ -396,7 +404,7 @@
             });
         }
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const igrejaId = await resolverIgrejaAtual(supabaseClient);
+        const igrejaId = IGREJA_PAGINA;
         const path = `${igrejaId}/inscricoes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error } = await supabaseClient.storage.from('comprovantes')
             .upload(path, file, { upsert: false, contentType: file.type });
@@ -432,7 +440,7 @@
                 .eq('id', eventoId)
                 .maybeSingle();
 
-            if (error || !ev) {
+            if (error || !ev || (ev.igreja_id && IGREJA_PAGINA && ev.igreja_id !== IGREJA_PAGINA)) {
                 document.getElementById('areaCarregando').style.display = 'none';
                 document.getElementById('areaNaoEncontrado').style.display = 'block';
                 return;
@@ -533,6 +541,7 @@
                 comprovante_url,
                 status: 'pendente'
             };
+            if (IGREJA_PAGINA) dados.igreja_id = IGREJA_PAGINA;
 
             const { error } = await supabaseClient.from('inscricoes_eventos').insert([dados]);
             if (error) throw error;
