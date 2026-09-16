@@ -1272,7 +1272,8 @@
                     });
                 }
                 const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-                const path = `eventos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const igrejaId = await resolverIgrejaAtual(supabaseClient);
+                const path = `${igrejaId}/eventos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
                 const { error: upErr } = await supabaseClient.storage.from('eventos').upload(path, file, { upsert: false, contentType: file.type });
                 if (upErr) throw upErr;
                 foto_url = supabaseClient.storage.from('eventos').getPublicUrl(path).data.publicUrl;
