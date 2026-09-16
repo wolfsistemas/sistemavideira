@@ -181,6 +181,7 @@
         <div class="pi-tabs">
           <button id="pi-tab-usuarios" class="pi-tab active" onclick="piMudarAba('usuarios')"><i class="fas fa-users-cog"></i><span> Usuários</span></button>
           <button id="pi-tab-igreja" class="pi-tab" onclick="piMudarAba('igreja')"><i class="fas fa-church"></i><span> Igreja</span></button>
+          <button id="pi-tab-plano" class="pi-tab" onclick="piMudarAba('plano')"><i class="fas fa-file-invoice-dollar"></i><span> Plano</span></button>
           <button id="pi-tab-logs" class="pi-tab" onclick="piMudarAba('logs')"><i class="fas fa-history"></i><span> Logs</span></button>
           <button id="pi-tab-notificacoes" class="pi-tab" onclick="piMudarAba('notificacoes')"><i class="fas fa-bell"></i><span> Notificações</span></button>
         </div>
@@ -378,6 +379,60 @@
             </div>
           </div>
 
+          <div id="pi-secao-plano" class="hidden">
+            <div class="pi-sec-head">
+              <h4>Plano da Igreja</h4>
+            </div>
+            <div class="form-box">
+              <p style="font-size:0.85rem; color:#777; margin-top:0;">Defina o plano desta igreja. O valor e a situação aparecem no painel do administrador dela.</p>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Plano</label>
+                  <input type="text" id="piPlanoNome" maxlength="60" placeholder="Ex: Essencial" autocomplete="off">
+                </div>
+                <div>
+                  <label>Valor mensal (R$)</label>
+                  <input type="number" id="piPlanoValor" min="0" step="0.01" placeholder="199.90" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Situação</label>
+                  <select id="piPlanoStatus">
+                    <option value="trial">Em teste (trial)</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="isento">Isento</option>
+                    <option value="inadimplente">Inadimplente</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Dia do vencimento</label>
+                  <input type="number" id="piPlanoDia" min="1" max="31" placeholder="10" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Início</label>
+                  <input type="date" id="piPlanoInicio">
+                </div>
+                <div>
+                  <label>Fim do teste (trial)</label>
+                  <input type="date" id="piPlanoTrial">
+                </div>
+              </div>
+
+              <label>Observação</label>
+              <input type="text" id="piPlanoObs" maxlength="200" placeholder="Opcional" autocomplete="off">
+
+              <button type="button" id="piBtnSalvarPlano" class="btn-save" onclick="piSalvarPlano()" style="width:100%; margin-top:5px;">Salvar plano</button>
+              <div id="piPlanoStatusMsg" class="pi-ig-status"></div>
+            </div>
+          </div>
+
           <div id="pi-secao-logs" class="hidden">
             <div class="pi-sec-head">
               <h4>Últimas Ações</h4>
@@ -526,15 +581,6 @@
               <button class="btn-acao principal" onclick="abrirPainelIgreja('${ig.id}')">
                 <i class="fas fa-folder-open"></i> Gerenciar
               </button>
-              <button class="btn-acao" onclick="gerarConvite('${ig.id}')">
-                <i class="fas fa-user-plus"></i> Convite
-              </button>
-              <button class="btn-acao" onclick="gerenciarPlano('${ig.id}')">
-                <i class="fas fa-file-invoice-dollar"></i> Plano
-              </button>
-              <button class="btn-acao" onclick="abrirPainelIgreja('${ig.id}', 'igreja')">
-                <i class="fas fa-church"></i> Dados
-              </button>
             </div>
           </div>`).join('');
       }
@@ -566,92 +612,79 @@
         carregarIgrejas();
       }
 
-      async function gerarConvite(igrejaId) {
-        const ig = IGREJAS.find(x => x.id === igrejaId);
-        const igrejaNome = ig ? ig.nome : 'Igreja';
+      /* ================= Plano (config -> plano) ================= */
+      const PI_PLANO_STATUS = ['trial', 'ativo', 'isento', 'inadimplente', 'cancelado'];
+      let piPlanoOriginal = {};
 
-        const usuario = await UI.prompt('Usuário de login (sem espaços):', {
-          titulo: 'Convite - ' + igrejaNome, placeholder: 'ex.: secretaria', textoOk: 'Continuar'
-        });
-        if (usuario === null) return;
-
-        const u = usuario.trim().toLowerCase();
-        if (!u || /\s/.test(u)) { UI.toast('Usuário inválido (use um login sem espaços).', { tipo: 'aviso' }); return; }
-
-        const cat = await UI.prompt('Categoria do usuário:', {
-          titulo: 'Categoria', valor: 'Administrador', placeholder: 'Administrador', textoOk: 'Gerar convite'
-        });
-        if (cat === null) return;
-        const categoria = (cat || '').trim() || 'Administrador';
-
-        if (!(await piUsuarioDisponivel(u))) return;
-
-        const token = crypto.randomUUID();
-        const { error } = await sb.from('pessoas').insert([{
-          nome: u,
-          usuario: u,
-          categoria: categoria,
-          igreja_id: igrejaId,
-          is_user: true,
-          super_admin: false,
-          token_convite: token
-        }]);
-
-        if (error) { UI.toast('Falha ao gerar convite: ' + error.message, { tipo: 'erro' }); console.error(error); return; }
-
-        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        const link = base + 'completar-cadastro.html?token=' + token + '&igreja=' + igrejaId;
-        UI.prompt('Envie este link para a pessoa concluir o cadastro:', {
-          titulo: 'Link de convite', valor: link, somenteLeitura: true, textoOk: 'Fechar'
-        });
+      function piDataIso(v) {
+        return /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 10) : '';
       }
 
-      async function gerenciarPlano(igrejaId) {
-        const ig = IGREJAS.find(x => x.id === igrejaId);
-        const igrejaNome = ig ? ig.nome : 'Igreja';
+      async function piCarregarPlano() {
+        if (!igrejaAtual) return;
+        const status = document.getElementById('piPlanoStatusMsg');
+        if (status) status.innerHTML = '<span style="color:#999;">Carregando...</span>';
+        try {
+          const { data, error } = await sb.rpc('igreja_plano', { p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          const p = data || {};
+          piPlanoOriginal = Object.assign({}, p);
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+          set('piPlanoNome', p.plano || '');
+          set('piPlanoValor', (p.valor === null || p.valor === undefined) ? '' : p.valor);
+          set('piPlanoStatus', PI_PLANO_STATUS.indexOf(p.status) !== -1 ? p.status : 'ativo');
+          set('piPlanoDia', (p.dia_vencimento === null || p.dia_vencimento === undefined) ? '' : p.dia_vencimento);
+          set('piPlanoInicio', piDataIso(p.inicio));
+          set('piPlanoTrial', piDataIso(p.trial_fim));
+          set('piPlanoObs', p.observacao || '');
+          if (status) status.innerHTML = '';
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar o plano.</span>';
+          console.error(e);
+        }
+      }
 
-        const { data: atual, error: erroAtual } = await sb.rpc('igreja_plano', { p_igreja_id: igrejaId });
-        if (erroAtual) { UI.toast('Falha ao ler o plano: ' + erroAtual.message, { tipo: 'erro' }); return; }
-        const p = atual || {};
+      async function piSalvarPlano() {
+        if (!igrejaAtual) return;
+        const btn = document.getElementById('piBtnSalvarPlano');
+        const status = document.getElementById('piPlanoStatusMsg');
+        const valorRaw = (document.getElementById('piPlanoValor').value || '').trim();
+        const diaRaw = (document.getElementById('piPlanoDia').value || '').trim();
 
-        const nome = await UI.prompt('Nome do plano:', {
-          titulo: 'Plano - ' + igrejaNome, valor: p.plano || '', placeholder: 'Ex: Essencial', textoOk: 'Continuar'
-        });
-        if (nome === null) return;
+        if (diaRaw) {
+          const d = parseInt(diaRaw, 10);
+          if (isNaN(d) || d < 1 || d > 31) { UI.toast('Dia do vencimento deve estar entre 1 e 31.', { tipo: 'aviso' }); return; }
+        }
+        if (valorRaw !== '') {
+          const n = Number(valorRaw);
+          if (isNaN(n) || n < 0) { UI.toast('Valor invalido.', { tipo: 'aviso' }); return; }
+        }
 
-        const valor = await UI.prompt('Valor mensal (ex: 199.90). Vazio = não definir:', {
-          titulo: 'Plano - valor', valor: p.valor != null ? String(p.valor) : '', placeholder: '199.90', textoOk: 'Continuar'
-        });
-        if (valor === null) return;
+        const cabecalho = {};
+        cabecalho.plano = (document.getElementById('piPlanoNome').value || '').trim();
+        cabecalho.valor = valorRaw;
+        cabecalho.dia_vencimento = diaRaw;
+        cabecalho.status = document.getElementById('piPlanoStatus').value || 'ativo';
+        cabecalho.observacao = (document.getElementById('piPlanoObs').value || '').trim();
+        cabecalho.inicio = (document.getElementById('piPlanoInicio').value || '').trim() || (piPlanoOriginal.inicio || '');
+        cabecalho.trial_fim = (document.getElementById('piPlanoTrial').value || '').trim() || (piPlanoOriginal.trial_fim || '');
 
-        const dia = await UI.prompt('Dia do vencimento (1 a 31):', {
-          titulo: 'Plano - vencimento', valor: p.dia_vencimento != null ? String(p.dia_vencimento) : '', placeholder: '10', textoOk: 'Continuar'
-        });
-        if (dia === null) return;
-
-        const status = await UI.prompt('Situação: trial, ativo, isento, inadimplente ou cancelado:', {
-          titulo: 'Plano - situação', valor: p.status || 'ativo', placeholder: 'ativo', textoOk: 'Continuar'
-        });
-        if (status === null) return;
-
-        const obs = await UI.prompt('Observação (opcional):', {
-          titulo: 'Plano - observação', valor: p.observacao || '', textoOk: 'Salvar'
-        });
-        if (obs === null) return;
-
-        const payload = {
-          plano: (nome || '').trim(),
-          valor: (valor || '').trim(),
-          dia_vencimento: (dia || '').trim(),
-          status: (status || '').trim(),
-          observacao: (obs || '').trim(),
-          inicio: p.inicio || '',
-          trial_fim: p.trial_fim || ''
-        };
-
-        const { error } = await sb.rpc('definir_igreja_plano', { p_plano: payload, p_igreja_id: igrejaId });
-        if (error) { UI.toast('Falha ao salvar o plano: ' + error.message, { tipo: 'erro' }); return; }
-        UI.toast('Plano atualizado!', { tipo: 'sucesso' });
+        if (btn) btn.disabled = true;
+        if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
+        try {
+          const { error } = await sb.rpc('definir_igreja_plano', { p_plano: cabecalho, p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          piPlanoOriginal = Object.assign({}, cabecalho);
+          if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Plano salvo com sucesso.</span>';
+          UI.toast('Plano atualizado!', { tipo: 'sucesso' });
+          piRegistrarLogAcao('Atualizou o plano: ' + (cabecalho.plano || 'sem nome') + ' (' + cabecalho.status + ')');
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar o plano.</span>';
+          UI.toast('Falha ao salvar o plano.', { tipo: 'erro' });
+          console.error(e);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       }
 
       async function piUsuarioDisponivel(usuario) {
@@ -791,7 +824,7 @@
       }
 
       function piMudarAba(s) {
-        ['usuarios', 'form', 'logs', 'notificacoes', 'igreja'].forEach(k => {
+        ['usuarios', 'form', 'logs', 'notificacoes', 'igreja', 'plano'].forEach(k => {
           const el = document.getElementById('pi-secao-' + k);
           if (el) el.classList.add('hidden');
         });
@@ -801,12 +834,14 @@
         if (s === 'logs') tab = 'logs';
         else if (s === 'notificacoes') tab = 'notificacoes';
         else if (s === 'igreja') tab = 'igreja';
+        else if (s === 'plano') tab = 'plano';
 
         const alvo = document.getElementById('pi-secao-' + s);
         if (alvo) alvo.classList.remove('hidden');
         const btn = document.getElementById('pi-tab-' + tab);
         if (btn) btn.classList.add('active');
         if (s === 'igreja') piCarregarIgrejaInfo();
+        else if (s === 'plano') piCarregarPlano();
       }
 
       async function piCarregarTudo() {
