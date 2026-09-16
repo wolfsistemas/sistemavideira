@@ -336,7 +336,7 @@
            <input type="text" id="pixCidade" maxlength="15" placeholder="Ex: Jatai" autocomplete="off" oninput="atualizarPreviewPix()">
 
            <div style="display:flex; gap:18px; align-items:center; margin-top:15px; flex-wrap:wrap;">
-              <div id="pixPreview" style="width:150px; height:150px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; overflow:hidden;"></div>
+              <div id="pixPreview" style="width:180px; height:180px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; overflow:hidden;"></div>
               <div style="flex:1; min-width:180px;">
                  <button type="button" id="btnSalvarPix" class="btn-save" onclick="salvarPix()" style="width:100%;">Salvar Chave PIX</button>
                  <div id="pixStatus" style="font-size:0.85rem; margin-top:10px;"></div>
@@ -396,7 +396,7 @@
             return;
          }
          const payload = pixBrCode({ chave: chave, titular: titular, cidade: cidade });
-         if (!gerarQRCode(payload, alvo, { cell: 4, margin: 2 })) {
+         if (!gerarQRCode(payload, alvo)) {
             alvo.innerHTML = '<span style="font-size:0.78rem; color:#b91c1c; text-align:center; padding:8px;">Nao foi possivel gerar o QR.</span>';
          }
       }
@@ -408,12 +408,14 @@
          const titular = document.getElementById('pixTitular').value.trim();
          const cidade = document.getElementById('pixCidade').value.trim();
          if (!chave) { UI.toast('Informe a chave PIX.', { tipo: 'aviso' }); return; }
+         const chaveNormalizada = normalizarChavePix(chave);
          btn.disabled = true;
          try {
             const { error } = await supabaseClient.rpc('definir_pix_igreja', {
-               p_chave: chave, p_titular: titular, p_cidade: cidade
+               p_chave: chaveNormalizada, p_titular: titular, p_cidade: cidade
             });
             if (error) throw error;
+            document.getElementById('pixChave').value = chaveNormalizada;
             if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Chave PIX salva com sucesso.</span>';
             UI.toast('Chave PIX salva!', { tipo: 'sucesso' });
             atualizarPreviewPix();

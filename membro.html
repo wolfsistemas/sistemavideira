@@ -465,7 +465,7 @@
                 
                 <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX:</p>
                 <div class="pix-copy-box">
-                    <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
+                    <input type="text" id="chavePix" value="27105498000103" readonly>
                     <button onclick="copiarPix()" id="btnCopiarPix">
                         <i class="far fa-copy"></i> Copiar
                     </button>
@@ -587,7 +587,7 @@
             if (input) input.value = pix.chave;
             if (container) {
                 container.innerHTML = '';
-                const ok = gerarQRCode(pixBrCode(pix), container, { cell: 4, margin: 6 });
+                const ok = gerarQRCode(pixBrCode(pix), container);
                 if (!ok) container.innerHTML = '<img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">';
             }
         }

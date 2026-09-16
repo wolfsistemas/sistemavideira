@@ -55,28 +55,53 @@ function agendaParaLinhas(rows) {
 // partir do BR Code (payload EMV) montado com a chave cadastrada.
 // ---------------------------------------------------------------------------
 
-// Remove acentos e caracteres nao aceitos no BR Code, maiusculiza e limita.
+// Utf-8 bytes (o tamanho dos campos EMV e o CRC contam bytes, nao caracteres).
+function utf8Bytes(texto) {
+  const s = String(texto);
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(s);
+  const out = [];
+  for (let i = 0; i < s.length; i++) {
+    let c = s.charCodeAt(i);
+    if (c < 0x80) out.push(c);
+    else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+    else out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+  }
+  return out;
+}
+
+// Remove acentos e caracteres nao aceitos no BR Code e limita o tamanho.
 function normalizarTextoEmv(texto, max) {
   return String(texto || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9 ]/g, ' ')
+    .replace(/[^A-Za-z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max);
 }
 
-// Monta um campo EMV: id (2) + tamanho (2) + valor.
-function emvCampo(id, valor) {
-  const v = String(valor);
-  return id + String(v.length).padStart(2, '0') + v;
+// Normaliza a chave PIX: CPF/CNPJ viram apenas digitos (chave oficial do BACEN).
+// E-mail, telefone (+55...) e chave aleatoria (EVP) sao mantidos como digitados.
+function normalizarChavePix(chave) {
+  const c = String(chave || '').trim();
+  const digitos = c.replace(/\D/g, '');
+  if (digitos.length === 14 && /^[\d.\-\/\s]+$/.test(c)) return digitos; // CNPJ
+  if (digitos.length === 11 && /^[\d.\-\s]+$/.test(c)) return digitos; // CPF
+  return c;
 }
 
-// CRC16-CCITT (0x1021) exigido pelo BR Code.
+// Monta um campo EMV: id (2) + tamanho em bytes (2) + valor.
+function emvCampo(id, valor) {
+  const v = String(valor);
+  const len = utf8Bytes(v).length;
+  return id + String(len).padStart(2, '0') + v;
+}
+
+// CRC16-CCITT (0x1021) exigido pelo BR Code, calculado sobre os bytes UTF-8.
 function crc16Emv(payload) {
+  const bytes = utf8Bytes(payload);
   let crc = 0xFFFF;
-  for (let i = 0; i < payload.length; i++) {
-    crc ^= payload.charCodeAt(i) << 8;
+  for (let i = 0; i < bytes.length; i++) {
+    crc ^= bytes[i] << 8;
     for (let j = 0; j < 8; j++) {
       crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
       crc &= 0xFFFF;
@@ -88,7 +113,7 @@ function crc16Emv(payload) {
 // Gera o payload PIX "Copia e Cola" (BR Code) para a chave informada.
 function pixBrCode(opts) {
   opts = opts || {};
-  const chave = String(opts.chave || '').trim();
+  const chave = normalizarChavePix(opts.chave);
   if (!chave) return '';
   const nome = normalizarTextoEmv(opts.titular || 'RECEBEDOR', 25) || 'RECEBEDOR';
   const cidade = normalizarTextoEmv(opts.cidade || 'CIDADE', 15) || 'CIDADE';
@@ -107,15 +132,21 @@ function pixBrCode(opts) {
 }
 
 // Desenha o QR do payload no elemento informado (usa js/vendor/qrcode.min.js).
+// Gera com zona de silencio e tamanho inteiro de modulo para ficar nitido.
 function gerarQRCode(texto, elemento, opts) {
   if (!elemento || !texto || typeof qrcode === 'undefined') return false;
   try {
     const qr = qrcode(0, 'M');
     qr.addData(texto);
     qr.make();
-    const cell = (opts && opts.cell) || 4;
-    const margin = (opts && opts.margin) || 4;
-    elemento.innerHTML = qr.createImgTag(cell, margin);
+    const alvo = (opts && opts.size) || 160;
+    const quiet = (opts && opts.quiet != null) ? opts.quiet : 4;
+    const n = qr.getModuleCount();
+    const cell = Math.max(2, Math.min(8, Math.round(alvo / (n + quiet * 2))));
+    const total = cell * (n + quiet * 2);
+    const url = qr.createDataURL(cell, cell * quiet);
+    elemento.innerHTML = '<img alt="QR Code PIX" src="' + url + '" width="' + total + '" height="' + total
+      + '" style="display:block;margin:0 auto;background:#fff;border-radius:6px;image-rendering:pixelated;">';
     return true;
   } catch (e) {
     return false;
