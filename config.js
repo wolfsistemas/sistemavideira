@@ -49,6 +49,90 @@ function agendaParaLinhas(rows) {
     .map(a => [formatarDataBR(a.data), a.titulo, a.descricao || '', 'Agenda', 'AGENDA']);
 }
 
+// ---------------------------------------------------------------------------
+// PIX da igreja (aba Oferta). A chave fica em igrejas.config->'pix' e e lida
+// pela RPC 'pix_igreja' (escopada por igreja). O QR e gerado no navegador a
+// partir do BR Code (payload EMV) montado com a chave cadastrada.
+// ---------------------------------------------------------------------------
+
+// Remove acentos e caracteres nao aceitos no BR Code, maiusculiza e limita.
+function normalizarTextoEmv(texto, max) {
+  return String(texto || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+// Monta um campo EMV: id (2) + tamanho (2) + valor.
+function emvCampo(id, valor) {
+  const v = String(valor);
+  return id + String(v.length).padStart(2, '0') + v;
+}
+
+// CRC16-CCITT (0x1021) exigido pelo BR Code.
+function crc16Emv(payload) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < payload.length; i++) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+// Gera o payload PIX "Copia e Cola" (BR Code) para a chave informada.
+function pixBrCode(opts) {
+  opts = opts || {};
+  const chave = String(opts.chave || '').trim();
+  if (!chave) return '';
+  const nome = normalizarTextoEmv(opts.titular || 'RECEBEDOR', 25) || 'RECEBEDOR';
+  const cidade = normalizarTextoEmv(opts.cidade || 'CIDADE', 15) || 'CIDADE';
+  const txid = String(opts.txid || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 25) || '***';
+  const merchant = emvCampo('00', 'br.gov.bcb.pix') + emvCampo('01', chave);
+  let payload = emvCampo('00', '01')
+    + emvCampo('26', merchant)
+    + emvCampo('52', '0000')
+    + emvCampo('53', '986')
+    + emvCampo('58', 'BR')
+    + emvCampo('59', nome)
+    + emvCampo('60', cidade)
+    + emvCampo('62', emvCampo('05', txid))
+    + '6304';
+  return payload + crc16Emv(payload);
+}
+
+// Desenha o QR do payload no elemento informado (usa js/vendor/qrcode.min.js).
+function gerarQRCode(texto, elemento, opts) {
+  if (!elemento || !texto || typeof qrcode === 'undefined') return false;
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(texto);
+    qr.make();
+    const cell = (opts && opts.cell) || 4;
+    const margin = (opts && opts.margin) || 4;
+    elemento.innerHTML = qr.createImgTag(cell, margin);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Le a configuracao PIX da igreja atual (RPC). Retorna null se nao houver.
+async function resolverPixIgreja(cliente) {
+  try {
+    const { data } = await cliente.rpc('pix_igreja');
+    if (data && data.chave) {
+      return { chave: data.chave, titular: data.titular || '', cidade: data.cidade || '' };
+    }
+  } catch (e) { /* ignora */ }
+  return null;
+}
+
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
 const supabseUrl = SUPABASE_URL;

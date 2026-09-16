@@ -16,6 +16,7 @@
     <!-- Módulo centralizado da Bíblia -->
     <script src="js/biblia.js"></script>
     <script src="config.js"></script>
+    <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/push.js"></script>
 
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -458,11 +459,11 @@
                 <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h3>
                 <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
                 
-                <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
+                <div id="pixQr" style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
                    <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
                 </div>
                 
-                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
+                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX:</p>
                 <div class="pix-copy-box">
                     <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
                     <button onclick="copiarPix()" id="btnCopiarPix">
@@ -575,6 +576,22 @@
             navContainer.style.display = (idAba === 'aba-biblia') ? 'flex' : 'none';
         }
 
+        // ================= PIX (aba Ofertas) =================
+        // Le a chave PIX da igreja e gera o QR a partir dela. Se a igreja ainda
+        // nao cadastrou, mantem o HTML estatico (chave/QR antigos) como fallback.
+        async function carregarPixTela() {
+            const container = document.getElementById('pixQr');
+            const input = document.getElementById('chavePix');
+            const pix = await resolverPixIgreja(supabaseClient);
+            if (!pix) return;
+            if (input) input.value = pix.chave;
+            if (container) {
+                container.innerHTML = '';
+                const ok = gerarQRCode(pixBrCode(pix), container, { cell: 4, margin: 6 });
+                if (!ok) container.innerHTML = '<img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">';
+            }
+        }
+
         // ================= COPIAR PIX =================
         function copiarPix() {
             const input = document.getElementById('chavePix');
@@ -631,6 +648,8 @@
                     renderizarAgenda(agendaParaLinhas(data));
                 }
             } catch(e) { console.error(e); renderizarAgenda([]); }
+
+            try { await carregarPixTela(); } catch(e) { console.warn('PIX:', e); }
 
             if(icon) icon.classList.remove('fa-spin');
         }

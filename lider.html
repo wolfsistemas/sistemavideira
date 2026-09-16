@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/push.js"></script>
     <!-- Módulo unificado da Bíblia -->
@@ -502,6 +503,9 @@
         if (palError) throw palError;
         listaPalavras = palavras || [];
         renderizarPalavras(listaPalavras);
+
+        // 7. Chave PIX da igreja (aba Oferta)
+        try { await carregarPixTela(); } catch(e) { console.warn('PIX:', e); }
 
     } catch(e) {
         console.error("Erro ao carregar dados:", e);
@@ -1413,6 +1417,22 @@
         });
     }
 
+    // ========== PIX (aba Oferta) ==========
+    // Le a chave PIX da igreja e gera o QR a partir dela. Se a igreja ainda
+    // nao cadastrou, mantem o HTML estatico (chave/QR antigos) como fallback.
+    async function carregarPixTela() {
+        const container = document.getElementById('pixQr');
+        const input = document.getElementById('chavePix');
+        const pix = await resolverPixIgreja(supabaseClient);
+        if (!pix) return;
+        if (input) input.value = pix.chave;
+        if (container) {
+            container.innerHTML = '';
+            const ok = gerarQRCode(pixBrCode(pix), container, { cell: 4, margin: 6 });
+            if (!ok) container.innerHTML = '<img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">';
+        }
+    }
+
     // ========== COPIAR PIX ==========
     function copiarPix() {
             const input = document.getElementById('chavePix');
@@ -2249,10 +2269,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="member-card" style="text-align: center; border-top: 4px solid #10b981; margin-bottom: 15px;">
             <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Transferência via PIX</h3>
             <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
-            <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
+            <div id="pixQr" style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
                 <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
             </div>
-            <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
+            <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX:</p>
             <div class="pix-copy-box">
                 <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
                 <button onclick="copiarPix()" id="btnCopiarPix"><i class="far fa-copy"></i> Copiar</button>
