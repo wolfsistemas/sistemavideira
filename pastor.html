@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Painel Pastoral • Videira Jataí</title>
+    <title>Painel Pastoral • Sistema Videira</title>
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -201,6 +201,8 @@
     // ========== CONFIGURAÇÃO ==========
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
     const API_URL = sessionStorage.getItem('urlApi');
+    let nomeIgrejaAtual = 'Videira';
+    aplicarNomeIgreja(supabaseClient, 'Painel Pastoral • {igreja}').then(function (n) { nomeIgrejaAtual = n; });
 
     function normalizarCategoria(cat) {
         return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -628,7 +630,7 @@
     function exportarListaCelulasPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Células - Videira Jataí", 14, 20);
+            doc.text(`Células - ${nomeIgrejaAtual}`, 14, 20);
         
             // Pega a lista de células ativas (filtradas ou todas)
             const celulas = window.celulasRedeCompleta || dadosCelulas;
@@ -1545,7 +1547,7 @@
             didDrawPage: () => {
                 doc.setFontSize(8);
                 doc.setTextColor(150, 150, 150);
-                doc.text('Igreja Videira Jataí • videirajatai.com.br', 14, altura - 8);
+                doc.text(`Igreja ${nomeIgrejaAtual} • Sistema Videira`, 14, altura - 8);
                 doc.text(`Página ${doc.internal.getNumberOfPages()}`, largura - 14, altura - 8, { align: 'right' });
             }
         });
@@ -2288,7 +2290,7 @@
             doc.addImage(reader.result, 'PNG', 14, 10, 16, 16);
         } catch (e) {}
         doc.setFontSize(16); 
-        doc.text("Membros - Videira Jataí", 34, 16);
+        doc.text(`Membros - ${nomeIgrejaAtual}`, 34, 16);
         doc.setFontSize(9); 
         doc.text(`Gerado em ${new Date().toLocaleString()} | Total: ${lista.length}`, 34, 22);
         doc.autoTable({

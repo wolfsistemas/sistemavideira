@@ -40,7 +40,11 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Videira Jataí</title>
+    <title>Sistema Videira</title>
+    <script>
+      // Nome da ultima igreja usada neste navegador (se houver).
+      try { var __n = localStorage.getItem('nomeIgreja'); if (__n) document.title = __n; } catch (e) {}
+    </script>
 
     <!-- Impede cache do navegador -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -164,7 +168,7 @@
 
     <!-- Splash Screen -->
     <div id="splash-screen">
-        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Videira Jataí" class="splash-logo">
+        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Sistema Videira" class="splash-logo">
         <p class="splash-texto">Bem‑vindo(a) ao Sistema</p>
         <div class="splash-loader"></div>
         <p class="fallback">

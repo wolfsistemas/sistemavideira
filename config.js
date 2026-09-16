@@ -49,6 +49,36 @@ function agendaParaLinhas(rows) {
     .map(a => [formatarDataBR(a.data), a.titulo, a.descricao || '', 'Agenda', 'AGENDA']);
 }
 
+// Nome da igreja atual (ex.: "Videira Jataí"). Resolve pela RPC
+// 'nome_igreja_atual' (igreja do usuario logado; em paginas publicas usa o
+// header x-igreja-id). Fallback: ultimo nome salvo no navegador.
+async function resolverNomeIgreja(cliente) {
+  try {
+    let cli = cliente;
+    if (!cli && window.supabase && window.supabase.createClient) {
+      cli = window.supabase.createClient(SB_URL, SB_KEY);
+    }
+    if (cli) {
+      const { data } = await cli.rpc('nome_igreja_atual');
+      const nome = (typeof data === 'string') ? data : (Array.isArray(data) ? (data[0] || '') : '');
+      if (nome) {
+        try { localStorage.setItem('nomeIgreja', nome); } catch (e) {}
+        return nome;
+      }
+    }
+  } catch (e) { /* usa fallback */ }
+  try { return localStorage.getItem('nomeIgreja') || 'Videira'; } catch (e) { return 'Videira'; }
+}
+
+// Aplica o nome da igreja no titulo (troca {igreja}) e em elementos marcados
+// com [data-igreja-nome]. Retorna o nome resolvido.
+async function aplicarNomeIgreja(cliente, tituloTemplate) {
+  const nome = await resolverNomeIgreja(cliente);
+  if (tituloTemplate) document.title = String(tituloTemplate).replace('{igreja}', nome);
+  document.querySelectorAll('[data-igreja-nome]').forEach(function (el) { el.textContent = nome; });
+  return nome;
+}
+
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
 const supabseUrl = SUPABASE_URL;

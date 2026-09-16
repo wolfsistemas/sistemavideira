@@ -32,7 +32,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema - Videira Jataí</title>
+    <title>Sistema Videira</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -74,6 +74,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
     <script src="js/ui.js"></script>
+    <script>
+      // Mostra o nome da ultima igreja usada neste navegador (antes do login).
+      try { var __n = localStorage.getItem('nomeIgreja'); if (__n) document.title = 'Sistema - ' + __n; } catch (e) {}
+    </script>
   
     <style>
         body, html { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%); }
@@ -329,6 +333,7 @@
             gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
             if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
             aplicarSaudacao(nomeReal);
+            resolverNomeIgreja(supabaseClient);
 
             const podeBio = ehCelular() && await Biometria.plataformaDisponivel();
             if (podeBio && !Biometria.cadastradaPara(emailParaLogin)) {
