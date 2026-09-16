@@ -211,6 +211,8 @@
     let dadosRelatorios = [];
     let listaPalavras = [];
     let listaAgenda = [];
+    let agendaManual = [];
+    let modoAgendaManual = false;
     let celulaAtiva = null;
     let membrosDaCelulaAtiva = [];
     let mapaNomes = {}; // id -> nome
@@ -325,8 +327,23 @@
 
             await passo('relatórios', carregarRelatorios);
             await passo('agenda', async () => {
-                listaAgenda = await fetchGoogle('buscarAgenda') || [];
-                renderizarAgenda(listaAgenda);
+                const igrejaId = await resolverIgrejaAtual(supabaseClient);
+                modoAgendaManual = !usaGoogleAgenda(igrejaId);
+                if (modoAgendaManual) {
+                    const { data, error } = await supabaseClient
+                        .from('agenda')
+                        .select('id, data, titulo, descricao')
+                        .order('data', { ascending: true });
+                    if (error) throw error;
+                    agendaManual = data || [];
+                    // Só a igreja dona do Google Agenda usa o GAS; as demais usam a tabela 'agenda'.
+                    renderizarAgendaManual();
+                } else {
+                    listaAgenda = await fetchGoogle('buscarAgenda') || [];
+                    renderizarAgenda(listaAgenda);
+                }
+                const btnNova = document.getElementById('btnNovaAgenda');
+                if (btnNova) btnNova.style.display = modoAgendaManual ? '' : 'none';
             });
             await passo('palavras', carregarPalavrasDados);
             await passo('pedidos de oração', carregarSugestoes);
@@ -925,6 +942,122 @@
                 <div style="margin-top:10px;"><span style="color:${corTipo};">${a[3] || ''}</span></div>
             </div>`;
         });
+    }
+
+    // ===== Agenda manual (igrejas sem Google Agenda) =====
+    function atualizarAgenda() {
+        if (modoAgendaManual) renderizarAgendaManual();
+        else renderizarAgenda(listaAgenda);
+    }
+
+    function renderizarAgendaManual() {
+        const div = document.getElementById('listaAgenda');
+        if (!div) return;
+        div.innerHTML = '';
+        const mesFiltro = document.getElementById('filtroMesAgenda')?.value;
+        let itens = agendaManual.slice();
+        if (mesFiltro && mesFiltro !== 'todos') {
+            itens = itens.filter(a => {
+                const p = String(a.data || '').split('-');
+                return p.length === 3 && parseInt(p[1]) === parseInt(mesFiltro);
+            });
+        }
+        itens.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+        if (!itens.length) {
+            div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Nenhum evento na agenda.</p>';
+            return;
+        }
+        itens.forEach(a => {
+            const dataF = formatarDataBR(a.data);
+            div.innerHTML += `
+            <div class="member-card">
+                <div class="card-header">
+                    <h4 class="card-name"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
+                    <span class="cat-badge" style="background:#0f172a; color:white;">AGENDA</span>
+                </div>
+                <div style="font-weight:700;">${escaparHTML(a.titulo || '')}</div>
+                <div style="color:#666;">${escaparHTML(a.descricao || '')}</div>
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button onclick="abrirModalAgenda('${a.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button onclick="excluirAgenda('${a.id}')" class="btn-card" title="Excluir" style="color:var(--danger-text);"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>`;
+        });
+    }
+
+    function abrirModalAgenda(id) {
+        document.getElementById('formAgenda').reset();
+        document.getElementById('agendaId').value = id || '';
+        if (id) {
+            const a = agendaManual.find(x => x.id === id);
+            if (!a) return;
+            document.getElementById('agendaData').value = a.data || '';
+            document.getElementById('agendaTitulo').value = a.titulo || '';
+            document.getElementById('agendaDescricao').value = a.descricao || '';
+            document.getElementById('tituloModalAgenda').innerText = 'Editar Evento da Agenda';
+        } else {
+            document.getElementById('tituloModalAgenda').innerText = 'Novo Evento da Agenda';
+        }
+        document.getElementById('modalAgenda').classList.remove('hidden');
+    }
+
+    async function salvarAgenda(e) {
+        e.preventDefault();
+        const id = document.getElementById('agendaId').value;
+        const data = document.getElementById('agendaData').value;
+        const titulo = document.getElementById('agendaTitulo').value.trim();
+        const descricao = document.getElementById('agendaDescricao').value.trim();
+        if (!data || !titulo) { UI.toast("Preencha a data e o título.", { tipo: 'aviso' }); return; }
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        try {
+            const dados = { data, titulo, descricao: descricao || null };
+            if (id) {
+                const { error } = await supabaseClient.from('agenda').update(dados).eq('id', id);
+                if (error) throw error;
+                registrarLogAcao(`Editou a agenda: "${titulo}"`);
+            } else {
+                const { error } = await supabaseClient.from('agenda').insert([dados]);
+                if (error) throw error;
+                registrarLogAcao(`Cadastrou na agenda: "${titulo}"`);
+            }
+            fecharModal('modalAgenda');
+            await recarregarAgenda();
+        } catch (err) {
+            console.error('Erro ao salvar agenda:', err);
+            UI.toast("Erro ao salvar: " + (err.message || ''), { tipo: 'erro' });
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function recarregarAgenda() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('agenda')
+                .select('id, data, titulo, descricao')
+                .order('data', { ascending: true });
+            if (error) throw error;
+            agendaManual = data || [];
+            renderizarAgendaManual();
+        } catch (err) {
+            console.error('Erro ao recarregar agenda:', err);
+        }
+    }
+
+    async function excluirAgenda(id) {
+        const a = agendaManual.find(x => x.id === id);
+        const titulo = a ? a.titulo : '';
+        if (!(await UI.confirmar(`Excluir "${titulo}" da agenda?`, { titulo: 'Excluir da agenda', textoOk: 'Excluir', perigo: true }))) return;
+        try {
+            const { error } = await supabaseClient.from('agenda').delete().eq('id', id);
+            if (error) throw error;
+            registrarLogAcao(`Excluiu da agenda: "${titulo}"`);
+            await recarregarAgenda();
+        } catch (err) {
+            console.error('Erro ao excluir agenda:', err);
+            UI.toast("Erro ao excluir: " + (err.message || ''), { tipo: 'erro' });
+        }
     }
 
     // ========== EVENTOS / ENCONTROS (INSCRIÇÕES) ==========
@@ -2161,7 +2294,7 @@
         document.getElementById('filtroStatusGeral').addEventListener('change', aplicarFiltros);
         document.getElementById('inputBusca').addEventListener('keyup', aplicarFiltros);
         document.getElementById('filtroCelula').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroMesAgenda').addEventListener('change', () => renderizarAgenda(listaAgenda));
+        document.getElementById('filtroMesAgenda').addEventListener('change', () => atualizarAgenda());
         document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
         
@@ -2228,6 +2361,7 @@
 
         document.getElementById('formPalavra').addEventListener('submit', salvarPalavra);
         document.getElementById('formEvento').addEventListener('submit', salvarEvento);
+        document.getElementById('formAgenda').addEventListener('submit', salvarAgenda);
         setupMultiselects();
 
         const observer = new MutationObserver(() => {
@@ -2513,11 +2647,14 @@
     </div>
 
     <div id="secao-agenda" class="hidden">
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
             <h4>Próximos Eventos</h4>
-            <select id="filtroMesAgenda" style="height:38px; width:auto; border-radius:8px; border:1px solid var(--border-color); padding:8px;">
-                <option value="todos">Todos os meses</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-            </select>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btnNovaAgenda" onclick="abrirModalAgenda()" class="btn-card" style="display:none; background:var(--primary); color:white; padding:7px 14px; font-size:0.72rem; border:none;"><i class="fas fa-plus"></i> Novo</button>
+                <select id="filtroMesAgenda" style="height:38px; width:auto; border-radius:8px; border:1px solid var(--border-color); padding:8px;">
+                    <option value="todos">Todos os meses</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+            </div>
         </div>
         <div id="listaAgenda" class="member-grid"></div>
     </div>
@@ -2763,6 +2900,21 @@
             </div>
             <div class="form-group"><label>Descrição</label><textarea id="eventoDescricao" rows="3" placeholder="Informações adicionais para os inscritos" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:vertical;"></textarea></div>
             <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;"><i class="fas fa-save"></i> Salvar Evento</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL AGENDA (manual) -->
+<div id="modalAgenda" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:520px; max-height:90vh;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModal('modalAgenda')">&times;</button>
+        <h2 id="tituloModalAgenda" style="margin-top:0; margin-bottom:20px; color:var(--primary);">Novo Evento da Agenda</h2>
+        <form id="formAgenda">
+            <input type="hidden" id="agendaId">
+            <div class="form-group"><label>Data</label><input type="date" id="agendaData" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            <div class="form-group"><label>Título</label><input type="text" id="agendaTitulo" placeholder="Ex.: Culto de Celebração" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            <div class="form-group"><label>Descrição (opcional)</label><textarea id="agendaDescricao" rows="3" placeholder="Detalhes do evento" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:vertical;"></textarea></div>
+            <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;"><i class="fas fa-save"></i> Salvar na Agenda</button>
         </form>
     </div>
 </div>

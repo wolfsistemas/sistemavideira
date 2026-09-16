@@ -398,8 +398,17 @@
 
         // Agenda
         try {
-            const agendaRes = await fetchGoogle('buscarAgenda', {});
-            listaAgenda = agendaRes || [];
+            const igrejaId = await resolverIgrejaAtual(supabaseClient);
+            if (usaGoogleAgenda(igrejaId)) {
+                listaAgenda = await fetchGoogle('buscarAgenda', {}) || [];
+            } else {
+                const { data, error } = await supabaseClient
+                    .from('agenda')
+                    .select('data, titulo, descricao')
+                    .order('data', { ascending: true });
+                if (error) throw error;
+                listaAgenda = agendaParaLinhas(data);
+            }
             renderizarAgenda(listaAgenda);
         } catch(e) { renderizarAgenda([]); }
 

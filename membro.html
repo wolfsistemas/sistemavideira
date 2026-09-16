@@ -617,10 +617,19 @@
             }
 
             try {
-                const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "buscarAgenda" }) });
-                const responseData = await respostaAgenda.json();
-                if (responseData.status === "sucesso") renderizarAgenda(responseData.dados);
-                else renderizarAgenda([]);
+                const igrejaId = await resolverIgrejaAtual(supabaseClient);
+                if (usaGoogleAgenda(igrejaId)) {
+                    const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "buscarAgenda" }) });
+                    const responseData = await respostaAgenda.json();
+                    renderizarAgenda(responseData.status === "sucesso" ? responseData.dados : []);
+                } else {
+                    const { data, error } = await supabaseClient
+                        .from('agenda')
+                        .select('data, titulo, descricao')
+                        .order('data', { ascending: true });
+                    if (error) throw error;
+                    renderizarAgenda(agendaParaLinhas(data));
+                }
             } catch(e) { console.error(e); renderizarAgenda([]); }
 
             if(icon) icon.classList.remove('fa-spin');

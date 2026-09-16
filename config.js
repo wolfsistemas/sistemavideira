@@ -12,6 +12,43 @@ const VAPID_PUBLIC_KEY = 'BAjU5rrZXkMzo8UroNbQVTgMi9ned0xxRLgjKbLArgCKR_AtezVW3Y
 // para que a RLS consiga isolar os dados por igreja via header x-igreja-id.
 const IGREJA_ID = 'b7e3f1a2-5c4d-4e6f-8a9b-1c2d3e4f5a6b';
 
+// Igreja dona do Google Agenda (microservico GAS). Todas as demais usam a
+// agenda manual (tabela 'agenda'). Como todas as igrejas usam o mesmo site,
+// a igreja atual e resolvida em tempo de execucao (usuario logado ou IGREJA_ID).
+const IGREJA_GOOGLE_AGENDA_ID = 'b7e3f1a2-5c4d-4e6f-8a9b-1c2d3e4f5a6b';
+
+// Descobre a igreja atual no navegador: a do usuario logado (RPC minha_igreja)
+// ou, se anonimo, o fallback do deploy (IGREJA_ID).
+async function resolverIgrejaAtual(cliente) {
+  try {
+    const { data } = await cliente.rpc('minha_igreja');
+    if (data) return data;
+  } catch (e) { /* ignora */ }
+  return (typeof IGREJA_ID !== 'undefined') ? IGREJA_ID : '';
+}
+
+// true somente para a igreja que usa o Google Agenda (GAS).
+function usaGoogleAgenda(igrejaId) {
+  return !!igrejaId && igrejaId === IGREJA_GOOGLE_AGENDA_ID;
+}
+
+// Formata 'YYYY-MM-DD' -> 'DD/MM/YYYY' (mesmo formato devolvido pelo GAS).
+function formatarDataBR(iso) {
+  if (!iso) return '';
+  const p = String(iso).split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+}
+
+// Converte linhas da tabela 'agenda' no mesmo formato do GAS:
+// [dataBR, titulo, descricao, tipoCurto, tipoLongo]. Exibe de hoje em diante.
+function agendaParaLinhas(rows) {
+  const d = new Date();
+  const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return (rows || [])
+    .filter(a => (a.data || '') >= hoje)
+    .map(a => [formatarDataBR(a.data), a.titulo, a.descricao || '', 'Agenda', 'AGENDA']);
+}
+
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
 const supabseUrl = SUPABASE_URL;
