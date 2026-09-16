@@ -95,6 +95,7 @@ export async function mpPost(path: string, body: unknown) {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      "X-Idempotency-Key": crypto.randomUUID(),
     },
     body: JSON.stringify(body),
   });
