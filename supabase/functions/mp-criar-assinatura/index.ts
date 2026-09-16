@@ -35,33 +35,51 @@ serve(async (req) => {
     return json(400, { erro: "sem_valor", mensagem: "Valor mensal nao definido. Fale com o suporte." });
   }
 
-  const r = await mpPost("/preapproval", {
-    reason: ("Sistema de Celulas - " + (ig.nome || "Igreja")).slice(0, 250),
-    external_reference: ig.id,
-    payer_email: user.email,
-    back_url: urlRetorno(req),
-    notification_url: webhookUrl(),
-    auto_recurring: {
-      frequency: 1,
-      frequency_type: "months",
-      transaction_amount: Number(valor),
-      currency_id: "BRL",
-    },
-    status: "pending",
-  });
+  // A assinatura por cartao usa "preapproval_plan" (checkout de assinaturas do MP).
+  // Reaproveita o plano da igreja enquanto o valor nao muda; se mudar, cria um novo.
+  let planId = String(plano.preapproval_plan_id || "");
+  let planInit = String(plano.preapproval_plan_init_point || "");
+  if (!planId || !planInit || Number(plano.valor) !== Number(valor)) {
+    const pl = await mpPost("/preapproval_plan", {
+      reason: ("Sistema de Celulas - " + (ig.nome || "Igreja")).slice(0, 250),
+      external_reference: ig.id,
+      back_url: urlRetorno(req),
+      notification_url: webhookUrl(),
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: Number(valor),
+        currency_id: "BRL",
+      },
+      payment_methods_allowed: { payment_types: [{ id: "credit_card" }] },
+    });
 
-  if (!r.ok) {
-    console.error("mp-criar-assinatura", r.status, r.body);
-    return json(502, { erro: "mp", mensagem: r.body?.message || "Falha ao criar a assinatura." });
+    if (!pl.ok || !pl.body?.id || !pl.body?.init_point) {
+      console.error("mp-criar-assinatura", pl.status, pl.body);
+      return json(502, { erro: "mp", mensagem: pl.body?.message || "Falha ao criar a assinatura." });
+    }
+
+    planId = String(pl.body.id);
+    planInit = String(pl.body.init_point);
+
+    const config = (ig.config || {}) as Record<string, any>;
+    const novoPlano = {
+      ...(config.plano as Record<string, any> || {}),
+      provedor: "mercadopago",
+      modalidade: "mensal",
+      metodo: "credito",
+      valor: Number(valor),
+      preapproval_plan_id: planId,
+      preapproval_plan_init_point: planInit,
+    };
+    config.plano = novoPlano;
+    await sb.from("igrejas").update({ config }).eq("id", ig.id);
   }
-
-  const init = r.body?.init_point || r.body?.sandbox_init_point;
-  if (!init) return json(502, { erro: "mp_sem_init_point" });
 
   return json(200, {
     ok: true,
-    init_point: init,
-    preapproval_id: r.body?.id || null,
+    init_point: planInit,
+    preapproval_plan_id: planId,
     valor: Number(valor),
   });
 });

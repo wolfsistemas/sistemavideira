@@ -134,6 +134,15 @@ async function acharPorPreapproval(sb: SupabaseClient, preapprovalId: string) {
   return achou?.id as string | undefined;
 }
 
+async function acharPorPlano(sb: SupabaseClient, planoId: string) {
+  const { data } = await sb.from("igrejas").select("id, config");
+  const achou = (data || []).find((r) => {
+    const plano = (r.config && r.config.plano) || {};
+    return String(plano.preapproval_plan_id || "") === String(planoId);
+  });
+  return achou?.id as string | undefined;
+}
+
 function extrairTipo(pay: Record<string, any>) {
   const meta = pay.metadata || {};
   if (meta.tipo === "anual" || meta.tipo === "mensal") return meta.tipo as string;
@@ -211,6 +220,9 @@ async function processarPreapproval(sb: SupabaseClient, id: string) {
   const pre = await mpGet(`/preapproval/${id}`);
   let igrejaId = pre.external_reference as string | undefined;
   if (!igrejaId) igrejaId = await acharPorPreapproval(sb, String(pre.id));
+  if (!igrejaId && pre.preapproval_plan_id) {
+    igrejaId = await acharPorPlano(sb, String(pre.preapproval_plan_id));
+  }
   if (!igrejaId) {
     console.warn("mp-webhook: assinatura sem igreja", pre.id);
     return;
@@ -224,9 +236,33 @@ async function processarPreapproval(sb: SupabaseClient, id: string) {
     status: mapPreapproval(String(pre.status || "")),
     mp_status: pre.status,
     preapproval_id: String(pre.id),
+    preapproval_plan_id: pre.preapproval_plan_id ? String(pre.preapproval_plan_id) : undefined,
     payer_id: pre.payer_id ? String(pre.payer_id) : null,
     valor: auto.transaction_amount != null ? Number(auto.transaction_amount) : undefined,
     proximo_vencimento: pre.next_payment_date || null,
+  });
+}
+
+async function processarPlano(sb: SupabaseClient, id: string) {
+  const r = await fetch(`${MP_API}/preapproval_plan/${id}`, {
+    headers: { Authorization: `Bearer ${MP_TOKEN}` },
+  });
+  if (!r.ok) {
+    console.warn("mp-webhook: plano nao encontrado", id, r.status);
+    return;
+  }
+  const pl = await r.json();
+  let igrejaId = pl.external_reference as string | undefined;
+  if (!igrejaId) igrejaId = await acharPorPlano(sb, String(pl.id));
+  if (!igrejaId) {
+    console.warn("mp-webhook: plano sem igreja", pl.id);
+    return;
+  }
+  await salvarPlano(sb, igrejaId, {
+    provedor: "mercadopago",
+    modalidade: "mensal",
+    metodo: "credito",
+    preapproval_plan_id: String(pl.id),
   });
 }
 
@@ -234,6 +270,18 @@ async function processarAssinaturaPagamento(sb: SupabaseClient, id: string) {
   const ap = await mpGet(`/authorized_payments/${id}`);
   const preapprovalId = ap.preapproval_id ? String(ap.preapproval_id) : "";
   let igrejaId = await acharPorPreapproval(sb, preapprovalId);
+  if (!igrejaId && preapprovalId) {
+    // Assinatura pode ainda nao ter sido gravada: resolve pelo preapproval.
+    try {
+      const pre = await mpGet(`/preapproval/${preapprovalId}`);
+      igrejaId = pre.external_reference as string | undefined;
+      if (!igrejaId && pre.preapproval_plan_id) {
+        igrejaId = await acharPorPlano(sb, String(pre.preapproval_plan_id));
+      }
+    } catch (e) {
+      console.warn("mp-webhook: falha ao buscar preapproval", preapprovalId, e);
+    }
+  }
   if (!igrejaId) {
     console.warn("mp-webhook: cobrança de assinatura sem igreja", id);
     return;
@@ -298,8 +346,11 @@ serve(async (req) => {
         break;
       case "preapproval":
       case "subscription_preapproval":
-      case "plan":
         await processarPreapproval(sb, dataId);
+        break;
+      case "plan":
+      case "subscription_preapproval_plan":
+        await processarPlano(sb, dataId);
         break;
       case "subscription_authorized_payment":
         await processarAssinaturaPagamento(sb, dataId);
