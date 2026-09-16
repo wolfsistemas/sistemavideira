@@ -1085,6 +1085,50 @@
         const u = String(url || '').trim();
         return /^https?:\/\//i.test(u) ? escaparHTML(u) : '';
     }
+
+    // Extrai o caminho interno de um arquivo do Storage a partir da URL publica.
+    function caminhoStorage(url, bucket) {
+        const u = String(url || '');
+        let p = '';
+        try { p = new URL(u).pathname; } catch (e) { p = u; }
+        const marca = `/storage/v1/object/public/${bucket}/`;
+        const i = p.indexOf(marca);
+        if (i < 0) return null;
+        return decodeURIComponent(p.slice(i + marca.length));
+    }
+
+    // Remove do Storage os arquivos informados (best-effort). Ignora URLs
+    // externas e caminhos legados (sem pasta de igreja), que a policy nao apaga.
+    async function apagarArquivosStorage(bucket, urls) {
+        const caminhos = (urls || []).map(u => caminhoStorage(u, bucket)).filter(Boolean);
+        if (!caminhos.length) return;
+        try {
+            const { error } = await supabaseClient.storage.from(bucket).remove(caminhos);
+            if (error) console.error('Falha ao remover arquivos do Storage:', error);
+        } catch (e) {
+            console.error('Falha ao remover arquivos do Storage:', e);
+        }
+    }
+
+    // Envia backup por e-mail (via GAS) antes de apagar. Best-effort: nunca
+    // impede a exclusao caso falhe.
+    async function enviarBackupArquivos(assunto, urls) {
+        const lista = (urls || []).filter(u => /^https?:\/\//i.test(u));
+        if (!lista.length) return;
+        try {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const email = user && user.email;
+            const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) || API_URL || '';
+            if (!email || !url) return;
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'backupArquivos', payload: { email, assunto, urls: lista } })
+            });
+        } catch (e) {
+            console.error('Backup por e-mail falhou (segue com a exclusao):', e);
+        }
+    }
     function chamarGAS(action, payload) {
         try {
             const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL)
@@ -1352,10 +1396,18 @@
         const nome = ev ? ev.nome : '';
         if (!(await UI.confirmar(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`, { titulo: 'Excluir evento', textoOk: 'Excluir', perigo: true }))) return;
         try {
+            const inscricoes = inscricoesPorEvento[id] || [];
+            const urlsComprovantes = inscricoes.map(i => i.comprovante_url).filter(Boolean);
+            const urlsFotos = (ev && ev.foto_url) ? [ev.foto_url] : [];
+
+            await enviarBackupArquivos(`Backup do evento "${nome}" (excluído) - Sistema Videira`, urlsFotos.concat(urlsComprovantes));
+
             const { error: insErr } = await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
             if (insErr) throw insErr;
             const { error } = await supabaseClient.from('eventos').delete().eq('id', id);
             if (error) throw error;
+            await apagarArquivosStorage('comprovantes', urlsComprovantes);
+            await apagarArquivosStorage('eventos', urlsFotos);
             registrarLogAcao(`Excluiu o evento "${nome}"`);
             await carregarEventos();
         } catch (err) {
@@ -1520,11 +1572,16 @@
 
     async function excluirInscricao(id) {
         if (!(await UI.confirmar("Excluir esta inscrição?", { titulo: 'Excluir inscrição', textoOk: 'Excluir', perigo: true }))) return;
+        const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
+        const inscricao = (inscricoesPorEvento[eventoId] || []).find(i => i.id === id);
         try {
             const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
             if (error) throw error;
+            if (inscricao && inscricao.comprovante_url) {
+                await enviarBackupArquivos(`Backup do comprovante (inscrição excluída) - Sistema Videira`, [inscricao.comprovante_url]);
+                await apagarArquivosStorage('comprovantes', [inscricao.comprovante_url]);
+            }
             registrarLogAcao(`Excluiu uma inscrição`);
-            const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
             await carregarEventos();
             if (eventoId) abrirModalInscricoes(eventoId);
         } catch (err) {
