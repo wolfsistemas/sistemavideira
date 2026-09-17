@@ -1206,29 +1206,38 @@
       }
 
      
-      async function carregarTudo() {
-         const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
-         try {
-             const [ { data: users }, { data: celulas }, { data: logs }, { data: config } ] = await Promise.all([
-                 supabaseClient.from('pessoas').select('*').order('nome', { ascending: true }),
-                 supabaseClient.from('celulas').select('*').order('nome', { ascending: true }),
-                 supabaseClient.from('logs').select('*').order('datahora', { ascending: false }).limit(100),
-                 supabaseClient.from('push_config').select('chave, ativo')
-             ]);
+       async function carregarTudo() {
+          const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
+          try {
+              const [ { data: users }, { data: celulas }, { data: logs }, { data: config } ] = await Promise.all([
+                  supabaseClient.from('pessoas').select('*').order('nome', { ascending: true }),
+                  supabaseClient.from('celulas').select('*').order('nome', { ascending: true }),
+                  supabaseClient.from('logs').select('*').order('datahora', { ascending: false }).limit(100),
+                  supabaseClient.from('push_config').select('chave, ativo')
+              ]);
 
-             dadosUsuarios = users || [];
-             dadosCelulas = celulas || [];
-             dadosLogs = logs || [];
-             filtrarUsuarios();
-             renderizarLogs(logs || []);
-             renderizarNotificacoes(config || []);
-         } catch(e) {
-             console.error("Erro ao carregar dados:", e);
-             UI.toast("Erro ao carregar dados do servidor. Verifique sua conexão.", { tipo: 'erro' });
-         } finally {
-             if(icon) icon.classList.remove('fa-spin');
-         }
-      }
+              dadosUsuarios = users || [];
+              dadosCelulas = celulas || [];
+              dadosLogs = logs || [];
+              filtrarUsuarios();
+              renderizarLogs(logs || []);
+              renderizarNotificacoes(config || []);
+
+              // Atualiza também os dados das subabas de Configurações
+              // (igreja, PIX, plano/assinatura e faturas).
+              await Promise.all([
+                 carregarIgrejaInfo(),
+                 carregarPix(),
+                 carregarPlano(),
+                 carregarFaturas(),
+              ]);
+          } catch(e) {
+              console.error("Erro ao carregar dados:", e);
+              UI.toast("Erro ao carregar dados do servidor. Verifique sua conexão.", { tipo: 'erro' });
+          } finally {
+              if(icon) icon.classList.remove('fa-spin');
+          }
+       }
 
       
 
