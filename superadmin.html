@@ -161,6 +161,7 @@
         <div class="secao-titulo">
           <h4>Igrejas</h4>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="abrirLogsSuper()" class="btn-add" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;"><i class="fas fa-history"></i> Logs</button>
             <button onclick="abrirFinanceiro()" class="btn-add" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;"><i class="fas fa-coins"></i> Financeiro</button>
             <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
           </div>
@@ -517,6 +518,28 @@
       </div>
     </div>
 
+    <div id="painelLogsSuper" class="pi-overlay hidden">
+      <div class="pi-panel" style="max-width:640px;">
+        <div class="pi-head">
+          <div style="min-width:0;">
+            <h3>Logs do Super Admin</h3>
+            <span class="pi-sub">Ações do fornecedor em todas as igrejas</span>
+          </div>
+          <button class="pi-close" onclick="fecharLogsSuper()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="pi-body">
+          <div class="pi-sec-head">
+            <h4>Últimas Ações</h4>
+            <div style="display:flex; gap:8px;">
+              <button onclick="carregarLogsSuper()" class="btn-add" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;"><i class="fas fa-sync-alt"></i> Atualizar</button>
+              <button onclick="limparLogsSuper()" class="btn-add" style="background:#fdf5f6; color:var(--danger-text); border:1px solid #fecdd3;"><i class="fas fa-trash-alt"></i> Limpar</button>
+            </div>
+          </div>
+          <div id="saListaLogs"><p class="carregando">Carregando...</p></div>
+        </div>
+      </div>
+    </div>
+
     <script>
       let sb = null;
       let IGREJAS = [];
@@ -524,6 +547,7 @@
       let piUsuarios = [];
       let piCelulas = [];
       let piLogs = [];
+      let saLogs = [];
       let piConfig = [];
 
       const NOTIF_LABELS = {
@@ -967,7 +991,7 @@
         const [u, c, l, cfg] = await Promise.all([
           sb.from('pessoas').select('*').eq('igreja_id', id).order('nome', { ascending: true }),
           sb.from('celulas').select('*').eq('igreja_id', id).order('nome', { ascending: true }),
-          sb.from('logs').select('*').eq('igreja_id', id).order('datahora', { ascending: false }).limit(100),
+          sb.from('superadmin_logs').select('*').eq('igreja_id', id).order('datahora', { ascending: false }).limit(100),
           sb.from('push_config').select('chave, ativo').eq('igreja_id', id)
         ]);
         piUsuarios = u.data || [];
@@ -1224,7 +1248,7 @@
       async function piExcluirLog(id) {
         if (!(await UI.confirmar('Excluir este log individualmente?', { titulo: 'Excluir log', textoOk: 'Excluir', perigo: true }))) return;
         try {
-          const { error } = await sb.from('logs').delete().eq('id', id);
+          const { error } = await sb.from('superadmin_logs').delete().eq('id', id);
           if (error) throw error;
           piLogs = piLogs.filter(l => l.id !== id);
           piRenderLogs(piLogs);
@@ -1238,7 +1262,7 @@
         if (!igrejaAtual) return;
         if (!(await UI.confirmar('ATENÇÃO: apagar todo o histórico de logs desta igreja? Esta ação não pode ser desfeita.', { titulo: 'Limpar histórico', textoOk: 'Apagar tudo', perigo: true }))) return;
         try {
-          const { error } = await sb.from('logs').delete().eq('igreja_id', igrejaAtual.id);
+          const { error } = await sb.from('superadmin_logs').delete().eq('igreja_id', igrejaAtual.id);
           if (error) throw error;
           UI.toast('Logs apagados com sucesso!', { tipo: 'sucesso' });
           await piCarregarTudo();
@@ -1252,7 +1276,7 @@
         const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
         const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
         try {
-          await sb.from('logs').insert([{
+          await sb.from('superadmin_logs').insert([{
             datahora: new Date().toISOString(),
             usuario: userEmail,
             nomelider: nomeReal,
@@ -1260,6 +1284,94 @@
             igreja_id: igrejaAtual.id
           }]);
         } catch (e) { console.error('Erro ao registrar log:', e); }
+      }
+
+      /* ---- Logs do Super Admin (modal global) ---- */
+      function nomeIgrejaLog(igrejaId) {
+        if (!igrejaId) return '';
+        const ig = (IGREJAS || []).find(x => x.id === igrejaId);
+        return ig ? ig.nome : '';
+      }
+
+      function abrirLogsSuper() {
+        const p = document.getElementById('painelLogsSuper');
+        if (p) p.classList.remove('hidden');
+        carregarLogsSuper();
+      }
+
+      function fecharLogsSuper() {
+        const p = document.getElementById('painelLogsSuper');
+        if (p) p.classList.add('hidden');
+      }
+
+      async function carregarLogsSuper() {
+        const div = document.getElementById('saListaLogs');
+        if (div) div.innerHTML = '<p class="carregando">Carregando...</p>';
+        try {
+          const { data, error } = await sb.from('superadmin_logs')
+            .select('*').order('datahora', { ascending: false }).limit(300);
+          if (error) throw error;
+          saLogs = data || [];
+          renderLogsSuper(saLogs);
+        } catch (e) {
+          if (div) div.innerHTML = '<p class="carregando">Não foi possível carregar os logs.</p>';
+          console.error(e);
+        }
+      }
+
+      function renderLogsSuper(lista) {
+        const div = document.getElementById('saListaLogs');
+        if (!div) return;
+        div.innerHTML = '';
+        if (!lista || !lista.length) {
+          div.innerHTML = '<p class="carregando">Nenhum registro encontrado.</p>';
+          return;
+        }
+        lista.forEach(l => {
+          let dataF = l.datahora || '';
+          try {
+            const d = new Date(l.datahora);
+            if (!isNaN(d)) dataF = d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          } catch (e) {}
+          const login = l.usuario || 'Sistema';
+          const nome = l.nomelider || 'Desconhecido';
+          const ig = nomeIgrejaLog(l.igreja_id);
+          const acao = l.acao || '';
+          const cls = acao.includes('Sucesso') ? 'Sucesso' : '';
+          div.innerHTML += `
+            <div class="log-card ${cls}">
+              <div style="flex:1; min-width:0;">
+                <div class="log-date"><i class="far fa-clock"></i> ${esc(dataF)}${ig ? ' · ' + esc(ig) : ''}</div>
+                <p class="log-text"><strong>${esc(nome)}</strong> (${esc(login)})<br>${esc(acao)}</p>
+              </div>
+              <button onclick="excluirLogSuper('${l.id}')" class="btn-icon-action btn-del" title="Excluir este log" style="flex-shrink:0; margin-left:8px;"><i class="fas fa-trash-alt"></i></button>
+            </div>`;
+        });
+      }
+
+      async function excluirLogSuper(id) {
+        if (!(await UI.confirmar('Excluir este log individualmente?', { titulo: 'Excluir log', textoOk: 'Excluir', perigo: true }))) return;
+        try {
+          const { error } = await sb.from('superadmin_logs').delete().eq('id', id);
+          if (error) throw error;
+          saLogs = saLogs.filter(l => l.id !== id);
+          renderLogsSuper(saLogs);
+          UI.toast('Log excluído com sucesso.', { tipo: 'sucesso' });
+        } catch (e) {
+          UI.toast('Erro ao excluir: ' + e.message, { tipo: 'erro' });
+        }
+      }
+
+      async function limparLogsSuper() {
+        if (!(await UI.confirmar('ATENÇÃO: apagar todo o histórico de logs do Super Admin? Esta ação não pode ser desfeita.', { titulo: 'Limpar histórico', textoOk: 'Apagar tudo', perigo: true }))) return;
+        try {
+          const { error } = await sb.from('superadmin_logs').delete().not('datahora', 'is', null);
+          if (error) throw error;
+          UI.toast('Logs apagados com sucesso!', { tipo: 'sucesso' });
+          await carregarLogsSuper();
+        } catch (e) {
+          UI.toast('Erro ao limpar os logs. Detalhes: ' + e.message, { tipo: 'erro' });
+        }
       }
 
       /* ---- Notificações ---- */
