@@ -9,7 +9,7 @@
     fornecedor: {
       nome: 'Wolf Sistemas',
       cnpj: '',
-      email: '[INSERIR E-MAIL DE CONTATO]',
+      email: 'wolfsaasbr@gmail.com',
       cidade: 'Jataí - Goiás',
     },
   };
