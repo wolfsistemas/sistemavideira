@@ -8,9 +8,9 @@
     sistema: 'Sistema de Células - Videira',
     fornecedor: {
       nome: 'Wolf Sistemas',
-      cnpj: '[INSERIR CNPJ]',
+      cnpj: '',
       email: '[INSERIR E-MAIL DE CONTATO]',
-      cidade: '[INSERIR CIDADE/UF]',
+      cidade: 'Jataí - Goiás',
     },
   };
 
@@ -28,6 +28,10 @@
     document.querySelectorAll('[data-legal-email]').forEach(function (el) {
       el.textContent = LEGAL.fornecedor.email;
       el.setAttribute('href', 'mailto:' + LEGAL.fornecedor.email);
+    });
+    document.querySelectorAll('[data-legal-ocultar]').forEach(function (el) {
+      const v = valor(el.getAttribute('data-legal-ocultar'));
+      if (v == null || String(v).trim() === '') el.style.display = 'none';
     });
   }
 
