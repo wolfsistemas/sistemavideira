@@ -189,17 +189,38 @@
             line-height: 1.8; font-size: 1rem; color: #334155;
         }
         .biblia-placeholder { text-align: center; color: #94a3b8; margin-top: 50px; }
-        .biblia-nav-footer {
-            padding: 15px 20px; background: white; border-top: 1px solid #e2e8f0;
-            display: flex; justify-content: space-between; gap: 15px;
+        .biblia-floating-nav {
+            position: absolute; bottom: 90px; right: 20px;
+            display: flex; flex-direction: column-reverse; gap: 10px; z-index: 15;
         }
         .nav-capitulo-btn {
-            flex: 1; background: var(--primary); color: white; border: none;
-            border-radius: 40px; padding: 10px; font-size: 1rem;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: 0.2s;
+            background: rgba(96, 0, 24, 0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            color: white; border: none; border-radius: 40px; width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15); cursor: pointer; transition: all 0.2s ease; opacity: 0.7;
         }
-        .nav-capitulo-btn:hover { background: var(--primary-light); }
+        .nav-capitulo-btn:active { opacity: 1; background: var(--primary); transform: scale(1.05); }
+        .biblia-titulo-area { display: flex; align-items: center; gap: 10px; }
+
+        /* Botão Bíblia no cabeçalho */
+        .btn-biblia-header {
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 4px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Inter', sans-serif;
+            height: 32px;
+        }
+        .btn-biblia-header:hover { background: var(--primary); color: white; }
+        .btn-biblia-header i { font-size: 0.9rem; }
         .hidden { display: none !important; }
         .table-clean {
             width: 100%; border-collapse: collapse; background: white;
@@ -1143,6 +1164,7 @@ function capituloProximo() {
             <h3>Painel Discipulador</h3>
         </div>
         <div style="display:flex; align-items:center; gap:15px;">
+            <button class="btn-biblia-header" onclick="abrirBiblia()" title="Abrir Bíblia"><i class="fas fa-bible"></i> Bíblia</button>
             <button onclick="carregarTudo()" class="btn-refresh"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
             <button onclick="fazerLogout()" class="btn-refresh" style="color:#991b1b;"><i class="fas fa-sign-out-alt"></i></button>
         </div>
@@ -1360,7 +1382,7 @@ function capituloProximo() {
 <div id="biblia-overlay" onclick="fecharBiblia()"></div>
 <div id="painel-biblia" class="biblia-offcanvas">
     <div class="biblia-header">
-        <div><i class="fas fa-bible"></i><h2>Bíblia</h2></div>
+        <div class="biblia-titulo-area"><i class="fas fa-bible" style="font-size: 1.2rem;"></i><h2>Bíblia</h2></div>
         <button class="btn-fechar-biblia" onclick="fecharBiblia()"><i class="fas fa-times"></i></button>
     </div>
     <div class="biblia-controles">
@@ -1369,9 +1391,9 @@ function capituloProximo() {
         <select id="biblia-capitulo" onchange="Biblia.onCapituloChange()"></select>
     </div>
     <div id="biblia-conteudo" class="biblia-texto-area"><p class="biblia-placeholder">Selecione livro e capítulo</p></div>
-    <div class="biblia-nav-footer">
-        <button class="nav-capitulo-btn" onclick="capituloAnterior()"><i class="fas fa-chevron-left"></i> Anterior</button>
-        <button class="nav-capitulo-btn" onclick="capituloProximo()">Próximo <i class="fas fa-chevron-right"></i></button>
+    <div class="biblia-floating-nav">
+        <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior"><i class="fas fa-chevron-left"></i></button>
+        <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo"><i class="fas fa-chevron-right"></i></button>
     </div>
 </div>
 
