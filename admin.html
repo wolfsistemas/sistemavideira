@@ -786,7 +786,11 @@
             set('planoValorAnual', formatarValorPlano(p.valor_anual));
             set('planoMetodo', METODO_LABELS[p.metodo] || '');
             let venc = '';
-            if (p.modalidade === 'anual') venc = p.acesso_ate ? ('Acesso até ' + formatarDataBR(p.acesso_ate)) : '';
+            if (p.acesso_ate) {
+               const iso = String(p.acesso_ate).slice(0, 10);
+               const vencido = /^\d{4}-\d{2}-\d{2}$/.test(iso) && iso < new Date().toISOString().slice(0, 10);
+               venc = (vencido ? 'Acesso vencido em ' : 'Acesso até ') + formatarDataBR(p.acesso_ate);
+            }
             else if (p.proximo_vencimento) venc = formatarDataBR(p.proximo_vencimento);
             else if (p.dia_vencimento) venc = 'Dia ' + p.dia_vencimento;
             set('planoVencimento', venc);

@@ -428,6 +428,16 @@
                 </div>
               </div>
 
+              <div class="cfg-row">
+                <div>
+                  <label>Acesso até (vencimento)</label>
+                  <input type="date" id="piPlanoAcessoAte">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                  <small style="color:#6b7280; font-size:0.72rem; line-height:1.3;">Deixe em branco para valer a Situação. Data futura libera; data vencida bloqueia (isento nunca bloqueia).</small>
+                </div>
+              </div>
+
               <label>Observação</label>
               <input type="text" id="piPlanoObs" maxlength="200" placeholder="Opcional" autocomplete="off">
 
@@ -670,6 +680,7 @@
           set('piPlanoDia', (p.dia_vencimento === null || p.dia_vencimento === undefined) ? '' : p.dia_vencimento);
           set('piPlanoInicio', piDataIso(p.inicio));
           set('piPlanoTrial', piDataIso(p.trial_fim));
+          set('piPlanoAcessoAte', piDataIso(p.acesso_ate));
           set('piPlanoObs', p.observacao || '');
           if (status) status.innerHTML = '';
         } catch (e) {
@@ -684,6 +695,11 @@
         const status = document.getElementById('piPlanoStatusMsg');
         const valorRaw = (document.getElementById('piPlanoValor').value || '').trim();
         const diaRaw = (document.getElementById('piPlanoDia').value || '').trim();
+        const acessoRaw = (document.getElementById('piPlanoAcessoAte').value || '').trim();
+
+        if (acessoRaw && !/^\d{4}-\d{2}-\d{2}$/.test(acessoRaw)) {
+          UI.toast('Data de acesso inválida.', { tipo: 'aviso' }); return;
+        }
 
         if (diaRaw) {
           const d = parseInt(diaRaw, 10);
@@ -702,6 +718,7 @@
         cabecalho.observacao = (document.getElementById('piPlanoObs').value || '').trim();
         cabecalho.inicio = (document.getElementById('piPlanoInicio').value || '').trim() || (piPlanoOriginal.inicio || '');
         cabecalho.trial_fim = (document.getElementById('piPlanoTrial').value || '').trim() || (piPlanoOriginal.trial_fim || '');
+        cabecalho.acesso_ate = acessoRaw;
 
         if (btn) btn.disabled = true;
         if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
