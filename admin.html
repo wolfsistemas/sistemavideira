@@ -6,6 +6,7 @@
     <title>Sistema de Células - Videira</title>
     
     <script src="config.js"></script>
+    <script src="js/log-user.js"></script>
     <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/acesso.js"></script>
@@ -139,7 +140,7 @@
 
     const { data: usuario } = await supabaseTemp
         .from('pessoas')
-        .select('categoria')
+        .select('categoria, usuario')
         .eq('email', user.email)
         .single();
 
@@ -150,7 +151,7 @@
     }
 
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
-    sessionStorage.setItem('loginDigitado', user.email);
+    sessionStorage.setItem('loginDigitado', window.VideiraLog.usuarioParaLog(usuario?.usuario, user.email));
     if (window.VideiraPush) VideiraPush.ativar(supabaseTemp);
     if (window.Acesso) {
         await Acesso.carregar(supabaseTemp);
@@ -1633,12 +1634,12 @@
 
      async function registrarLogAcao(acaoRealizada) {
         const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
-        const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+        const usuarioLog = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
         const dataHoraAtual = new Date().toISOString(); // <-- PADRÃO ISO (ordenável)
         try {
             await supabaseClient.from('logs').insert([{ 
                 datahora: dataHoraAtual, 
-                usuario: userEmail, 
+                usuario: usuarioLog, 
                 nomelider: nomeReal, 
                 acao: acaoRealizada 
             }]);

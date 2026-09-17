@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/log-user.js"></script>
     <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/acesso.js"></script>
@@ -388,7 +389,7 @@
 
         const { data: pessoa } = await supabaseClient
             .from('pessoas')
-            .select('id, nome, categoria, superior_id')
+            .select('id, nome, categoria, superior_id, usuario')
             .eq('email', user.email)
             .single();
 
@@ -401,7 +402,7 @@
         sessionStorage.setItem('liderId', pessoa.id);
         sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
-        sessionStorage.setItem('loginDigitado', user.email);
+        sessionStorage.setItem('loginDigitado', window.VideiraLog.usuarioParaLog(pessoa.usuario, user.email));
         if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         await carregarTudo();
         inicializarEventos();

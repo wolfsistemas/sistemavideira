@@ -6,6 +6,7 @@
     <title>Super Admin - Videira</title>
 
     <script src="config.js"></script>
+    <script src="js/log-user.js"></script>
     <script src="js/ui.js"></script>
 
     <link rel="stylesheet" href="style.css">
@@ -570,7 +571,7 @@
 
         const { data: pessoa } = await sb
           .from('pessoas')
-          .select('nome, categoria, super_admin')
+          .select('nome, categoria, super_admin, usuario')
           .eq('email', user.email)
           .maybeSingle();
 
@@ -580,7 +581,7 @@
         }
 
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
-        sessionStorage.setItem('loginDigitado', user.email);
+        sessionStorage.setItem('loginDigitado', window.VideiraLog.usuarioParaLog(pessoa.usuario, user.email));
         document.getElementById('app').style.display = '';
         document.getElementById('nomeSuper').textContent = pessoa.nome || user.email;
         if (window.VideiraPush) VideiraPush.ativar(sb);
@@ -1274,11 +1275,11 @@
       async function piRegistrarLogAcao(acao) {
         if (!igrejaAtual) return;
         const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
-        const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+        const usuarioLog = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
         try {
           await sb.from('superadmin_logs').insert([{
             datahora: new Date().toISOString(),
-            usuario: userEmail,
+            usuario: usuarioLog, 
             nomelider: nomeReal,
             acao: acao,
             igreja_id: igrejaAtual.id

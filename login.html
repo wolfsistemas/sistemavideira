@@ -73,6 +73,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+    <script src="js/log-user.js"></script>
     <script src="js/ui.js"></script>
   
     <style>
@@ -308,7 +309,7 @@
         
             const { data: pessoa } = await supabaseClient
                 .from('pessoas')
-                .select('nome, categoria, super_admin')
+                .select('nome, categoria, super_admin, usuario')
                 .eq('email', emailParaLogin)
                 .maybeSingle();
 
@@ -322,20 +323,21 @@
 
             const nomeReal = pessoa.nome;
             const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+            const usuarioLogin = window.VideiraLog.usuarioParaLog(pessoa.usuario, emailParaLogin);
 
             if (pessoa.super_admin === true) {
-                registrarLog(entrada, nomeReal, "Fez login (super admin)");
-                gravarSessaoLocal(nomeReal, emailParaLogin, 'superadmin', ['superadmin']);
+                registrarLog(usuarioLogin, nomeReal, "Fez login (super admin)");
+                gravarSessaoLocal(nomeReal, usuarioLogin, 'superadmin', ['superadmin']);
                 window.location.href = 'superadmin.html';
                 return;
             }
 
             if (categoriaNormalizada !== 'administrador') {
-                registrarLog(entrada, nomeReal, "Fez login no sistema");
+                registrarLog(usuarioLogin, nomeReal, "Fez login no sistema");
             }
 
             const paginas = paginasPorCategoria(categoriaNormalizada);
-            gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
+            gravarSessaoLocal(nomeReal, usuarioLogin, categoriaNormalizada, paginas);
             if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
             aplicarSaudacao(nomeReal);
 
@@ -384,9 +386,9 @@
             return [{ nome: "Área do Membro", url: "membro" }];
         }
 
-        function gravarSessaoLocal(nomeReal, email, categoria, paginas) {
+        function gravarSessaoLocal(nomeReal, usuarioLogin, categoria, paginas) {
             sessionStorage.setItem('usuarioLogado', nomeReal);
-            sessionStorage.setItem('loginDigitado', email);
+            sessionStorage.setItem('loginDigitado', usuarioLogin);
             sessionStorage.setItem('urlApi', urlBackend);
             sessionStorage.setItem('categoria', categoria);
             sessionStorage.setItem('paginasPermitidas', JSON.stringify(paginas.map(p => p.url)));
@@ -473,7 +475,7 @@
 
                 const { data: pessoa } = await supabaseClient
                     .from('pessoas')
-                    .select('nome, categoria, super_admin')
+                    .select('nome, categoria, super_admin, usuario')
                     .eq('email', cadastro.email)
                     .maybeSingle();
 
@@ -481,10 +483,11 @@
 
                 const nomeReal = pessoa.nome;
                 const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+                const usuarioLogin = window.VideiraLog.usuarioParaLog(pessoa.usuario, cadastro.email);
 
                 if (pessoa.super_admin === true) {
-                    registrarLog(cadastro.email, nomeReal, "Fez login (super admin)");
-                    gravarSessaoLocal(nomeReal, cadastro.email, 'superadmin', ['superadmin']);
+                    registrarLog(usuarioLogin, nomeReal, "Fez login (super admin)");
+                    gravarSessaoLocal(nomeReal, usuarioLogin, 'superadmin', ['superadmin']);
                     window.location.href = 'superadmin.html';
                     return;
                 }
@@ -492,9 +495,9 @@
                 const paginas = paginasPorCategoria(categoriaNormalizada);
 
                 if (categoriaNormalizada !== 'administrador') {
-                    registrarLog(cadastro.email, nomeReal, "Fez login com biometria");
+                    registrarLog(usuarioLogin, nomeReal, "Fez login com biometria");
                 }
-                gravarSessaoLocal(nomeReal, cadastro.email, categoriaNormalizada, paginas);
+                gravarSessaoLocal(nomeReal, usuarioLogin, categoriaNormalizada, paginas);
                 if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
                 aplicarSaudacao(nomeReal);
                 seguirParaPaineis(nomeReal, paginas);
@@ -593,7 +596,16 @@
                 if (error) throw error;
 
                 UI.toast("E-mail de recuperação enviado! Verifique sua caixa de entrada.", { tipo: 'sucesso' });
-                registrarLog(email, "Solicitou Recuperação de Senha");
+                let usuarioRec = window.VideiraLog.usuarioParaLog(null, email);
+                try {
+                    const { data: pRec } = await supabaseClient
+                        .from('pessoas')
+                        .select('usuario')
+                        .eq('email', email)
+                        .maybeSingle();
+                    if (pRec) usuarioRec = window.VideiraLog.usuarioParaLog(pRec.usuario, email);
+                } catch (_) { /* mantém fallback */ }
+                registrarLog(usuarioRec, "Solicitou Recuperação de Senha");
                 document.getElementById('rec-email').value = "";
                 mudarTela('bloco-login');
             } catch (e) {

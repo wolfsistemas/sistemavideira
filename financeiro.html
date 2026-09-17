@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="js/log-user.js"></script>
   <script src="js/push.js"></script>
 
   <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -693,7 +694,7 @@
 
     const { data: pessoa, error } = await supabaseClient
       .from('pessoas')
-      .select('categoria')
+      .select('categoria, usuario')
       .eq('email', user.email)
       .single();
 
@@ -717,7 +718,7 @@
     }
 
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
-    sessionStorage.setItem('loginDigitado', user.email);
+    sessionStorage.setItem('loginDigitado', window.VideiraLog.usuarioParaLog(pessoa.usuario, user.email));
     sessionStorage.setItem('categoria', cat);
     if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
 
@@ -1277,13 +1278,13 @@
   // ==========================================
   async function registrarLogAcao(acaoRealizada) {
     const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
-    const user = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+    const usuarioLog = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
     const dataHoraAtual = new Date().toISOString();
 
     try {
       await supabaseClient.from('logs').insert([{
         datahora: dataHoraAtual,
-        usuario: user,
+        usuario: usuarioLog,
         nomelider: nomeReal,
         acao: acaoRealizada
       }]);
