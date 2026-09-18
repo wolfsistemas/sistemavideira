@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Névoa | Gestão de Igreja em Células</title>
+    <meta name="description" content="Sistema sob demanda para igrejas em células: membros, líderes, discipulado, presença, agenda e Bíblia. Adaptamos para a sua igreja.">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --wine: #600018;
+            --wine-deep: #3a0010;
+            --wine-soft: #7a0020;
+            --gold: #d4af37;
+            --gold-soft: #f1d789;
+            --cream: #f6efe4;
+            --ink: #14080c;
+            --paper: #fffaf3;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0c0709;
+            color: #f7f1e8;
+            overflow-x: hidden;
+        }
+        a { text-decoration: none; color: inherit; }
+        .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+        .bg {
+            position: fixed; inset: 0; z-index: -2;
+            background:
+                radial-gradient(900px 500px at 10% -10%, rgba(96,0,24,.55), transparent 60%),
+                radial-gradient(700px 420px at 90% 10%, rgba(212,175,55,.12), transparent 55%),
+                #0c0709;
+        }
+        .vine {
+            position: fixed; inset: auto -80px -120px auto; width: 520px; height: 520px;
+            background: radial-gradient(circle, rgba(212,175,55,.08), transparent 70%);
+            filter: blur(10px); z-index: -1; pointer-events: none;
+        }
+
+        header.nav {
+            position: sticky; top: 0; z-index: 40;
+            backdrop-filter: blur(16px);
+            background: rgba(12,7,9,.72);
+            border-bottom: 1px solid rgba(212,175,55,.18);
+        }
+        .nav-in {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 0; gap: 16px;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand img { width: 46px; height: 46px; border-radius: 14px; object-fit: cover; border: 1px solid var(--gold); }
+        .brand b { font-family: 'Cormorant Garamond', serif; font-size: 1.45rem; letter-spacing: .4px; }
+        .brand span { display: block; font-size: .68rem; color: var(--gold-soft); letter-spacing: .18em; text-transform: uppercase; }
+        .nav-links { display: flex; gap: 22px; align-items: center; font-size: .9rem; color: #e8d9c4; }
+        .nav-links a:hover { color: var(--gold); }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            border-radius: 999px; padding: 12px 22px; font-weight: 700; border: 0; cursor: pointer;
+            transition: .2s transform, .2s background;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-gold { background: linear-gradient(135deg, #f3d57a, #d4af37); color: #3a0010; }
+        .btn-ghost { border: 1px solid rgba(212,175,55,.5); color: var(--gold-soft); background: transparent; }
+        .btn-wine { background: linear-gradient(135deg, #8a102c, #600018); color: #fff; }
+
+        .hero { padding: 56px 0 28px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+        .kicker {
+            color: var(--gold); letter-spacing: .22em; text-transform: uppercase;
+            font-size: .74rem; font-weight: 700; margin-bottom: 14px;
+        }
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2.6rem, 5vw, 4.4rem);
+            line-height: .95; font-weight: 600; margin-bottom: 18px;
+        }
+        h1 em { font-style: italic; color: var(--gold-soft); }
+        .lede { color: #d8c7b3; font-size: 1.08rem; line-height: 1.7; max-width: 520px; margin-bottom: 28px; }
+        .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+        .mini { color: #b9a490; font-size: .82rem; }
+
+        .phone-stage { position: relative; min-height: 620px; }
+        .glow {
+            position: absolute; inset: 40px 40px auto; height: 280px;
+            background: radial-gradient(circle, rgba(212,175,55,.22), transparent 70%);
+            filter: blur(20px);
+        }
+        .phone {
+            width: 310px; height: 640px; margin: 0 auto; position: relative;
+            background: #111; border-radius: 42px; padding: 12px;
+            box-shadow: 0 40px 80px rgba(0,0,0,.45), inset 0 0 0 2px #2a1a16;
+        }
+        .phone-notch {
+            position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+            width: 92px; height: 16px; background: #0b0b0b; border-radius: 20px; z-index: 3;
+        }
+        .screen {
+            height: 100%; border-radius: 32px; overflow: hidden;
+            background: #f4f7f6; color: #1e293b; position: relative;
+            font-size: 12px;
+        }
+        .slides { height: 100%; }
+        .slide { display: none; height: 100%; }
+        .slide.on { display: flex; flex-direction: column; }
+
+        .ui-head {
+            background: #fff; padding: 22px 14px 12px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+        .ui-head strong { color: var(--wine); font-size: 12px; }
+        .ui-logo { width: 28px; height: 28px; border-radius: 50%; }
+        .ui-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; }
+        .ui-nav span, .chip {
+            background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center;
+            font-size: 8px; font-weight: 700; color: #64748b; box-shadow: 0 2px 5px rgba(0,0,0,.04);
+        }
+        .ui-nav span i { display: block; font-size: 12px; margin-bottom: 3px; }
+        .ui-nav .on { background: var(--wine); color: #fff; }
+        .kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 10px; }
+        .kpi b { display: block; font-size: 16px; color: #1e293b; }
+        .kpi div { background: #fff; border-left: 4px solid var(--wine); border-radius: 12px; padding: 10px; }
+        .kpi small { color: #64748b; text-transform: uppercase; letter-spacing: .04em; font-size: 8px; }
+        .mcard, .ccard, .wcard, .lcard {
+            background: #fff; margin: 0 10px 8px; border-radius: 14px; padding: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,.04);
+        }
+        .ccard { background: #fef9e8; border-left: 4px solid var(--wine); display: flex; justify-content: space-between; align-items: center; }
+        .name-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+        .badge { font-size: 8px; padding: 2px 6px; border-radius: 6px; background: rgba(212,175,55,.18); color: #b58900; border: 1px solid #d4af37; }
+        .pills { display: flex; gap: 4px; margin-top: 6px; overflow: hidden; }
+        .pill { font-size: 7px; background: #f1f5f9; color: #94a3b8; padding: 2px 5px; border-radius: 6px; font-weight: 700; }
+        .pill.ok { background: #d1e7dd; color: #0f5132; }
+        .bottom {
+            margin-top: auto; background: #fff; display: grid; grid-template-columns: repeat(4, 1fr);
+            padding: 8px 0 14px; box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+        }
+        .bottom span { text-align: center; font-size: 8px; color: #718096; font-weight: 700; }
+        .bottom span i { display: block; font-size: 13px; margin-bottom: 2px; }
+        .bottom .on { color: var(--wine); }
+        .login-card { margin: auto 18px; background: #fff; border-radius: 18px; padding: 22px 18px; text-align: center; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
+        .login-card img { width: 72px; margin-bottom: 8px; }
+        .login-card h4 { color: var(--wine); margin-bottom: 4px; }
+        .fake-in { height: 32px; background: #f7fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; margin: 8px 0; }
+        .fake-btn { background: var(--wine); color: #fff; border-radius: 10px; padding: 10px; font-weight: 700; margin-top: 8px; }
+        .verse { padding: 14px; font-size: 12px; line-height: 1.7; color: #334155; }
+        .verse b { color: var(--wine); }
+        .fin { background: #f8f9fa; }
+        .fin .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; }
+        .fbox { background: #fff; border-radius: 10px; padding: 10px; }
+        .fbox.b { border-left: 4px solid var(--wine); }
+        .fbox.g { border-left: 4px solid #1e8e3e; }
+        .fbox.r { border-left: 4px solid #c5221f; }
+        .bars { display: flex; align-items: flex-end; gap: 8px; height: 90px; padding: 10px 14px 18px; }
+        .bars i { display: block; width: 18px; border-radius: 4px 4px 0 0; }
+        .bars .in { background: #1e8e3e; }
+        .bars .out { background: #c5221f; }
+
+        .dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+        .dots button {
+            width: 8px; height: 8px; border-radius: 50%; border: 0; background: #5a3a3a; cursor: pointer;
+        }
+        .dots button.on { background: var(--gold); width: 22px; border-radius: 8px; }
+        .cap {
+            text-align: center; margin-top: 14px; color: #e6d5bf;
+        }
+        .cap strong { display: block; font-size: 1.05rem; }
+        .cap span { color: #b9a490; font-size: .88rem; }
+
+        .strip {
+            margin: 28px 0 10px; border: 1px solid rgba(212,175,55,.2);
+            background: linear-gradient(90deg, rgba(96,0,24,.35), rgba(20,8,12,.4));
+            border-radius: 22px; display: grid; grid-template-columns: repeat(4, 1fr);
+            overflow: hidden;
+        }
+        .strip div { padding: 22px 10px; text-align: center; border-right: 1px solid rgba(212,175,55,.12); }
+        .strip div:last-child { border: 0; }
+        .strip b { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: var(--gold); }
+        .strip span { font-size: .78rem; color: #d8c7b3; }
+
+        section { padding: 72px 0; }
+        h2 {
+            font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem);
+            text-align: center; margin-bottom: 12px;
+        }
+        .sub { text-align: center; color: #cbb9a4; max-width: 640px; margin: 0 auto 40px; }
+
+        .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .feat {
+            background: rgba(255,250,243,.04); border: 1px solid rgba(212,175,55,.16);
+            border-radius: 22px; padding: 24px; min-height: 180px;
+        }
+        .feat i { color: var(--gold); font-size: 1.3rem; margin-bottom: 12px; }
+        .feat h3 { font-size: 1.05rem; margin-bottom: 8px; }
+        .feat p { color: #cbb9a4; font-size: .9rem; line-height: 1.55; }
+
+        .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .role {
+            background: linear-gradient(180deg, rgba(96,0,24,.35), rgba(12,7,9,.2));
+            border: 1px solid rgba(212,175,55,.2); border-radius: 22px; padding: 22px;
+        }
+        .role h3 { margin: 10px 0 8px; }
+        .role p { color: #cbb9a4; font-size: .86rem; line-height: 1.5; }
+        .role i { color: var(--gold); }
+
+        .path { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .step { position: relative; padding: 8px 8px 8px 0; }
+        .num {
+            width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+            background: var(--wine); color: var(--gold); font-weight: 800; margin-bottom: 12px;
+            border: 1px solid var(--gold);
+        }
+        .step h3 { margin-bottom: 6px; }
+        .step p { color: #cbb9a4; font-size: .9rem; }
+
+        .cta-box {
+            text-align: center; padding: 56px 24px; border-radius: 32px;
+            background:
+                radial-gradient(600px 200px at 50% 0%, rgba(212,175,55,.18), transparent 60%),
+                linear-gradient(180deg, #3a0010, #16060a);
+            border: 1px solid rgba(212,175,55,.28);
+        }
+        .cta-box h2 { margin-bottom: 10px; }
+        .cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+
+        footer {
+            border-top: 1px solid rgba(212,175,55,.15);
+            padding: 28px 0 40px; color: #b9a490; font-size: .85rem;
+            display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+
+        @media (max-width: 980px) {
+            .hero, .features, .roles, .path, .strip { grid-template-columns: 1fr 1fr; }
+            .hero { display: flex; flex-direction: column; text-align: center; }
+            .lede { margin-inline: auto; }
+            .hero-cta, .nav-links { justify-content: center; }
+            .nav-in { flex-direction: column; }
+        }
+        @media (max-width: 640px) {
+            .features, .roles, .path, .strip { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+            .phone { transform: scale(.92); transform-origin: top center; }
+            .phone-stage { min-height: 660px; }
+        }
+    </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="vine"></div>
+
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="index.html">
+            <img src="logo-nevoa.webp" alt="Névoa">
+            <div>
+                <b>Névoa</b>
+                <span>Gestão de Igreja em Células</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a href="#recursos">Recursos</a>
+            <a href="#papeis">Painéis</a>
+            <a href="#como">Como funciona</a>
+            <a href="index.html">Wolf Saas</a>
+            <a class="btn btn-gold" href="https://wa.me/5564984395432?text=Quero%20o%20Sistema%20Videira%20para%20minha%20igreja" target="_blank" rel="noopener">Pedir orçamento</a>
+        </nav>
+    </div>
+</header>
+
+<main class="wrap">
+    <section class="hero" id="topo">
+        <div>
+            <p class="kicker">Sob demanda para a sua igreja</p>
+            <h1>A rede de células inteira, <em>no bolso do líder.</em></h1>
+            <p class="lede">Membros, presença, discipulado, agenda e Bíblia. Um sistema já usado no modelo de igreja em células, adaptado para a realidade da sua igreja.</p>
+            <div class="hero-cta">
+                <a class="btn btn-gold" href="https://wa.me/5564984395432?text=Quero%20o%20Sistema%20Videira%20para%20minha%20igreja" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Quero na minha igreja</a>
+                <a class="btn btn-ghost" href="https://wolfsaas.com.br/sistemavideira/" target="_blank" rel="noopener">Ver o sistema</a>
+            </div>
+            <p class="mini">Implantação sob consulta · PWA no celular · Painéis por cargo</p>
+        </div>
+        <div class="phone-stage">
+            <div class="glow"></div>
+            <div class="phone">
+                <div class="phone-notch"></div>
+                <div class="screen">
+                    <div class="slides" id="slides">
+                        <article class="slide on" data-cap="Login biométrico" data-sub="Entrada rápida no celular, com senha de 6 dígitos ou biometria.">
+                            <div class="login-card">
+                                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="">
+                                <h4>Bem-vindo(a)</h4>
+                                <p style="color:#718096;font-size:10px;margin-bottom:10px;">Sistema de Células · Jovens e Adultos</p>
+                                <div class="fake-in"></div>
+                                <div class="fake-in"></div>
+                                <div class="fake-btn">Entrar no Sistema</div>
+                                <div class="fake-btn" style="background:#fff;color:#600018;border:1.5px solid #600018;margin-top:6px;">Entrar com Biometria</div>
+                            </div>
+                        </article>
+
+                        <article class="slide" data-cap="Painel pastoral" data-sub="Visão da igreja: membros, células, batismo, CTL, encontro e seminário.">
+                            <div class="ui-head">
+                                <strong>PAINEL PASTORAL</strong>
+                                <i class="fas fa-sync-alt" style="color:#94a3b8"></i>
+                            </div>
+                            <div class="ui-nav">
+                                <span class="on"><i class="fas fa-users"></i>Membros</span>
+                                <span><i class="fas fa-house-user"></i>Células</span>
+                                <span><i class="fas fa-clipboard"></i>Relatórios</span>
+                                <span><i class="fas fa-chart-pie"></i>Igreja</span>
+                            </div>
+                            <div class="kpi">
+                                <div><small>Membros</small><b>186</b></div>
+                                <div><small>Células</small><b>24</b></div>
+                            </div>
+                            <div class="mcard">
+                                <div class="name-row">Ana Clara Souza <span class="badge">Líder</span></div>
+                                <div style="color:#64748b;margin-top:3px;"><i class="fas fa-users"></i> Célula Esperança</div>
+                                <div class="pills">
+                                    <span class="pill ok">Batismo</span>
+                                    <span class="pill ok">Cursão</span>
+                                    <span class="pill ok">CTL</span>
+                                    <span class="pill">Encontro</span>
+                                </div>
+                            </div>
+                            <div class="mcard">
+                                <div class="name-row">Pedro Henrique <span class="badge" style="background:#e2e8f0;color:#555;border-color:#cbd5e1;">Membro</span></div>
+                                <div style="color:#64748b;margin-top:3px;"><i class="fas fa-users"></i> Célula Vitória</div>
+                                <div class="pills">
+                                    <span class="pill ok">Batismo</span>
+                                    <span class="pill">Cursão</span>
+                                    <span class="pill">CTL</span>
+                                    <span class="pill ok">Seminário</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="slide" data-cap="Rede de células" data-sub="Líder, anfitrião, colíder e supervisor. A rede cabe numa tela.">
+                            <div class="ui-head"><strong>REDE DE CÉLULAS</strong><span style="background:#600018;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;">24</span></div>
+                            <div class="ccard">
+                                <div>
+                                    <div style="font-weight:800;">Célula Esperança</div>
+                                    <div style="color:#92400e;font-size:10px;margin-top:3px;">Líder: Ana Clara<br>Anfitrião: Família Souza</div>
+                                </div>
+                                <span style="background:#600018;color:#fff;border-radius:20px;padding:4px 8px;">12</span>
+                            </div>
+                            <div class="ccard">
+                                <div>
+                                    <div style="font-weight:800;">Célula Vitória</div>
+                                    <div style="color:#92400e;font-size:10px;margin-top:3px;">Líder: Rafael Lima<br>Anfitrião: Casa do João</div>
+                                </div>
+                                <span style="background:#600018;color:#fff;border-radius:20px;padding:4px 8px;">9</span>
+                            </div>
+                            <div class="ccard">
+                                <div>
+                                    <div style="font-weight:800;">Célula Jovens</div>
+                                    <div style="color:#92400e;font-size:10px;margin-top:3px;">Líder: Marina Alves<br>Colíder em treino: Lucas</div>
+                                </div>
+                                <span style="background:#600018;color:#fff;border-radius:20px;padding:4px 8px;">15</span>
+                            </div>
+                        </article>
+
+                        <article class="slide" data-cap="Relatório de célula" data-sub="Presença, quebra-gelo, palavra, louvor e faltosos dos últimos 30 dias.">
+                            <div class="ui-head"><strong>RELATÓRIO · ESPERANÇA</strong></div>
+                            <div class="mcard">
+                                <div style="font-weight:800;margin-bottom:8px;">18/09 · 12 presentes</div>
+                                <label style="display:flex;gap:6px;margin-bottom:5px;"><input type="checkbox" checked disabled> Ana Clara</label>
+                                <label style="display:flex;gap:6px;margin-bottom:5px;"><input type="checkbox" checked disabled> Bruno Dias</label>
+                                <label style="display:flex;gap:6px;margin-bottom:5px;"><input type="checkbox" disabled> Carla Nunes</label>
+                                <label style="display:flex;gap:6px;"><input type="checkbox" checked disabled> Diego Martins</label>
+                            </div>
+                            <div class="wcard" style="border-left:4px solid #d4af37;">
+                                <div style="font-weight:800;color:#b58900;">Apascentar</div>
+                                <div style="font-size:11px;color:#64748b;margin-top:4px;">Faltosos 30 dias: Carla Nunes · 2 faltas</div>
+                            </div>
+                        </article>
+
+                        <article class="slide" data-cap="Bíblia e palavras" data-sub="Bíblia, agenda e estudos no mesmo app, para o encontro e o culto.">
+                            <div class="ui-head">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <img class="ui-logo" src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="">
+                                    <strong>Névoa</strong>
+                                </div>
+                            </div>
+                            <div style="text-align:center;padding:10px 10px 0;color:#600018;font-weight:800;">Olá, Marina</div>
+                            <div class="mcard" style="display:flex;gap:6px;align-items:center;">
+                                <span class="badge">NVI</span>
+                                <span style="font-size:11px;color:#64748b;">João 15</span>
+                            </div>
+                            <div class="verse">
+                                <b>1</b> Eu sou a videira verdadeira, e meu Pai é o agricultor.<br>
+                                <b>5</b> Eu sou a videira; vocês são os ramos. Quem permanece em mim dá muito fruto.
+                            </div>
+                            <div class="bottom">
+                                <span class="on"><i class="fas fa-bible"></i>Bíblia</span>
+                                <span><i class="far fa-calendar-alt"></i>Agenda</span>
+                                <span><i class="fas fa-comment-dots"></i>Palavras</span>
+                                <span><i class="fas fa-users"></i>Célula</span>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+            <div class="dots" id="dots"></div>
+            <p class="cap" id="cap"><strong></strong><span></span></p>
+        </div>
+    </section>
+
+    <div class="strip">
+         <div><b>4</b><span>painéis por cargo</span></div>
+         <div><b>PWA</b><span>app na tela inicial</span></div>
+         <div><b>Rede</b><span>células no celular</span></div>
+         <div><b>LGPD</b><span>dados da igreja isolados</span></div>
+    </div>
+
+    <section id="recursos">
+        <h2>Feito para o ritmo da célula</h2>
+        <p class="sub">Não é um ERP genérico. É o dia a dia pastoral: quem veio, quem faltou e quem está no caminho.</p>
+        <div class="features">
+            <article class="feat"><i class="fas fa-users"></i><h3>Membros e caminho espiritual</h3><p>Ficha completa com batismo, cursão, CTL, encontro e seminário. Arquiva, reativa e fala no WhatsApp em um toque.</p></article>
+            <article class="feat"><i class="fas fa-house-chimney"></i><h3>Rede de células</h3><p>Líder, colíder em treino, anfitrião e supervisor. A pastoral enxerga a rede inteira; o líder cuida só da sua casa.</p></article>
+            <article class="feat"><i class="fas fa-clipboard-check"></i><h3>Relatório de presença</h3><p>Checklist da reunião, palavra, louvor, lanche e observações. O pastor vê faltosos dos últimos 30 dias e apascenta.</p></article>
+            <article class="feat"><i class="fas fa-bible"></i><h3>Bíblia no app</h3><p>NVI, ARA, ACF, NTLH e A Mensagem. O líder abre no encontro sem trocar de aplicativo.</p></article>
+            <article class="feat"><i class="fas fa-calendar-alt"></i><h3>Agenda e palavras</h3><p>Cultos, células e eventos. Estudos com link do YouTube e download para o líder preparar a casa.</p></article>
+            <article class="feat"><i class="fas fa-sitemap"></i><h3>Hierarquia da rede</h3><p>Pastor de governo, pastor de rede, discipulador e líder. Cada um vê só o nível que lhe cabe.</p></article>
+            <article class="feat"><i class="fas fa-fingerprint"></i><h3>Login no celular</h3><p>Senha de 6 dígitos, biometria e PWA. O líder entra no intervalo do culto, sem instalar loja de aplicativos.</p></article>
+            <article class="feat"><i class="fas fa-bell"></i><h3>Push e papéis</h3><p>Aviso no aparelho. Cada cargo vê só o que lhe cabe: pastor de governo, pastor de rede, discipulador e líder.</p></article>
+            <article class="feat"><i class="fas fa-ticket"></i><h3>Inscrição em eventos</h3><p>Formulário da igreja, lista e controle de quem confirmou. Serve para encontros, conferências e retiros.</p></article>
+        </div>
+    </section>
+
+    <section id="papeis">
+        <h2>Um sistema, vários olhares</h2>
+        <p class="sub">Ninguém vê tudo. Cada pessoa entra no painel do próprio chamado.</p>
+        <div class="roles">
+            <article class="role"><i class="fas fa-cross"></i><h3>Pastor de Governo</h3><p>Igreja inteira, estatísticas, todas as redes, relatórios, agenda e palavras.</p></article>
+            <article class="role"><i class="fas fa-network-wired"></i><h3>Pastor de Rede</h3><p>As células da sua rede, líderes, relatórios e o cuidado pastoral do grupo.</p></article>
+            <article class="role"><i class="fas fa-hands-praying"></i><h3>Discipulador</h3><p>Os líderes que discipula, acompanhamento da casa e da vida espiritual.</p></article>
+            <article class="role"><i class="fas fa-people-group"></i><h3>Líder</h3><p>Sua Célula, membros, presença, relatórios prático direto no app e Multiplicação.</p></article>
+        </div>
+    </section>
+
+    <section id="como">
+        <h2>Como implantamos na sua igreja</h2>
+        <p class="sub">O Videira já existe. A gente replica, coloca a identidade da sua igreja e treina a liderança.</p>
+        <div class="path">
+            <div class="step"><div class="num">1</div><h3>Conversa</h3><p>Entendemos tamanho da rede, cargos e o que precisa nascer no primeiro mês.</p></div>
+            <div class="step"><div class="num">2</div><h3>Identidade</h3><p>Logo, cores, células e papéis. Cada igreja com os próprios dados.</p></div>
+            <div class="step"><div class="num">3</div><h3>Base</h3><p>Importamos membros ou cadastramos juntos. Líderes já entram pelo celular.</p></div>
+            <div class="step"><div class="num">4</div><h3>Cuidado</h3><p>Treinamento e suporte em português. O sistema cresce com a sua rede.</p></div>
+        </div>
+    </section>
+
+    <section>
+        <div class="cta-box">
+            <p class="kicker">Sob consulta</p>
+            <h2>Sua igreja no mesmo ritmo da Videira</h2>
+            <p class="sub" style="margin-bottom:0;">Não é plano mensal de prateleira. É implantação sob demanda, com o sistema que a liderança já usa de verdade.</p>
+            <div class="cta-actions">
+                <a class="btn btn-gold" href="https://wa.me/5564984395432?text=Quero%20o%20Sistema%20Videira%20para%20minha%20igreja" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Falar com Maicon</a>
+                <a class="btn btn-ghost" href="https://wolfsaas.com.br/sistemavideira/" target="_blank" rel="noopener">Abrir o sistema atual</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+         <span>© 2026 Wolf Sistemas · Névoa</span>
+        <span><a href="index.html">Voltar ao site</a> · (64) 98439-5432</span>
+    </footer>
+</main>
+
+<script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const dots = document.getElementById('dots');
+    const cap = document.getElementById('cap');
+    let i = 0, timer;
+    slides.forEach((_, n) => {
+        const b = document.createElement('button');
+        b.addEventListener('click', () => show(n, true));
+        dots.appendChild(b);
+    });
+    function show(n, stop) {
+        i = (n + slides.length) % slides.length;
+        slides.forEach((s, k) => s.classList.toggle('on', k === i));
+        [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
+        cap.querySelector('strong').textContent = slides[i].dataset.cap;
+        cap.querySelector('span').textContent = slides[i].dataset.sub;
+        if (stop) play();
+    }
+    function play() {
+        clearInterval(timer);
+        timer = setInterval(() => show(i + 1), 3800);
+    }
+    show(0);
+    play();
+</script>
+</body>
+</html>
